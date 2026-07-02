@@ -111,23 +111,23 @@ void AFPSPlayerController::SetupInputComponent()
 
 void AFPSPlayerController::MoveInput(const FInputActionValue& Value)
 {
-	//FString DebugMessage = FString::Printf(TEXT("MoveInput() from FPSPlayerController | %s"), *(Value.Get<FVector2D>()).ToString());
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, DebugMessage);
+	FString DebugMessage = FString::Printf(TEXT("MoveInput() from FPSPlayerController | %s"), *(Value.Get<FVector2D>()).ToString());
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, DebugMessage);
 }
 
 void AFPSPlayerController::LookInput(const FInputActionValue& Value)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("LookInput() from FPSPlayerController."));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("LookInput() from FPSPlayerController."));
 }
 
 void AFPSPlayerController::JumpInput(const FInputActionValue& Value)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("JumpInput() from FPSPlayerController."));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("JumpInput() from FPSPlayerController."));
 }
 
 void AFPSPlayerController::PrimaryFireInput(const FInputActionValue& Value)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInput() from FPSPlayerController."));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInput() from FPSPlayerController."));
 }
 
 #pragma endregion
