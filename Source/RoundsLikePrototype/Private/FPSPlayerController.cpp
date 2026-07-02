@@ -9,36 +9,36 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerStart.h"
 #include "FPSCharacter.h"
+#include "EnhancedInputComponent.h"
 #include "RoundsLikePrototype.h"
 
 void AFPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// only spawn touch controls on local player controllers
-	if (IsLocalPlayerController())
-	{
-
-	}
+	SetupMappingContexts(); // Set up Mapping Contexts
 }
 
-void AFPSPlayerController::SetupInputComponent()
+void AFPSPlayerController::SetupMappingContexts()
 {
-	Super::SetupInputComponent();
-
-	// only add IMCs for local player controllers
+	// Only add IMCs for local player controllers
 	if (IsLocalPlayerController())
 	{
-		// add the input mapping contexts
+		// Add Input Mapping Contexts
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
-			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
+			Subsystem->ClearAllMappings();
+
+			// Add all default contexts to the local player enhanced input subsystem.
+			for (UInputMappingContext* CurrentContext : DefaultInputMappingContexts)
 			{
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
 		}
 	}
 }
+
+
 
 void AFPSPlayerController::OnPossess(APawn* InPawn)
 {
@@ -94,3 +94,40 @@ void AFPSPlayerController::OnPawnDamaged(float LifePercent)
 {
 
 }
+
+#pragma region Input
+void AFPSPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	if (UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::MoveInput);
+		Input->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::LookInput);
+		Input->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::JumpInput);
+		Input->BindAction(PrimaryFireAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::PrimaryFireInput);
+	}
+}
+
+void AFPSPlayerController::MoveInput(const FInputActionValue& Value)
+{
+	//FString DebugMessage = FString::Printf(TEXT("MoveInput() from FPSPlayerController | %s"), *(Value.Get<FVector2D>()).ToString());
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, DebugMessage);
+}
+
+void AFPSPlayerController::LookInput(const FInputActionValue& Value)
+{
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("LookInput() from FPSPlayerController."));
+}
+
+void AFPSPlayerController::JumpInput(const FInputActionValue& Value)
+{
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("JumpInput() from FPSPlayerController."));
+}
+
+void AFPSPlayerController::PrimaryFireInput(const FInputActionValue& Value)
+{
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInput() from FPSPlayerController."));
+}
+
+#pragma endregion

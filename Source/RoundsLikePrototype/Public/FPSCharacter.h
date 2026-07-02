@@ -31,14 +31,6 @@ class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ARoundsLikePrototypeCharact
 
 protected:
 
-	/** Fire weapon input action */
-	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* FireAction;
-
-	/** Switch weapon input action */
-	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* SwitchWeaponAction;
-
 	/** Name of the first person mesh weapon socket */
 	UPROPERTY(EditAnywhere, Category = "Weapons")
 	FName FirstPersonWeaponSocket = FName("HandGrip_R");
@@ -90,15 +82,18 @@ protected:
 	/** Gameplay cleanup */
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
-	/** Set up input action bindings */
-	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
-
 public:
 
 	/** Handle incoming damage */
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 public:
+
+	//virtual void Move(Vector2D Value) override;
+
+
+
+
 
 	/** Handles aim inputs from either controls or UI interfaces */
 	virtual void DoAim(float Yaw, float Pitch) override;
