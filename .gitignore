@@ -1,6 +1,20 @@
 # Visual Studio 2015 user specific files
 .vs/
 
+# Asset Formats
+*.tga
+*.targa
+*.png
+*.jpg
+*.fbx
+*.glb
+*.usd
+*.gltf
+*.obj
+*.wav
+*.mp3
+
+
 # Compiled Object files
 *.slo
 *.lo
@@ -52,6 +66,8 @@ Plugins/**/Binaries/*
 
 # Builds
 Build/*
+Builds/*
+Shipping/*
 
 # Whitelist PakBlacklist-<BuildConfiguration>.txt files
 !Build/*/
