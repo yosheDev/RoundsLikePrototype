@@ -7,6 +7,7 @@
 #include "Components/InputComponent.h"
 #include "Components/PawnNoiseEmitterComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "Camera/CameraComponent.h"
@@ -15,12 +16,19 @@
 AFPSCharacter::AFPSCharacter()
 {
 	#pragma region Construct Camera
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->TargetArmLength = 0.0f;
+	SpringArm->bUsePawnControlRotation = true;
+	SpringArm->bDoCollisionTest = false;
+
 	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-	FirstPersonCamera->bUsePawnControlRotation = true;
+	FirstPersonCamera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	FirstPersonCamera->bUsePawnControlRotation = false;
 	#pragma endregion
 
 	// create the noise emitter component
-	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("Pawn Noise Emitter"));
+	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("PawnNoiseEmitter"));
 
 	// configure movement
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 600.0f, 0.0f);

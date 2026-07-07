@@ -116,19 +116,17 @@ void AFPSPlayerController::LookInput(const FInputActionValue& Value)
 
 void AFPSPlayerController::JumpInputStarted(const FInputActionValue& Value)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("JumpInput() from FPSPlayerController."));
 	PlayerCharacter->JumpStart();
 }
 
 void AFPSPlayerController::JumpInputCompleted(const FInputActionValue& Value)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("JumpInput() from FPSPlayerController."));
 	PlayerCharacter->JumpEnd();
 }
 
 void AFPSPlayerController::PrimaryFireInput(const FInputActionValue& Value)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInput() from FPSPlayerController."));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInput() from FPSPlayerController."));
 }
 
 #pragma endregion

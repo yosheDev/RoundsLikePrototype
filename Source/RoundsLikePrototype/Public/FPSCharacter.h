@@ -12,6 +12,7 @@ class UInputAction;
 class UInputComponent;
 class UPawnNoiseEmitterComponent;
 class UCameraComponent;
+class USpringArmComponent;
 
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FBulletCountUpdatedDelegate, int32, MagazineSize, int32, Bullets);
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent);
@@ -32,8 +33,11 @@ class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ACharacter
 
 protected:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	UCameraComponent* FirstPersonCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	USpringArmComponent* SpringArm;
 
 protected:
 
