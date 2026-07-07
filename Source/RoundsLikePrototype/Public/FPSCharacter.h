@@ -11,6 +11,7 @@ class AShooterWeapon;
 class UInputAction;
 class UInputComponent;
 class UPawnNoiseEmitterComponent;
+class UCameraComponent;
 
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FBulletCountUpdatedDelegate, int32, MagazineSize, int32, Bullets);
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent);
@@ -21,13 +22,18 @@ class UPawnNoiseEmitterComponent;
  *  Manages health and death
  */
 UCLASS(abstract)
-class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ARoundsLikePrototypeCharacter
+class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
 	/** AI Noise emitter component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UPawnNoiseEmitterComponent* PawnNoiseEmitter;
+
+protected:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Camera", meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* FirstPersonCamera;
 
 protected:
 
@@ -90,22 +96,20 @@ public:
 public:
 
 	//virtual void Move(Vector2D Value) override;
-
-
-
-
-
 	/** Handles aim inputs from either controls or UI interfaces */
-	virtual void DoAim(float Yaw, float Pitch) override;
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void Look(const FInputActionValue& Value);
 
 	/** Handles move inputs from either controls or UI interfaces */
-	virtual void DoMove(float Right, float Forward)  override;
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void Move(const FInputActionValue& Value);
 
 	/** Handles jump start inputs from either controls or UI interfaces */
-	virtual void DoJumpStart()  override;
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void JumpStart();
 
-	/** Handles jump end inputs from either controls or UI interfaces */
-	virtual void DoJumpEnd()  override;
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void JumpEnd();
 
 	/** Handles start firing input */
 	UFUNCTION(BlueprintCallable, Category = "Input")

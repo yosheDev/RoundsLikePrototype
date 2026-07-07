@@ -14,6 +14,11 @@
 
 AFPSCharacter::AFPSCharacter()
 {
+	#pragma region Construct Camera
+	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+	FirstPersonCamera->bUsePawnControlRotation = true;
+	#pragma endregion
+
 	// create the noise emitter component
 	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("Pawn Noise Emitter"));
 
@@ -57,39 +62,51 @@ float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageE
 	return Damage;
 }
 
-void AFPSCharacter::DoAim(float Yaw, float Pitch)
+void AFPSCharacter::Look(const FInputActionValue& Value)
 {
+	FVector2D LookVector = Value.Get<FVector2D>() * 2.0f; // Replace the constant float with look sensitivity when that value has a home.
+
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
-		Super::DoAim(Yaw, Pitch);
+		AddControllerYawInput(LookVector.X);
+
+		AddControllerPitchInput(-LookVector.Y);
 	}
 }
 
-void AFPSCharacter::DoMove(float Right, float Forward)
+void AFPSCharacter::Move(const FInputActionValue& Value)
 {
-	// only route inputs if the character is not dead
+	FVector2D MovementVector = Value.Get<FVector2D>();
+
 	if (!IsDead())
 	{
-		Super::DoMove(Right, Forward);
+		const FRotator YawRotation(0, GetControlRotation().Yaw, 0);
+
+		const FVector ForwardDirection = YawRotation.Vector();
+		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+		AddMovementInput(ForwardDirection, MovementVector.Y);
+
+		AddMovementInput(RightDirection, MovementVector.X);
 	}
 }
 
-void AFPSCharacter::DoJumpStart()
+void AFPSCharacter::JumpStart()
 {
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
-		Super::DoJumpStart();
+		Jump();
 	}
 }
 
-void AFPSCharacter::DoJumpEnd()
+void AFPSCharacter::JumpEnd()
 {
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
-		Super::DoJumpEnd();
+		StopJumping();
 	}
 }
 

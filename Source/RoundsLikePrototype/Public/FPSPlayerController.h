@@ -19,6 +19,9 @@ UCLASS(abstract, config = "Game")
 class ROUNDSLIKEPROTOTYPE_API AFPSPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+public:
+	UPROPERTY(BlueprintReadOnly, Category = "Player")
+	AFPSCharacter* PlayerCharacter;
 
 protected:
 	#pragma region Input System
@@ -47,35 +50,27 @@ protected:
 
 	#pragma endregion
 
-	/** Character class to respawn when the possessed pawn is destroyed */
-	UPROPERTY(EditAnywhere, Category = "Shooter|Respawn")
-	TSubclassOf<AFPSCharacter> CharacterClass;
-
 	/** Tag to grant the possessed pawn to flag it as the player */
-	UPROPERTY(EditAnywhere, Category = "Shooter|Player")
+	UPROPERTY(EditAnywhere, Category = "Player")
 	FName PlayerPawnTag = FName("Player");
 	
 	
 
 protected:
 	#pragma region Input Functions
-	/** Called from Input Actions for movement input */
 	virtual void MoveInput(const FInputActionValue& Value);
-
-	/** Called from Input Actions for looking input */
 	virtual void LookInput(const FInputActionValue& Value);
 
-	/** Called from Input Actions for looking input */
-	virtual void JumpInput(const FInputActionValue& Value);
+	virtual void JumpInputStarted(const FInputActionValue& Value);
+	virtual void JumpInputCompleted(const FInputActionValue& Value);
 
-	/** Called from Input Actions for looking input */
 	virtual void PrimaryFireInput(const FInputActionValue& Value);
 	#pragma endregion
 
 	/** Gameplay Initialization */
 	virtual void BeginPlay() override;
 
-	/** Pawn initialization */
+	/** Pawn Initialization */
 	virtual void OnPossess(APawn* InPawn) override;
 
 	/** Called if the possessed pawn is destroyed */

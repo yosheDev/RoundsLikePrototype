@@ -15,7 +15,7 @@
 void AFPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
+	PlayerCharacter = Cast<AFPSCharacter>(GetPawn());
 	SetupMappingContexts(); // Set up Mapping Contexts
 }
 
@@ -70,24 +70,18 @@ void AFPSPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
 		BulletCounterUI->BP_UpdateBulletCounter(0, 0);
 	}*/
 
-	// find the player start
-	TArray<AActor*> ActorList;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), ActorList);
+	//// find the player start
+	//TArray<AActor*> ActorList;
+	//UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), ActorList);
 
-	if (ActorList.Num() > 0)
-	{
-		// select a random player start
-		AActor* RandomPlayerStart = ActorList[FMath::RandRange(0, ActorList.Num() - 1)];
+	//if (ActorList.Num() > 0)
+	//{
+	//	// select a random player start
+	//	AActor* RandomPlayerStart = ActorList[FMath::RandRange(0, ActorList.Num() - 1)];
 
-		// spawn a character at the player start
-		const FTransform SpawnTransform = RandomPlayerStart->GetActorTransform();
-
-		if (AFPSCharacter* RespawnedCharacter = GetWorld()->SpawnActor<AFPSCharacter>(CharacterClass, SpawnTransform))
-		{
-			// possess the character
-			Possess(RespawnedCharacter);
-		}
-	}
+	//	// spawn a character at the player start
+	//	const FTransform SpawnTransform = RandomPlayerStart->GetActorTransform();
+	//}
 }
 
 void AFPSPlayerController::OnPawnDamaged(float LifePercent)
@@ -104,25 +98,32 @@ void AFPSPlayerController::SetupInputComponent()
 	{
 		Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::MoveInput);
 		Input->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::LookInput);
-		Input->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::JumpInput);
+		Input->BindAction(JumpAction, ETriggerEvent::Started, this, &AFPSPlayerController::JumpInputStarted);
+		Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &AFPSPlayerController::JumpInputCompleted);
 		Input->BindAction(PrimaryFireAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::PrimaryFireInput);
 	}
 }
 
 void AFPSPlayerController::MoveInput(const FInputActionValue& Value)
 {
-	FString DebugMessage = FString::Printf(TEXT("MoveInput() from FPSPlayerController | %s"), *(Value.Get<FVector2D>()).ToString());
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, DebugMessage);
+	PlayerCharacter->Move(Value);
 }
 
 void AFPSPlayerController::LookInput(const FInputActionValue& Value)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("LookInput() from FPSPlayerController."));
+	PlayerCharacter->Look(Value);
 }
 
-void AFPSPlayerController::JumpInput(const FInputActionValue& Value)
+void AFPSPlayerController::JumpInputStarted(const FInputActionValue& Value)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("JumpInput() from FPSPlayerController."));
+	PlayerCharacter->JumpStart();
+}
+
+void AFPSPlayerController::JumpInputCompleted(const FInputActionValue& Value)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("JumpInput() from FPSPlayerController."));
+	PlayerCharacter->JumpEnd();
 }
 
 void AFPSPlayerController::PrimaryFireInput(const FInputActionValue& Value)
