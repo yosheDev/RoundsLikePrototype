@@ -72,7 +72,7 @@ float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageE
 
 void AFPSCharacter::Look(const FInputActionValue& Value)
 {
-	FVector2D LookVector = Value.Get<FVector2D>() * 2.0f; // Replace the constant float with look sensitivity when that value has a home.
+	FVector2D LookVector = Value.Get<FVector2D>() * 1.0f; // Replace the constant float with look sensitivity when that value has a home.
 
 	// only route inputs if the character is not dead
 	if (!IsDead())
