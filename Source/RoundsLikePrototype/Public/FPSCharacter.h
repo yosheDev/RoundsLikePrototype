@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RoundsLikePrototypeCharacter.h"
+#include "GameFramework/Character.h"
 #include "ShooterWeaponHolder.h"
 #include "FPSCharacter.generated.h"
 
@@ -87,15 +87,15 @@ public:
 protected:
 
 	/** Gameplay initialization */
-	virtual void BeginPlay() override;
+	virtual void BeginPlay();
 
 	/** Gameplay cleanup */
-	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
+	virtual void EndPlay(EEndPlayReason::Type EndPlayReason);
 
 public:
 
 	/** Handle incoming damage */
-	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
 public:
 
