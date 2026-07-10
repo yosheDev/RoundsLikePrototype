@@ -4,7 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "AttributeSet.h"
+#include "Components/FPSAbilitySystemComponent.h"
 #include "VitalityAttributeSet.generated.h"
+
+#define ATTRIBUTE_ACCESSORS(ClassName, PropertyName) \
+	GAMEPLAYATTRIBUTE_PROPERTY_GETTER(ClassName, PropertyName) \
+	GAMEPLAYATTRIBUTE_VALUE_GETTER(PropertyName) \
+	GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \
+	GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 
 /**
  * 
@@ -18,20 +25,25 @@ public:
 	// Current health
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData Health;
+	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, Health);
 
 	// Upper limit for health value
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData MaxHealth;
+	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, MaxHealth);
 
 	// Regeneration rate for lifesteal health regen.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData HealthRegen;
+	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, HealthRegen);
 
 	// Duration window for lifesteal health regen.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData HealthRegenDuration;
+	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, HealthRegenDuration);
 
 	// Scale of the player avatar.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BodySize;
+	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, BodySize);
 };

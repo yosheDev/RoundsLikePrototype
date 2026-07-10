@@ -7,9 +7,9 @@
 void UMovementAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UVitalityAttributeSet, MaxSpeed);
-	DOREPLIFETIME(UVitalityAttributeSet, JumpStrength);
-	DOREPLIFETIME(UVitalityAttributeSet, JumpCount);
-	DOREPLIFETIME(UVitalityAttributeSet, GravityScale);
-	DOREPLIFETIME(UVitalityAttributeSet, CrouchedHalfHeight);
+	DOREPLIFETIME(UMovementAttributeSet, MaxSpeed);
+	DOREPLIFETIME(UMovementAttributeSet, JumpStrength);
+	DOREPLIFETIME(UMovementAttributeSet, JumpCount);
+	DOREPLIFETIME(UMovementAttributeSet, GravityScale);
+	DOREPLIFETIME(UMovementAttributeSet, CrouchedHalfHeight);
 }
