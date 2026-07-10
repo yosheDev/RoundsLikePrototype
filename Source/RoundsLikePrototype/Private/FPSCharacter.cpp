@@ -6,12 +6,14 @@
 #include "EnhancedInputComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/PawnNoiseEmitterComponent.h"
+#include "Components/FPSAbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "Camera/CameraComponent.h"
 #include "TimerManager.h"
+#include "Components/FPSAbilitySystemComponent.h"
 
 AFPSCharacter::AFPSCharacter()
 {
@@ -30,6 +32,8 @@ AFPSCharacter::AFPSCharacter()
 	// create the noise emitter component
 	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("PawnNoiseEmitter"));
 
+	FPSAbilitySystemComponent = CreateDefaultSubobject<UFPSAbilitySystemComponent>(TEXT("AbilitySystem"));
+
 	// configure movement
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 600.0f, 0.0f);
 }
@@ -38,6 +42,7 @@ void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	FPSAbilitySystemComponent->InitAbilityActorInfo(this, this);
 	// reset HP to max
 	CurrentHP = MaxHP;
 }
@@ -200,7 +205,7 @@ void AFPSCharacter::Die()
 	DisableInput(nullptr);
 
 	// call the BP handler
-	BP_OnDeath();
+	//BP_OnDeath();
 
 	// schedule character respawn
 	GetWorld()->GetTimerManager().SetTimer(RespawnTimer, this, &AFPSCharacter::OnRespawn, RespawnTime, false);
@@ -216,4 +221,9 @@ bool AFPSCharacter::IsDead() const
 {
 	// the character is dead if their current HP drops to zero
 	return CurrentHP <= 0.0f;
+}
+
+UFPSAbilitySystemComponent* AFPSCharacter::GetAbilitySystemComponent() const
+{
+	return FPSAbilitySystemComponent;
 }

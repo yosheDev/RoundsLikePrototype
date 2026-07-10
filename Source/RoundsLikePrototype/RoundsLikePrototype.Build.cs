@@ -18,7 +18,10 @@ public class RoundsLikePrototype : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"GameplayAbilities",
+			"GameplayTags",
+			"GameplayTasks"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
@@ -28,8 +31,6 @@ public class RoundsLikePrototype : ModuleRules
 			"RoundsLikePrototype/Variant_Horror",
 			"RoundsLikePrototype/Variant_Horror/UI",
 			"RoundsLikePrototype/Variant_Shooter",
-			"RoundsLikePrototype/Variant_Shooter/AI",
-			"RoundsLikePrototype/Variant_Shooter/UI",
 			"RoundsLikePrototype/Variant_Shooter/Weapons"
 		});
 

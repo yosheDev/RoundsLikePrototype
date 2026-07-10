@@ -5,14 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "ShooterWeaponHolder.h"
+#include "Components/FPSAbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 #include "FPSCharacter.generated.h"
 
 class AShooterWeapon;
 class UInputAction;
 class UInputComponent;
-class UPawnNoiseEmitterComponent;
-class UCameraComponent;
-class USpringArmComponent;
 
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FBulletCountUpdatedDelegate, int32, MagazineSize, int32, Bullets);
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent);
@@ -23,21 +22,25 @@ class USpringArmComponent;
  *  Manages health and death
  */
 UCLASS(abstract)
-class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ACharacter
+class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
+public:
 	/** AI Noise emitter component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	UPawnNoiseEmitterComponent* PawnNoiseEmitter;
+	TObjectPtr<class UPawnNoiseEmitterComponent> PawnNoiseEmitter;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Abilities)
+	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
 
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	UCameraComponent* FirstPersonCamera;
+	TObjectPtr<class UCameraComponent> FirstPersonCamera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-	USpringArmComponent* SpringArm;
+	TObjectPtr<class USpringArmComponent> SpringArm;
 
 protected:
 
@@ -135,9 +138,9 @@ protected:
 	/** Called when this character's HP is depleted */
 	void Die();
 
-	/** Called to allow Blueprint code to react to this character's death */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Shooter", meta = (DisplayName = "On Death"))
-	void BP_OnDeath();
+	///** Called to allow Blueprint code to react to this character's death */
+	//UFUNCTION(BlueprintImplementableEvent, Category = "Shooter", meta = (DisplayName = "On Death"))
+	//void BP_OnDeath();
 
 	/** Called from the respawn timer to destroy this character and force the PC to respawn */
 	void OnRespawn();
@@ -146,4 +149,7 @@ public:
 
 	/** Returns true if the character is dead */
 	bool IsDead() const;
+
+public:
+	virtual UFPSAbilitySystemComponent* GetAbilitySystemComponent() const override;
 };
