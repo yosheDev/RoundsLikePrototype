@@ -34,6 +34,10 @@ AFPSCharacter::AFPSCharacter()
 
 	FPSAbilitySystemComponent = CreateDefaultSubobject<UFPSAbilitySystemComponent>(TEXT("AbilitySystem"));
 
+	VitalityAttributeSet = CreateDefaultSubobject<UVitalityAttributeSet>(TEXT("VitalityAttributeSet"));
+	MovementAttributeSet = CreateDefaultSubobject<UMovementAttributeSet>(TEXT("MovementAttributeSet"));
+	GunplayAttributeSet = CreateDefaultSubobject<UGunplayAttributeSet>(TEXT("GunplayAttributeSet"));
+
 	// configure movement
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 600.0f, 0.0f);
 }

@@ -34,6 +34,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Abilities)
 	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
 
+	UPROPERTY()
+	TObjectPtr<class UVitalityAttributeSet> VitalityAttributeSet;
+
+	UPROPERTY()
+	TObjectPtr<class UMovementAttributeSet> MovementAttributeSet;
+
+	UPROPERTY()
+	TObjectPtr<class UGunplayAttributeSet> GunplayAttributeSet;
+
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
