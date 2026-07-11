@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "ShooterWeaponHolder.h"
 #include "AbilitySystemInterface.h"
+#include "Abilities/GameplayAbility.h"
 #include "FPSCharacter.generated.h"
 
 class AShooterWeapon;
@@ -49,6 +50,12 @@ protected:
 	// Array exposed to the Editor to pick default abilities
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
+	TSubclassOf<UGameplayAbility> JumpAbilityClass;
+
+private:
+	FGameplayAbilitySpecHandle JumpAbilityHandle;
 
 protected:
 

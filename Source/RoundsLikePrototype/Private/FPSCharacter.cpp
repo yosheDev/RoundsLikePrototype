@@ -119,7 +119,8 @@ void AFPSCharacter::JumpStart()
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
-		FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
+		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
+		FPSAbilitySystemComponent->TryActivateAbility(JumpAbilityHandle);
 	}
 }
 
@@ -128,10 +129,10 @@ void AFPSCharacter::JumpEnd()
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
-		FGameplayTagContainer JumpTags;
-		JumpTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump")));
-
-		FPSAbilitySystemComponent->CancelAbilities(&JumpTags);
+		//FGameplayTagContainer JumpTags;
+		//JumpTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump")));
+		//FPSAbilitySystemComponent->CancelAbilities(&JumpTags);
+		FPSAbilitySystemComponent->CancelAbilityHandle(JumpAbilityHandle);
 	}
 }
 
@@ -255,7 +256,20 @@ void AFPSCharacter::GiveDefaultAbilities()
 		if (AbilityClass)
 		{
 			// Grant the ability
-			FPSAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, -1, this));
+			FGameplayAbilitySpecHandle AbilityHandle = FPSAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, -1, this));
+
+			// If the ability is the jump ability, cache it for future use.
+			FGameplayAbilitySpec AbilitySpec(AbilityClass, 1, -1, this);
+			if (AbilitySpec.Ability->AbilityTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))))
+			{
+				JumpAbilityHandle = AbilityHandle;
+			}
+
+			/*if (AbilityClass == JumpAbilityClass)
+			{
+				
+			}*/
+
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("Added an ability"));
 		}
 	}
