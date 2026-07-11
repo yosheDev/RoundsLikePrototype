@@ -1,0 +1,30 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "FPSPlayerState.h"
+#include "Components/FPSAbilitySystemComponent.h"
+
+AFPSPlayerState::AFPSPlayerState()
+{
+	FPSAbilitySystemComponent = CreateDefaultSubobject<UFPSAbilitySystemComponent>(TEXT("AbilitySystem"));
+
+	VitalityAttributeSet = CreateDefaultSubobject<UVitalityAttributeSet>(TEXT("VitalityAttributeSet"));
+	MovementAttributeSet = CreateDefaultSubobject<UMovementAttributeSet>(TEXT("MovementAttributeSet"));
+	GunplayAttributeSet = CreateDefaultSubobject<UGunplayAttributeSet>(TEXT("GunplayAttributeSet"));
+}
+
+void AFPSPlayerState::BeginPlay()
+{
+	Super::BeginPlay();
+	FPSAbilitySystemComponent->InitAbilityActorInfo(this, this);
+}
+
+void AFPSPlayerState::EndPlay(EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+}
+
+UAbilitySystemComponent* AFPSPlayerState::GetAbilitySystemComponent() const
+{
+	return FPSAbilitySystemComponent;
+}

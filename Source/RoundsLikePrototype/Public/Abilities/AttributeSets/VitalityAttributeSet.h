@@ -46,4 +46,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BodySize;
 	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, BodySize);
+
+public:
+	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
+
 };

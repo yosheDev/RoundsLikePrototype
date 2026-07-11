@@ -2,18 +2,18 @@
 
 
 #include "FPSCharacter.h"
+#include "GameFramework/PlayerState.h"
+#include "FPSPlayerState.h"
 #include "ShooterWeapon.h"
 #include "EnhancedInputComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/PawnNoiseEmitterComponent.h"
-#include "Components/FPSAbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "Camera/CameraComponent.h"
 #include "TimerManager.h"
-#include "Components/FPSAbilitySystemComponent.h"
 
 AFPSCharacter::AFPSCharacter()
 {
@@ -32,12 +32,6 @@ AFPSCharacter::AFPSCharacter()
 	// create the noise emitter component
 	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("PawnNoiseEmitter"));
 
-	FPSAbilitySystemComponent = CreateDefaultSubobject<UFPSAbilitySystemComponent>(TEXT("AbilitySystem"));
-
-	VitalityAttributeSet = CreateDefaultSubobject<UVitalityAttributeSet>(TEXT("VitalityAttributeSet"));
-	MovementAttributeSet = CreateDefaultSubobject<UMovementAttributeSet>(TEXT("MovementAttributeSet"));
-	GunplayAttributeSet = CreateDefaultSubobject<UGunplayAttributeSet>(TEXT("GunplayAttributeSet"));
-
 	// configure movement
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 600.0f, 0.0f);
 }
@@ -46,7 +40,8 @@ void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FPSAbilitySystemComponent->InitAbilityActorInfo(this, this);
+	FPSAbilitySystemComponent = Cast<UFPSAbilitySystemComponent>(GetAbilitySystemComponent());
+
 	// reset HP to max
 	CurrentHP = MaxHP;
 }
@@ -212,7 +207,7 @@ void AFPSCharacter::Die()
 	//BP_OnDeath();
 
 	// schedule character respawn
-	GetWorld()->GetTimerManager().SetTimer(RespawnTimer, this, &AFPSCharacter::OnRespawn, RespawnTime, false);
+	//GetWorld()->GetTimerManager().SetTimer(RespawnTimer, this, &AFPSCharacter::OnRespawn, RespawnTime, false);
 }
 
 void AFPSCharacter::OnRespawn()
@@ -227,7 +222,9 @@ bool AFPSCharacter::IsDead() const
 	return CurrentHP <= 0.0f;
 }
 
-UFPSAbilitySystemComponent* AFPSCharacter::GetAbilitySystemComponent() const
+UAbilitySystemComponent* AFPSCharacter::GetAbilitySystemComponent() const
 {
-	return FPSAbilitySystemComponent;
+	// Return the Ability System Component on the FPSPlayerState.
+	AFPSPlayerState* FPSPlayerState = Cast<AFPSPlayerState>(GetPlayerState());
+	return FPSPlayerState->FPSAbilitySystemComponent;
 }

@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "ShooterWeaponHolder.h"
-#include "Components/FPSAbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "FPSCharacter.generated.h"
 
@@ -31,18 +30,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UPawnNoiseEmitterComponent> PawnNoiseEmitter;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Abilities)
-	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
-
-	UPROPERTY()
-	TObjectPtr<class UVitalityAttributeSet> VitalityAttributeSet;
-
-	UPROPERTY()
-	TObjectPtr<class UMovementAttributeSet> MovementAttributeSet;
-
-	UPROPERTY()
-	TObjectPtr<class UGunplayAttributeSet> GunplayAttributeSet;
-
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -50,6 +37,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<class USpringArmComponent> SpringArm;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
 
 protected:
 
@@ -160,5 +150,5 @@ public:
 	bool IsDead() const;
 
 public:
-	virtual UFPSAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 };
