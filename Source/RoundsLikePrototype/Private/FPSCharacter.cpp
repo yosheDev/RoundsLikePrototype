@@ -41,17 +41,6 @@ AFPSCharacter::AFPSCharacter()
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	FPSAbilitySystemComponent = Cast<UFPSAbilitySystemComponent>(GetAbilitySystemComponent());
-	if (FPSAbilitySystemComponent)
-	{
-		GiveDefaultAbilities();
-	}
-	else {
-		UE_LOG(LogTemp, Error, TEXT("FPSAbilitySystemComponent failed to initialize. Is BeginPlay() of the pawn happening before BeginPlay() of the PlayerState?"));
-	}
-	
-
 	// reset HP to max
 	CurrentHP = MaxHP;
 }
@@ -62,6 +51,46 @@ void AFPSCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
 
 	// clear the respawn timer
 	GetWorld()->GetTimerManager().ClearTimer(RespawnTimer);
+}
+
+void AFPSCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	InitializeAbilitySystem();
+}
+
+void AFPSCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	InitializeAbilitySystem();
+}
+
+void AFPSCharacter::InitializeAbilitySystem()
+{
+	AFPSPlayerState* FPSPlayerState = GetPlayerState<AFPSPlayerState>();
+
+	if (FPSPlayerState)
+	{
+		FPSAbilitySystemComponent = FPSPlayerState->FPSAbilitySystemComponent;
+
+		if (FPSAbilitySystemComponent)
+		{
+			//GiveDefaultAbilities();
+			FPSAbilitySystemComponent->InitAbilityActorInfo(FPSPlayerState, this);
+
+			if (GetLocalRole() == ROLE_AutonomousProxy)
+			{
+				FindAbilityHandles();
+			}
+
+			if (GetLocalRole() == ROLE_Authority)
+			{
+				GiveDefaultAbilities();
+			}
+		}
+	}
 }
 
 float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -240,6 +269,12 @@ UAbilitySystemComponent* AFPSCharacter::GetAbilitySystemComponent() const
 {
 	// Return the Ability System Component on the FPSPlayerState.
 	AFPSPlayerState* FPSPlayerState = Cast<AFPSPlayerState>(GetPlayerState());
+
+	if (!FPSPlayerState)
+	{
+		return nullptr;
+	}
+
 	return FPSPlayerState->FPSAbilitySystemComponent;
 }
 
@@ -260,7 +295,7 @@ void AFPSCharacter::GiveDefaultAbilities()
 
 			// If the ability is the jump ability, cache it for future use.
 			FGameplayAbilitySpec AbilitySpec(AbilityClass, 1, -1, this);
-			if (AbilitySpec.Ability->AbilityTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))))
+			if (AbilityClass.GetDefaultObject()->AbilityTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))))
 			{
 				JumpAbilityHandle = AbilityHandle;
 			}
@@ -271,6 +306,18 @@ void AFPSCharacter::GiveDefaultAbilities()
 			}*/
 
 			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("Added an ability"));
+		}
+	}
+}
+
+void AFPSCharacter::FindAbilityHandles()
+{
+	for (const FGameplayAbilitySpec& Spec : FPSAbilitySystemComponent->GetActivatableAbilities())
+	{
+		if (Spec.Ability && Spec.Ability->AbilityTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))))
+		{
+			JumpAbilityHandle = Spec.Handle;
+			break;
 		}
 	}
 }

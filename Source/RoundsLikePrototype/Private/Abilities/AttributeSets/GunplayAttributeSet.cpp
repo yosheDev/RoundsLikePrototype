@@ -7,7 +7,6 @@
 void UGunplayAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UGunplayAttributeSet, BulletDamage);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletJumpFactor);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSpeed);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSize);

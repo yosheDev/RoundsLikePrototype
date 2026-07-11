@@ -11,6 +11,9 @@ AFPSPlayerState::AFPSPlayerState()
 	VitalityAttributeSet = CreateDefaultSubobject<UVitalityAttributeSet>(TEXT("VitalityAttributeSet"));
 	MovementAttributeSet = CreateDefaultSubobject<UMovementAttributeSet>(TEXT("MovementAttributeSet"));
 	GunplayAttributeSet = CreateDefaultSubobject<UGunplayAttributeSet>(TEXT("GunplayAttributeSet"));
+
+	FPSAbilitySystemComponent->SetIsReplicated(true);
+	FPSAbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 }
 
 void AFPSPlayerState::BeginPlay()

@@ -47,6 +47,9 @@ protected:
 	// Iterates through and grants default abilities.
 	void GiveDefaultAbilities();
 
+	// Clients use this to get cached ability handles that are replicated.
+	void FindAbilityHandles();
+
 	// Array exposed to the Editor to pick default abilities
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
@@ -109,6 +112,12 @@ protected:
 
 	/** Gameplay cleanup */
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason);
+
+	virtual void PossessedBy(AController* NewController) override;
+
+	virtual void OnRep_PlayerState() override;
+
+	void InitializeAbilitySystem();
 
 public:
 
