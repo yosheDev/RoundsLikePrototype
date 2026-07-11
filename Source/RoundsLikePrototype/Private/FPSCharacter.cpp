@@ -3,6 +3,8 @@
 
 #include "FPSCharacter.h"
 #include "GameFramework/PlayerState.h"
+#include "Abilities/GameplayAbility.h"
+#include "GameplayTagContainer.h"
 #include "FPSPlayerState.h"
 #include "ShooterWeapon.h"
 #include "EnhancedInputComponent.h"
@@ -41,6 +43,14 @@ void AFPSCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	FPSAbilitySystemComponent = Cast<UFPSAbilitySystemComponent>(GetAbilitySystemComponent());
+	if (FPSAbilitySystemComponent)
+	{
+		GiveDefaultAbilities();
+	}
+	else {
+		UE_LOG(LogTemp, Error, TEXT("FPSAbilitySystemComponent failed to initialize. Is BeginPlay() of the pawn happening before BeginPlay() of the PlayerState?"));
+	}
+	
 
 	// reset HP to max
 	CurrentHP = MaxHP;
@@ -109,7 +119,7 @@ void AFPSCharacter::JumpStart()
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
-		Jump();
+		FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
 	}
 }
 
@@ -118,7 +128,10 @@ void AFPSCharacter::JumpEnd()
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
-		StopJumping();
+		FGameplayTagContainer JumpTags;
+		JumpTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump")));
+
+		FPSAbilitySystemComponent->CancelAbilities(&JumpTags);
 	}
 }
 
@@ -227,4 +240,23 @@ UAbilitySystemComponent* AFPSCharacter::GetAbilitySystemComponent() const
 	// Return the Ability System Component on the FPSPlayerState.
 	AFPSPlayerState* FPSPlayerState = Cast<AFPSPlayerState>(GetPlayerState());
 	return FPSPlayerState->FPSAbilitySystemComponent;
+}
+
+void AFPSCharacter::GiveDefaultAbilities()
+{
+	// Safety checks: execute ONLY on the server and if the ASC is valid
+	if (GetLocalRole() != ROLE_Authority || !FPSAbilitySystemComponent)
+	{
+		return;
+	}
+
+	for (TSubclassOf<UGameplayAbility>& AbilityClass : DefaultAbilities)
+	{
+		if (AbilityClass)
+		{
+			// Grant the ability
+			FPSAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, -1, this));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("Added an ability"));
+		}
+	}
 }

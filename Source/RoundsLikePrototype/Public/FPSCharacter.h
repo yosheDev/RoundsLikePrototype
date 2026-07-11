@@ -11,6 +11,7 @@
 class AShooterWeapon;
 class UInputAction;
 class UInputComponent;
+class UGameplayAbility;
 
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FBulletCountUpdatedDelegate, int32, MagazineSize, int32, Bullets);
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent);
@@ -40,6 +41,14 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
+
+protected:
+	// Iterates through and grants default abilities.
+	void GiveDefaultAbilities();
+
+	// Array exposed to the Editor to pick default abilities
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Abilities")
+	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
 
 protected:
 
