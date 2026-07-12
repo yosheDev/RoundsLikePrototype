@@ -103,15 +103,23 @@ void AFPSCharacter::Move(const FInputActionValue& Value)
 
 void AFPSCharacter::JumpStart()
 {
+	const FGameplayAbilityActorInfo* Info = FPSAbilitySystemComponent->AbilityActorInfo.Get();
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("Owner=%s Avatar=%s Controller=%s LocallyControlled=%s"),
+		*GetNameSafe(Info->OwnerActor.Get()),
+		*GetNameSafe(Info->AvatarActor.Get()),
+		*GetNameSafe(Info->PlayerController.Get()),
+		Info->IsLocallyControlled() ? TEXT("true") : TEXT("false"));
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
-		FGameplayTagContainer FailureTags;
-
 		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Jump Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
 		
-		FPSAbilitySystemComponent->TryActivateAbility(JumpAbilityHandle);
+		bool bActivated = FPSAbilitySystemComponent->TryActivateAbility(JumpAbilityHandle);
+
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("Did jump ability activate: %s"), bActivated ? TEXT("true") : TEXT("false")));
 	}
 }
 
@@ -271,6 +279,8 @@ void AFPSCharacter::InitializeAbilitySystem()
 			// Initialize local actor info for the ASC.
 			FPSAbilitySystemComponent->InitAbilityActorInfo(FPSPlayerState, this);
 
+			FPSAbilitySystemComponent->OnAbilitySpecRecieved.AddUObject(this, &AFPSCharacter::HandleAbilityGranted);
+
 			// Server grants default abilities to character.
 			if (GetLocalRole() == ROLE_Authority)
 			{
@@ -401,6 +411,20 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Orange, FString::Printf(TEXT("%s Cached Ability Handle for: %s"), *RoleString, *Spec.Ability->GetName()));
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Orange, FString::Printf(TEXT("%s Is JumpAbilityHandle valid after?: %s"), *RoleString, JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
 		
+		const FGameplayAbilitySpec* CachedSpec =
+			FPSAbilitySystemComponent->FindAbilitySpecFromHandle(JumpAbilityHandle);
+
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			10.f,
+			FColor::Red,
+			FString::Printf(
+				TEXT("Cached: %s | Found: %s"),
+				*Spec.Ability->GetName(),
+				CachedSpec ? *CachedSpec->Ability->GetName() : TEXT("NULL")
+			)
+		);
+
 	}
 }
 

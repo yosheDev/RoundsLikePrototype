@@ -19,7 +19,6 @@ AFPSPlayerState::AFPSPlayerState()
 void AFPSPlayerState::BeginPlay()
 {
 	Super::BeginPlay();
-	FPSAbilitySystemComponent->InitAbilityActorInfo(this, this);
 }
 
 void AFPSPlayerState::EndPlay(EEndPlayReason::Type EndPlayReason)

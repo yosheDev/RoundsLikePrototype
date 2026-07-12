@@ -6,7 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "FPSAbilitySystemComponent.generated.h"
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnAbilityGranted, const FGameplayAbilitySpec&);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnAbilitySpecRecieved, const FGameplayAbilitySpec&);
 
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UFPSAbilitySystemComponent : public UAbilitySystemComponent
@@ -14,7 +14,7 @@ class ROUNDSLIKEPROTOTYPE_API UFPSAbilitySystemComponent : public UAbilitySystem
 	GENERATED_BODY()
 
 public:
-	FOnAbilityGranted OnAbilityGranted;
+	FOnAbilitySpecRecieved OnAbilitySpecRecieved;
 
 public:
 	UFPSAbilitySystemComponent();
