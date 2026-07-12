@@ -103,14 +103,6 @@ void AFPSCharacter::Move(const FInputActionValue& Value)
 
 void AFPSCharacter::JumpStart()
 {
-	const FGameplayAbilityActorInfo* Info = FPSAbilitySystemComponent->AbilityActorInfo.Get();
-
-	UE_LOG(LogTemp, Warning,
-		TEXT("Owner=%s Avatar=%s Controller=%s LocallyControlled=%s"),
-		*GetNameSafe(Info->OwnerActor.Get()),
-		*GetNameSafe(Info->AvatarActor.Get()),
-		*GetNameSafe(Info->PlayerController.Get()),
-		Info->IsLocallyControlled() ? TEXT("true") : TEXT("false"));
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
