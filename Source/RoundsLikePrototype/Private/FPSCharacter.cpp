@@ -1,11 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// Copyrighted Jacob Jones 2026
 
 #include "FPSCharacter.h"
-#include "GameFramework/PlayerState.h"
+#include "FPSPlayerState.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayTagContainer.h"
-#include "FPSPlayerState.h"
+#include "Engine/World.h"
 #include "ShooterWeapon.h"
 #include "EnhancedInputComponent.h"
 #include "Components/InputComponent.h"
@@ -13,106 +12,65 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Engine/World.h"
 #include "Camera/CameraComponent.h"
 #include "TimerManager.h"
 
+// Constructor
 AFPSCharacter::AFPSCharacter()
 {
 	#pragma region Construct Camera
+	/* Spring Arm */
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->TargetArmLength = 0.0f;
 	SpringArm->bUsePawnControlRotation = true;
 	SpringArm->bDoCollisionTest = false;
 
+	/* FP Camera */
 	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCamera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	FirstPersonCamera->bUsePawnControlRotation = false;
 	#pragma endregion
 
-	// create the noise emitter component
+	// Create Noise Emitter
 	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("PawnNoiseEmitter"));
-
-	// configure movement
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 600.0f, 0.0f);
 }
 
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	// reset HP to max
+
 	CurrentHP = MaxHP;
 }
 
 void AFPSCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
-
-	// clear the respawn timer
-	GetWorld()->GetTimerManager().ClearTimer(RespawnTimer);
 }
 
 void AFPSCharacter::PossessedBy(AController* NewController)
 {
+	/* PossessedBy() runs when controller possesses this character. Only runs on the server.*/
 	Super::PossessedBy(NewController);
 
-	InitializeAbilitySystem();
+	if (!FPSAbilitySystemComponent)
+	{
+		InitializeAbilitySystem();
+	}
 }
 
 void AFPSCharacter::OnRep_PlayerState()
 {
+	/* Only runs on clients. */
 	Super::OnRep_PlayerState();
 
-	InitializeAbilitySystem();
-}
-
-void AFPSCharacter::InitializeAbilitySystem()
-{
-	AFPSPlayerState* FPSPlayerState = GetPlayerState<AFPSPlayerState>();
-
-	if (FPSPlayerState)
+	if (!FPSAbilitySystemComponent)
 	{
-		FPSAbilitySystemComponent = FPSPlayerState->FPSAbilitySystemComponent;
-
-		if (FPSAbilitySystemComponent)
-		{
-			//GiveDefaultAbilities();
-			FPSAbilitySystemComponent->InitAbilityActorInfo(FPSPlayerState, this);
-
-			if (GetLocalRole() == ROLE_AutonomousProxy)
-			{
-				FindAbilityHandles();
-			}
-
-			if (GetLocalRole() == ROLE_Authority)
-			{
-				GiveDefaultAbilities();
-			}
-		}
+		InitializeAbilitySystem();
 	}
 }
 
-float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	// ignore if already dead
-	if (CurrentHP <= 0.0f)
-	{
-		return 0.0f;
-	}
-
-	// Reduce HP
-	CurrentHP -= Damage;
-
-	// Have we depleted HP?
-	if (CurrentHP <= 0.0f)
-	{
-		Die();
-	}
-
-	return Damage;
-}
-
+#pragma region Input Actions
 void AFPSCharacter::Look(const FInputActionValue& Value)
 {
 	FVector2D LookVector = Value.Get<FVector2D>() * 1.0f; // Replace the constant float with look sensitivity when that value has a home.
@@ -148,7 +106,11 @@ void AFPSCharacter::JumpStart()
 	// only route inputs if the character is not dead
 	if (!IsDead())
 	{
+		FGameplayTagContainer FailureTags;
+
 		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Jump Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
+		
 		FPSAbilitySystemComponent->TryActivateAbility(JumpAbilityHandle);
 	}
 }
@@ -164,7 +126,9 @@ void AFPSCharacter::JumpEnd()
 		FPSAbilitySystemComponent->CancelAbilityHandle(JumpAbilityHandle);
 	}
 }
+#pragma endregion
 
+#pragma region RandomCrapToCleanUp
 void AFPSCharacter::DoStartFiring()
 {
 	// fire the current weapon
@@ -183,36 +147,6 @@ void AFPSCharacter::DoStopFiring()
 	}
 }
 
-void AFPSCharacter::DoSwitchWeapon()
-{
-	// ensure we have at least two weapons two switch between
-	if (OwnedWeapons.Num() > 1 && !IsDead())
-	{
-		// deactivate the old weapon
-		CurrentWeapon->DeactivateWeapon();
-
-		// find the index of the current weapon in the owned list
-		int32 WeaponIndex = OwnedWeapons.Find(CurrentWeapon);
-
-		// is this the last weapon?
-		if (WeaponIndex == OwnedWeapons.Num() - 1)
-		{
-			// loop back to the beginning of the array
-			WeaponIndex = 0;
-		}
-		else {
-			// select the next weapon index
-			++WeaponIndex;
-		}
-
-		// set the new weapon as current
-		CurrentWeapon = OwnedWeapons[WeaponIndex];
-
-		// activate the new weapon
-		CurrentWeapon->ActivateWeapon();
-	}
-}
-
 AShooterWeapon* AFPSCharacter::FindWeaponOfType(TSubclassOf<AShooterWeapon> WeaponClass) const
 {
 	// check each owned weapon
@@ -227,6 +161,26 @@ AShooterWeapon* AFPSCharacter::FindWeaponOfType(TSubclassOf<AShooterWeapon> Weap
 	// weapon not found
 	return nullptr;
 
+}
+
+float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	// ignore if already dead
+	if (CurrentHP <= 0.0f)
+	{
+		return 0.0f;
+	}
+
+	// Reduce HP
+	CurrentHP -= Damage;
+
+	// Have we depleted HP?
+	if (CurrentHP <= 0.0f)
+	{
+		Die();
+	}
+
+	return Damage;
 }
 
 void AFPSCharacter::Die()
@@ -248,9 +202,6 @@ void AFPSCharacter::Die()
 
 	// call the BP handler
 	//BP_OnDeath();
-
-	// schedule character respawn
-	//GetWorld()->GetTimerManager().SetTimer(RespawnTimer, this, &AFPSCharacter::OnRespawn, RespawnTime, false);
 }
 
 void AFPSCharacter::OnRespawn()
@@ -264,6 +215,9 @@ bool AFPSCharacter::IsDead() const
 	// the character is dead if their current HP drops to zero
 	return CurrentHP <= 0.0f;
 }
+#pragma endregion
+
+#pragma region FPS Ability System Component
 
 UAbilitySystemComponent* AFPSCharacter::GetAbilitySystemComponent() const
 {
@@ -278,46 +232,176 @@ UAbilitySystemComponent* AFPSCharacter::GetAbilitySystemComponent() const
 	return FPSPlayerState->FPSAbilitySystemComponent;
 }
 
+void AFPSCharacter::InitializeAbilitySystem()
+{
+	/*
+		Only runs when FPSPlayerState is guarenteed to exist. (Server->PossessedBy() | Client->OnRep_PlayerState()
+		Handles initialization of the FPSAbilitySystemComponent, which is owned by the FPSPlayerState.
+	*/
+	AFPSPlayerState* FPSPlayerState = GetPlayerState<AFPSPlayerState>();
+
+	if (FPSPlayerState)
+	{
+		FPSAbilitySystemComponent = FPSPlayerState->FPSAbilitySystemComponent;
+
+		if (FPSAbilitySystemComponent)
+		{
+			#pragma region Get Network Role String
+			ENetRole LocalRole = GetLocalRole();
+			FString RoleString = TEXT("Unknown");
+
+			switch (LocalRole)
+			{
+			case ROLE_Authority:
+				RoleString = (GetWorld()->IsNetMode(NM_Client)) ? TEXT("Server (Autonomous)") : TEXT("Server (Authority)");
+				break;
+			case ROLE_AutonomousProxy:
+				RoleString = TEXT("Client (Autonomous Proxy)");
+				break;
+			case ROLE_SimulatedProxy:
+				RoleString = TEXT("Client (Simulated Proxy)");
+				break;
+			case ROLE_None:
+				RoleString = TEXT("None");
+				break;
+			}
+			#pragma endregion
+			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s InitiateAbilitySystem()"), *RoleString));
+
+			// Initialize local actor info for the ASC.
+			FPSAbilitySystemComponent->InitAbilityActorInfo(FPSPlayerState, this);
+
+			// Server grants default abilities to character.
+			if (GetLocalRole() == ROLE_Authority)
+			{
+				GiveDefaultAbilities();
+			}
+			else
+			{
+				for (const FGameplayAbilitySpec& Spec : FPSAbilitySystemComponent->GetActivatableAbilities())
+				{
+					TryCacheAbilitySpecHandle(Spec);
+				}
+			}
+		}
+	}
+}
+
 void AFPSCharacter::GiveDefaultAbilities()
 {
-	// Safety checks: execute ONLY on the server and if the ASC is valid
+	// Execute ONLY on the server and if the ASC is valid, just in case.
 	if (GetLocalRole() != ROLE_Authority || !FPSAbilitySystemComponent)
 	{
 		return;
 	}
 
+	// Iterate through all default abilities assigned, and grant them to the character.
 	for (TSubclassOf<UGameplayAbility>& AbilityClass : DefaultAbilities)
 	{
 		if (AbilityClass)
 		{
 			// Grant the ability
 			FGameplayAbilitySpecHandle AbilityHandle = FPSAbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, -1, this));
+			const FGameplayAbilitySpec* GrantedSpec = FPSAbilitySystemComponent->FindAbilitySpecFromHandle(AbilityHandle);
 
-			// If the ability is the jump ability, cache it for future use.
-			FGameplayAbilitySpec AbilitySpec(AbilityClass, 1, -1, this);
-			if (AbilityClass.GetDefaultObject()->AbilityTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))))
+			#pragma region Get Network Role String
+			ENetRole LocalRole = GetLocalRole();
+			FString RoleString = TEXT("Unknown");
+
+			switch (LocalRole)
 			{
-				JumpAbilityHandle = AbilityHandle;
+			case ROLE_Authority:
+				RoleString = (GetWorld()->IsNetMode(NM_Client)) ? TEXT("Server (Autonomous)") : TEXT("Server (Authority)");
+				break;
+			case ROLE_AutonomousProxy:
+				RoleString = TEXT("Client (Autonomous Proxy)");
+				break;
+			case ROLE_SimulatedProxy:
+				RoleString = TEXT("Client (Simulated Proxy)");
+				break;
+			case ROLE_None:
+				RoleString = TEXT("None");
+				break;
 			}
+			#pragma endregion
+			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s Granted Ability: %s"), *RoleString, *GrantedSpec->Ability->GetName()));
+			// If the ability is the jump ability, cache it for future use.
+			
 
-			/*if (AbilityClass == JumpAbilityClass)
+			if (GrantedSpec)
 			{
-				
-			}*/
-
-			//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("Added an ability"));
+				// Cache any ability specs that will be constantly used, such as jumping and shooting.
+				TryCacheAbilitySpecHandle(*GrantedSpec);
+			}
 		}
 	}
 }
 
-void AFPSCharacter::FindAbilityHandles()
+void AFPSCharacter::HandleAbilityGranted(const FGameplayAbilitySpec& Spec)
 {
-	for (const FGameplayAbilitySpec& Spec : FPSAbilitySystemComponent->GetActivatableAbilities())
+	/*
+		This function listens to FPSAbilitySystemComponent::OnAbilityGranted() delegate. Only runs on the server.
+	*/
+	#pragma region Get Network Role String
+	ENetRole LocalRole = GetLocalRole();
+	FString RoleString = TEXT("Unknown");
+
+	switch (LocalRole)
 	{
-		if (Spec.Ability && Spec.Ability->AbilityTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))))
+	case ROLE_Authority:
+		RoleString = (GetWorld()->IsNetMode(NM_Client)) ? TEXT("Server (Autonomous)") : TEXT("Server (Authority)");
+		break;
+	case ROLE_AutonomousProxy:
+		RoleString = TEXT("Client (Autonomous Proxy)");
+		break;
+	case ROLE_SimulatedProxy:
+		RoleString = TEXT("Client (Simulated Proxy)");
+		break;
+	case ROLE_None:
+		RoleString = TEXT("None");
+		break;
+	}
+	#pragma endregion
+	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s Trying to handle a granted ability: %s"), *RoleString, *(Spec.Ability->GetName())));
+	
+	TryCacheAbilitySpecHandle(Spec);
+}
+
+void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
+{
+	/* Contains all logic for testing handles for specific actions and caching them. */
+	if (Spec.Ability && Spec.Ability->AbilityTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))))
+	{
+		
+		FString AbilityName = Spec.Ability->GetName();
+		FString AbilityClassName = Spec.Ability->GetClass()->GetName();
+
+		JumpAbilityHandle = Spec.Handle;
+
+		#pragma region Get Network Role String
+		ENetRole LocalRole = GetLocalRole();
+		FString RoleString = TEXT("Unknown");
+
+		switch (LocalRole)
 		{
-			JumpAbilityHandle = Spec.Handle;
+		case ROLE_Authority:
+			RoleString = (GetWorld()->IsNetMode(NM_Client)) ? TEXT("Server (Autonomous)") : TEXT("Server (Authority)");
+			break;
+		case ROLE_AutonomousProxy:
+			RoleString = TEXT("Client (Autonomous Proxy)");
+			break;
+		case ROLE_SimulatedProxy:
+			RoleString = TEXT("Client (Simulated Proxy)");
+			break;
+		case ROLE_None:
+			RoleString = TEXT("None");
 			break;
 		}
+		#pragma endregion
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Orange, FString::Printf(TEXT("%s Cached Ability Handle for: %s"), *RoleString, *Spec.Ability->GetName()));
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Orange, FString::Printf(TEXT("%s Is JumpAbilityHandle valid after?: %s"), *RoleString, JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
+		
 	}
 }
+
+#pragma endregion

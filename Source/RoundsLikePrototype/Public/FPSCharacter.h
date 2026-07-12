@@ -50,6 +50,11 @@ protected:
 	// Clients use this to get cached ability handles that are replicated.
 	void FindAbilityHandles();
 
+	// Observes FPSAbilitySystemComponent::OnAbilityGranted(), responds when an ability is granted to this character.
+	void HandleAbilityGranted(const FGameplayAbilitySpec& Spec);
+
+	void TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec);
+
 	// Array exposed to the Editor to pick default abilities
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
@@ -94,11 +99,6 @@ protected:
 
 	/** Weapon currently equipped and ready to shoot with */
 	TObjectPtr<AShooterWeapon> CurrentWeapon;
-
-	UPROPERTY(EditAnywhere, Category = "Destruction", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
-	float RespawnTime = 5.0f;
-
-	FTimerHandle RespawnTimer;
 
 public:
 
@@ -149,10 +149,6 @@ public:
 	/** Handles stop firing input */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoStopFiring();
-
-	/** Handles switch weapon input */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	void DoSwitchWeapon();
 
 protected:
 

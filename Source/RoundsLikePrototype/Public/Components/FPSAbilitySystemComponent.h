@@ -6,11 +6,20 @@
 #include "AbilitySystemComponent.h"
 #include "FPSAbilitySystemComponent.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnAbilityGranted, const FGameplayAbilitySpec&);
+
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UFPSAbilitySystemComponent : public UAbilitySystemComponent
 {
 	GENERATED_BODY()
 
 public:
+	FOnAbilityGranted OnAbilityGranted;
+
+public:
 	UFPSAbilitySystemComponent();
+	virtual void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor) override;
+
+protected:
+	virtual void OnGiveAbility(FGameplayAbilitySpec& AbilitySpec) override;
 };
