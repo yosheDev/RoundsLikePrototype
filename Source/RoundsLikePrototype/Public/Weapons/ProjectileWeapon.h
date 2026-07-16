@@ -1,3 +1,4 @@
+// Copyrighted Jacob Jones 2026
 
 #pragma once
 
@@ -15,11 +16,7 @@ class ROUNDSLIKEPROTOTYPE_API AProjectileWeapon : public AActor, public IWeapon
 	
 	/** First person perspective mesh */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	USkeletalMeshComponent* FirstPersonMesh;
-
-	/** Third person perspective mesh */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	USkeletalMeshComponent* ThirdPersonMesh;
+	USkeletalMeshComponent* Mesh;
 
 protected:
 	
@@ -29,12 +26,16 @@ public:
 	// Sets default values for this actor's properties
 	AProjectileWeapon();
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	virtual bool CanFire() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	virtual TArray<FTransform> GetMuzzleLocations() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	virtual void PrimaryFire();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 };

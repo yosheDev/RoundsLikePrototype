@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyrighted Jacob Jones 2026
 
 
 #include "Components/FPSAbilitySystemComponent.h"

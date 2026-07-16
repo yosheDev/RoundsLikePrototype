@@ -1,4 +1,4 @@
-
+// Copyrighted Jacob Jones 2026
 
 #pragma once
 
@@ -17,16 +17,17 @@ class UGameplayAbility;
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FBulletCountUpdatedDelegate, int32, MagazineSize, int32, Bullets);
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent);
 
-/**
- *  A player controllable first person shooter character
- *  Manages a weapon inventory through the IShooterWeaponHolder interface
- *  Manages health and death
+/*
+ *  Player character class. Inputs from controller are routed to here and handled.
+ *  Manages abilities: Jump, PrimaryFire
  */
+
 UCLASS(abstract)
 class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
+#pragma region Components
 public:
 	/** AI Noise emitter component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -43,27 +44,28 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
 
+#pragma endregion
+
+#pragma region Abilities
 protected:
 	// Iterates through and grants default abilities.
 	void GiveDefaultAbilities();
 
-	// Clients use this to get cached ability handles that are replicated.
-	void FindAbilityHandles();
-
 	// Observes FPSAbilitySystemComponent::OnAbilityGranted(), responds when an ability is granted to this character.
 	void HandleAbilityGranted(const FGameplayAbilitySpec& Spec);
 
+	// If granted ability is listed in this function, cache it. Only caches frequently used abilities(such as Jump and Shoot.)
 	void TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec);
 
-	// Array exposed to the Editor to pick default abilities
+	// Array exposed to the Editor to pick default abilities in Blueprint subclass.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Abilities")
-	TSubclassOf<UGameplayAbility> JumpAbilityClass;
-
 private:
+	// SpecHandles for caching commonly used abilities to avoid constant lookup. Makes activating them O(1)
 	FGameplayAbilitySpecHandle JumpAbilityHandle;
+	FGameplayAbilitySpecHandle PrimaryFireAbilityHandle;
+#pragma endregion
 
 protected:
 
@@ -124,6 +126,7 @@ public:
 	/** Handle incoming damage */
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
+#pragma region Input Functions
 public:
 
 	//virtual void Move(Vector2D Value) override;
@@ -142,6 +145,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void JumpEnd();
 
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void PrimaryFire();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void PrimaryFireTriggered();
+
 	/** Handles start firing input */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoStartFiring();
@@ -149,6 +158,7 @@ public:
 	/** Handles stop firing input */
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoStopFiring();
+#pragma endregion
 
 protected:
 

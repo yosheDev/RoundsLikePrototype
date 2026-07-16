@@ -126,6 +126,28 @@ void AFPSCharacter::JumpEnd()
 		FPSAbilitySystemComponent->CancelAbilityHandle(JumpAbilityHandle);
 	}
 }
+
+#pragma region Weapon Input Handling
+void AFPSCharacter::PrimaryFire()
+{
+	// only route inputs if the character is not dead
+	if (!IsDead())
+	{
+		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Primary Fire Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
+
+		bool bActivated = FPSAbilitySystemComponent->TryActivateAbility(PrimaryFireAbilityHandle);
+
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("Did primary fire activate: %s"), bActivated ? TEXT("true") : TEXT("false")));
+	}
+}
+
+void AFPSCharacter::PrimaryFireTriggered()
+{
+	PrimaryFire();
+}
+#pragma endregion
+
 #pragma endregion
 
 #pragma region RandomCrapToCleanUp
@@ -403,8 +425,7 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Orange, FString::Printf(TEXT("%s Cached Ability Handle for: %s"), *RoleString, *Spec.Ability->GetName()));
 		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Orange, FString::Printf(TEXT("%s Is JumpAbilityHandle valid after?: %s"), *RoleString, JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
 		
-		const FGameplayAbilitySpec* CachedSpec =
-			FPSAbilitySystemComponent->FindAbilitySpecFromHandle(JumpAbilityHandle);
+		const FGameplayAbilitySpec* CachedSpec = FPSAbilitySystemComponent->FindAbilitySpecFromHandle(JumpAbilityHandle);
 
 		GEngine->AddOnScreenDebugMessage(
 			-1,
@@ -417,6 +438,41 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 			)
 		);
 
+	}
+	else if (Spec.Ability && Spec.Ability->AbilityTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Weapon.PrimaryFire"))))
+	{
+
+		FString AbilityName = Spec.Ability->GetName();
+		FString AbilityClassName = Spec.Ability->GetClass()->GetName();
+
+		PrimaryFireAbilityHandle = Spec.Handle;
+
+		#pragma region Get Network Role String
+		ENetRole LocalRole = GetLocalRole();
+		FString RoleString = TEXT("Unknown");
+
+		switch (LocalRole)
+		{
+		case ROLE_Authority:
+			RoleString = (GetWorld()->IsNetMode(NM_Client)) ? TEXT("Server (Autonomous)") : TEXT("Server (Authority)");
+			break;
+		case ROLE_AutonomousProxy:
+			RoleString = TEXT("Client (Autonomous Proxy)");
+			break;
+		case ROLE_SimulatedProxy:
+			RoleString = TEXT("Client (Simulated Proxy)");
+			break;
+		case ROLE_None:
+			RoleString = TEXT("None");
+			break;
+		}
+		#pragma endregion
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Orange, FString::Printf(TEXT("%s Cached PrimaryFire Ability Handle for: %s"), *RoleString, *Spec.Ability->GetName()));
+		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Orange, FString::Printf(TEXT("%s Is PrimaryFire Ability Handle valid after?: %s"), *RoleString, PrimaryFireAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
+
+		const FGameplayAbilitySpec* CachedSpec = FPSAbilitySystemComponent->FindAbilitySpecFromHandle(PrimaryFireAbilityHandle);
+
+		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Cached: %s | Found: %s"), *Spec.Ability->GetName(), CachedSpec ? *CachedSpec->Ability->GetName() : TEXT("NULL")));
 	}
 }
 

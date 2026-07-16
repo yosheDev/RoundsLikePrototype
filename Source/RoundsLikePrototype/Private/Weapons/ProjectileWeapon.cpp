@@ -1,27 +1,32 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// Copyrighted Jacob Jones 2026
 
 #include "Weapons/ProjectileWeapon.h"
 
-// Sets default values
+// Constructor
 AProjectileWeapon::AProjectileWeapon()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 }
 
-// Called when the game starts or when spawned
 void AProjectileWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
-// Called every frame
-void AProjectileWeapon::Tick(float DeltaTime)
+bool AProjectileWeapon::CanFire() const
 {
-	Super::Tick(DeltaTime);
+	return true;
+}
+
+TArray<FTransform> AProjectileWeapon::GetMuzzleLocations() const
+{
+	return TArray<FTransform>();
+}
+
+void AProjectileWeapon::PrimaryFire()
+{
 
 }
 

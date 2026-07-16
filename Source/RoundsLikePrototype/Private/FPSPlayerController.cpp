@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyrighted Jacob Jones 2026
 
 
 #include "FPSPlayerController.h"
@@ -100,7 +100,8 @@ void AFPSPlayerController::SetupInputComponent()
 		Input->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::LookInput);
 		Input->BindAction(JumpAction, ETriggerEvent::Started, this, &AFPSPlayerController::JumpInputStarted);
 		Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &AFPSPlayerController::JumpInputCompleted);
-		Input->BindAction(PrimaryFireAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::PrimaryFireInput);
+		Input->BindAction(PrimaryFireAction, ETriggerEvent::Started, this, &AFPSPlayerController::PrimaryFireInputStarted);
+		Input->BindAction(PrimaryFireAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::PrimaryFireInputTriggered);
 	}
 }
 
@@ -124,9 +125,16 @@ void AFPSPlayerController::JumpInputCompleted(const FInputActionValue& Value)
 	PlayerCharacter->JumpEnd();
 }
 
-void AFPSPlayerController::PrimaryFireInput(const FInputActionValue& Value)
+void AFPSPlayerController::PrimaryFireInputStarted(const FInputActionValue& Value)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInput() from FPSPlayerController."));
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInputStarted() from FPSPlayerController."));
+	PlayerCharacter->PrimaryFire();
+}
+
+void AFPSPlayerController::PrimaryFireInputTriggered(const FInputActionValue& Value)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInputTriggered() from FPSPlayerController."));
+	PlayerCharacter->PrimaryFire();
 }
 
 #pragma endregion

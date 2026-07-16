@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyrighted Jacob Jones 2026
 
 #pragma once
 
@@ -64,7 +64,8 @@ protected:
 	virtual void JumpInputStarted(const FInputActionValue& Value);
 	virtual void JumpInputCompleted(const FInputActionValue& Value);
 
-	virtual void PrimaryFireInput(const FInputActionValue& Value);
+	virtual void PrimaryFireInputStarted(const FInputActionValue& Value);
+	virtual void PrimaryFireInputTriggered(const FInputActionValue& Value);
 	#pragma endregion
 
 	/** Gameplay Initialization */
