@@ -7,6 +7,8 @@
 #include "ShooterWeaponHolder.h"
 #include "AbilitySystemInterface.h"
 #include "Abilities/GameplayAbility.h"
+#include "Weapons/ProjectileWeapon.h"
+#include "Weapons/IWeaponHolder.h"
 #include "FPSCharacter.generated.h"
 
 class AShooterWeapon;
@@ -23,7 +25,7 @@ class UGameplayAbility;
  */
 
 UCLASS(abstract)
-class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ACharacter, public IAbilitySystemInterface
+class ROUNDSLIKEPROTOTYPE_API AFPSCharacter : public ACharacter, public IAbilitySystemInterface, public IWeaponHolder
 {
 	GENERATED_BODY()
 
@@ -67,6 +69,13 @@ private:
 	FGameplayAbilitySpecHandle PrimaryFireAbilityHandle;
 #pragma endregion
 
+#pragma region Weapons
+public:
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
+	TSubclassOf<AProjectileWeapon> DefaultWeaponClass;
+
+	UPROPERTY(EditAnywhere, Category = "Weapons")
+	TObjectPtr<AProjectileWeapon> CurrentWeapon;
 protected:
 
 	/** Name of the first person mesh weapon socket */
@@ -77,6 +86,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Weapons")
 	FName ThirdPersonWeaponSocket = FName("HandGrip_R");
 
+#pragma region IWeaponHolder
+public:
+
+	virtual void CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileWeapon> WeaponClass) override;
+
+	virtual AProjectileWeapon* GetEquippedWeapon_Implementation() const override;
+#pragma endregion
+
+#pragma endregion
+
+protected:
 	/** Max distance to use for aim traces */
 	UPROPERTY(EditAnywhere, Category = "Aim", meta = (ClampMin = 0, ClampMax = 100000, Units = "cm"))
 	float MaxAimDistance = 10000.0f;
@@ -95,12 +115,6 @@ protected:
 	/** Actor tag to grant this character when it dies */
 	UPROPERTY(EditAnywhere, Category = "Team")
 	FName DeathTag = FName("Dead");
-
-	/** List of weapons picked up by the character */
-	TArray<AShooterWeapon*> OwnedWeapons;
-
-	/** Weapon currently equipped and ready to shoot with */
-	TObjectPtr<AShooterWeapon> CurrentWeapon;
 
 public:
 
@@ -150,20 +164,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void PrimaryFireTriggered();
-
-	/** Handles start firing input */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	void DoStartFiring();
-
-	/** Handles stop firing input */
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	void DoStopFiring();
 #pragma endregion
 
 protected:
-
-	/** Returns true if the character already owns a weapon of the given class */
-	AShooterWeapon* FindWeaponOfType(TSubclassOf<AShooterWeapon> WeaponClass) const;
 
 	/** Called when this character's HP is depleted */
 	void Die();

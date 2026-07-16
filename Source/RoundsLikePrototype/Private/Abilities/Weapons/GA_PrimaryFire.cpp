@@ -2,6 +2,7 @@
 
 
 #include "Abilities/Weapons/GA_PrimaryFire.h"
+#include "FPSCharacter.h"
 
 // Constructor
 UGA_PrimaryFire::UGA_PrimaryFire()
@@ -19,6 +20,8 @@ void UGA_PrimaryFire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 {
     Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
     
+    //AFPSCharacter* Character = Cast<AFPSCharacter>(ActorInfo->AvatarActor.Get());
+
     // Put any custom "can this activate?" logic here.
     // if (Weapon != nullptr && Weapon->CanFire())
 
@@ -30,14 +33,31 @@ void UGA_PrimaryFire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
         return;
     }
 
+    // Is there an avatar actor?
     if (AActor* Avatar = ActorInfo->AvatarActor.Get())
     {
-        FString RoleString =
-            Avatar->HasAuthority() ? TEXT("Server") : TEXT("Client");
+        // Is avatar a weapon holder?
+        if (!Avatar->Implements<UWeaponHolder>())
+        {
+            EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+            return;
+        }
 
-        GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("[%s] Performed Primary Fire"), *RoleString));
+        FString RoleString = Avatar->HasAuthority() ? TEXT("Server") : TEXT("Client");
+
+        GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("[%s] Ability Primary Fire"), *RoleString));
+
+        AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
+
+        if (Weapon && Weapon->CanFire())
+        {
+            Weapon->PrimaryFire();
+        }
+        else 
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Red, FString::Printf(TEXT("[%s] WEAPON IS NULL. Avatar is [%s]"), *RoleString, *Avatar->GetName()));
+        }
     }
-    // Weapon->PrimaryFire();
 
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }

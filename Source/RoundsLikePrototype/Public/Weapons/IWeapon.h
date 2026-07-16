@@ -24,6 +24,5 @@ class ROUNDSLIKEPROTOTYPE_API IWeapon
 
 public:
 
-	/** Attaches a weapon's meshes to the owner */
-	//virtual void AttachWeaponMeshes(AProjectileWeapon* Weapon) = 0;
+	
 };

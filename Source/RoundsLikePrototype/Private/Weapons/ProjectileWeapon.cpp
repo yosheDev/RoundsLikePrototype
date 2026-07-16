@@ -6,7 +6,9 @@
 AProjectileWeapon::AProjectileWeapon()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = true;
 
+	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
 }
 
 void AProjectileWeapon::BeginPlay()
@@ -27,6 +29,7 @@ TArray<FTransform> AProjectileWeapon::GetMuzzleLocations() const
 
 void AProjectileWeapon::PrimaryFire()
 {
-
+	FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
+	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Weapon Primary Fire"), *RoleString));
 }
 

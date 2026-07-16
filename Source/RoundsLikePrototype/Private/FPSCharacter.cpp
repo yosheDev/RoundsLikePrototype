@@ -40,6 +40,13 @@ void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	#pragma region Instantiate Weapon
+	if (HasAuthority())
+	{
+		CreateAndEquipWeapon_Implementation(DefaultWeaponClass);
+	}
+	#pragma endregion
+
 	CurrentHP = MaxHP;
 }
 
@@ -150,41 +157,36 @@ void AFPSCharacter::PrimaryFireTriggered()
 
 #pragma endregion
 
+#pragma region Weapon
+
+#pragma region IWeaponHolder
+void AFPSCharacter::CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileWeapon> WeaponClass)
+{
+	AProjectileWeapon* Weapon = GetWorld()->SpawnActor<AProjectileWeapon>(WeaponClass);
+
+	// Validate the weapon actually spawned.
+	if (!Weapon)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to spawn weapon"));
+		return;
+	}
+
+	Weapon->SetOwner(this);
+	Weapon->SetInstigator(this);
+
+	Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FirstPersonWeaponSocket);
+
+	CurrentWeapon = Weapon;
+}
+
+AProjectileWeapon* AFPSCharacter::GetEquippedWeapon_Implementation() const
+{
+	return CurrentWeapon;
+}
+#pragma endregion
+
+#pragma endregion
 #pragma region RandomCrapToCleanUp
-void AFPSCharacter::DoStartFiring()
-{
-	// fire the current weapon
-	if (CurrentWeapon && !IsDead())
-	{
-		CurrentWeapon->StartFiring();
-	}
-}
-
-void AFPSCharacter::DoStopFiring()
-{
-	// stop firing the current weapon
-	if (CurrentWeapon && !IsDead())
-	{
-		CurrentWeapon->StopFiring();
-	}
-}
-
-AShooterWeapon* AFPSCharacter::FindWeaponOfType(TSubclassOf<AShooterWeapon> WeaponClass) const
-{
-	// check each owned weapon
-	for (AShooterWeapon* Weapon : OwnedWeapons)
-	{
-		if (Weapon->IsA(WeaponClass))
-		{
-			return Weapon;
-		}
-	}
-
-	// weapon not found
-	return nullptr;
-
-}
-
 float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	// ignore if already dead
@@ -207,12 +209,6 @@ float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageE
 
 void AFPSCharacter::Die()
 {
-	// deactivate the weapon
-	if (IsValid(CurrentWeapon))
-	{
-		CurrentWeapon->DeactivateWeapon();
-	}
-
 	// grant the death tag to the character
 	Tags.Add(DeathTag);
 
