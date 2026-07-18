@@ -4,13 +4,18 @@
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 
+UGunplayAttributeSet::UGunplayAttributeSet()
+{
+	InitBulletSpeed(50.0f);
+}
+
 void UGunplayAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletJumpFactor);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSpeed);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSize);
-	DOREPLIFETIME(UGunplayAttributeSet, BulletArc);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletGravity);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletCritChance);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletLifestealAmount);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletType);

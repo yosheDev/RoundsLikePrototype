@@ -2,6 +2,7 @@
 
 
 #include "Abilities/Weapons/GA_PrimaryFire.h"
+#include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "FPSCharacter.h"
 
 // Constructor
@@ -48,6 +49,8 @@ void UGA_PrimaryFire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
         GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("[%s] Ability Primary Fire"), *RoleString));
 
         AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
+
+        const UGunplayAttributeSet* Attributes = GetAbilitySystemComponentFromActorInfo()->GetSet<UGunplayAttributeSet>();
 
         if (Weapon && Weapon->CanFire())
         {

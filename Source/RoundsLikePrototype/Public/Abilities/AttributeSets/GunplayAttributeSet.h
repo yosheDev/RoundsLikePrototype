@@ -21,6 +21,9 @@ class ROUNDSLIKEPROTOTYPE_API UGunplayAttributeSet : public UAttributeSet
 	GENERATED_BODY()
 	
 public:
+
+	UGunplayAttributeSet();
+
 	// Maximum amount of damage each bullet can deal.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FGameplayAttributeData BulletDamage;
@@ -43,8 +46,8 @@ public:
 
 	// Arc for the bullet to follow.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData BulletArc;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletArc);
+	FGameplayAttributeData BulletGravity;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletGravity);
 
 	// Chance for a critical strike upon impact.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)

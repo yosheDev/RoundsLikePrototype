@@ -20,7 +20,8 @@ class ROUNDSLIKEPROTOTYPE_API AProjectileWeapon : public AActor, public IWeapon
 
 protected:
 	
-	// Pointer to weapon holder via interface
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class ABulletProjectile> ProjectileClass;
 
 public:	
 	// Sets default values for this actor's properties
