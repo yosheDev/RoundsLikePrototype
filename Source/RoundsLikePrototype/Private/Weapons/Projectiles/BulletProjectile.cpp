@@ -6,12 +6,15 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Weapons/Projectiles/BulletSpec.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 ABulletProjectile::ABulletProjectile()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
+	bAlwaysRelevant = true;
 
 	#pragma region Create Components
 	SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollision"));
@@ -34,15 +37,30 @@ void ABulletProjectile::BeginPlay()
 	NiagaraComponent->Activate(true);
 }
 
+void ABulletProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ABulletProjectile, BulletSpec);
+}
+
 // Called every frame
 void ABulletProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
-void ABulletProjectile::InitializeSpec(FBulletSpec BulletSpec)
+void ABulletProjectile::OnRep_BulletSpec()
 {
+	InitializeSpec(BulletSpec);
+}
+
+void ABulletProjectile::InitializeSpec(FBulletSpec InBulletSpec)
+{
+	BulletSpec = InBulletSpec;
+	ProjectileMovementComponent->Velocity = GetActorForwardVector() * BulletSpec.BulletSpeed;
+	ProjectileMovementComponent->InitialSpeed = BulletSpec.BulletSpeed;
+	ProjectileMovementComponent->MaxSpeed = TNumericLimits<float>::Max();
 	ProjectileMovementComponent->ProjectileGravityScale = BulletSpec.BulletGravity;
 }
 

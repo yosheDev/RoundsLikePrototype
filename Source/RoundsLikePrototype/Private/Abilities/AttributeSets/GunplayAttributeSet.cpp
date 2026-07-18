@@ -6,7 +6,8 @@
 
 UGunplayAttributeSet::UGunplayAttributeSet()
 {
-	InitBulletSpeed(50.0f);
+	InitBulletGravity(1.0f);
+	InitBulletSpeed(2000.0f);
 }
 
 void UGunplayAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

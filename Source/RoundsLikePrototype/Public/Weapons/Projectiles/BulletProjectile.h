@@ -39,5 +39,14 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void InitializeSpec(FBulletSpec BulletSpec);
+	void InitializeSpec(FBulletSpec InBulletSpec);
+
+protected:
+	UPROPERTY(ReplicatedUsing = OnRep_BulletSpec)
+	FBulletSpec BulletSpec;
+
+	UFUNCTION()
+	void OnRep_BulletSpec();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
