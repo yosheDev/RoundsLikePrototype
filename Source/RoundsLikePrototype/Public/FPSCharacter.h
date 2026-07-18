@@ -74,7 +74,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
 	TSubclassOf<AProjectileWeapon> DefaultWeaponClass;
 
-	UPROPERTY(EditAnywhere, Category = "Weapons")
+	UPROPERTY(EditAnywhere, Category = "Weapons", Replicated)
 	TObjectPtr<AProjectileWeapon> CurrentWeapon;
 protected:
 
@@ -128,6 +128,8 @@ protected:
 
 	/** Gameplay cleanup */
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason);
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void PossessedBy(AController* NewController) override;
 

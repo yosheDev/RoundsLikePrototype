@@ -20,7 +20,7 @@ UGA_PrimaryFire::UGA_PrimaryFire()
 void UGA_PrimaryFire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
     Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-    
+
     //AFPSCharacter* Character = Cast<AFPSCharacter>(ActorInfo->AvatarActor.Get());
 
     // Put any custom "can this activate?" logic here.

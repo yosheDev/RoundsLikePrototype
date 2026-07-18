@@ -14,6 +14,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 
 // Constructor
 AFPSCharacter::AFPSCharacter()
@@ -53,6 +54,12 @@ void AFPSCharacter::BeginPlay()
 void AFPSCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
+}
+
+void AFPSCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AFPSCharacter, CurrentWeapon);
 }
 
 void AFPSCharacter::PossessedBy(AController* NewController)

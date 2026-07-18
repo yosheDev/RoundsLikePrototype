@@ -34,6 +34,11 @@ TArray<FTransform> AProjectileWeapon::GetMuzzleLocations() const
 
 void AProjectileWeapon::PrimaryFire()
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
 	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Weapon Primary Fire"), *RoleString));
 
@@ -41,14 +46,8 @@ void AProjectileWeapon::PrimaryFire()
 	FVector Location(GetActorLocation());
 	FRotator Rotation(0.0f, 0.0f, 0.0f);
 	FTransform SpawnTransform(Rotation, Location);
-	FActorSpawnParameters SpawnParams;
 
-	SpawnParams.Owner = this;
-	SpawnParams.Instigator = GetInstigator();
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	TObjectPtr<ABulletProjectile> Projectile = GetWorld()->SpawnActor<ABulletProjectile>(ProjectileClass, Location, Rotation, SpawnParams);
-	#pragma endregion
+	TObjectPtr<ABulletProjectile> Projectile = GetWorld()->SpawnActorDeferred<ABulletProjectile>(ProjectileClass, SpawnTransform, this, GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
 	#pragma region Initialize Projectile Specifiers (Damage, Speed, Size, Gravity, ETC.)
 	if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetOwner()))
@@ -61,6 +60,10 @@ void AProjectileWeapon::PrimaryFire()
 	{
 		UE_LOG(LogTemp, Error, TEXT("Weapon was unable to retrieve the ASC. (Trying to initialize bullet spec)"));
 	}
+	#pragma endregion
+
+	Projectile->FinishSpawning(SpawnTransform);
+
 	#pragma endregion
 
 	if (Projectile)
