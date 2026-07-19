@@ -5,6 +5,12 @@
 #include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
 
+UVitalityAttributeSet::UVitalityAttributeSet()
+{
+	InitHealth(10000.0f);
+	InitMaxHealth(10000.0f);
+}
+
 void UVitalityAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

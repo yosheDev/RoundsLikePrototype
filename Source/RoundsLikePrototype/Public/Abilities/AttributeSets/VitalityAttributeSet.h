@@ -22,6 +22,9 @@ class ROUNDSLIKEPROTOTYPE_API UVitalityAttributeSet : public UAttributeSet
 	GENERATED_BODY()
 	
 public:
+
+	UVitalityAttributeSet();
+
 	// Current health
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData Health;

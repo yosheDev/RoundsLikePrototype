@@ -89,40 +89,44 @@ void ABulletProjectile::InitializeGameplayEffectSpec(FGameplayEffectSpecHandle I
 
 void ABulletProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (!HasAuthority())
+	/*if (!HasAuthority())
 	{
 		Destroy();
 		return;
-	}
-
-	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Projectile Hit: %s"), *OtherActor->GetName()));
-
-	// Get the targets ASC and apply the delivered projectile gameplay effect.
-	UAbilitySystemComponent* TargetASC = nullptr;
-	if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(OtherActor))
-	{
-		TargetASC = ASCInterface->GetAbilitySystemComponent();
-
-		if (TargetASC && GameplayEffectSpec.IsValid())
-		{
-			FGameplayEffectContextHandle Context = GameplayEffectSpec.Data->GetContext();
-			Context.AddHitResult(Hit);
-			GameplayEffectSpec.Data->SetContext(Context);
-
-			TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data);
-			GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Apply Projectile Gameplay Effect")));
-		}
-	}	
+	}*/
 
 	Destroy();
 }
 
 void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!HasAuthority())
+	{
+		Destroy();
+		return;
+	}
+
 	if (OtherActor && (OtherActor != this) && (OtherActor != GetInstigator()))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Overlapped with: %s"), *OtherActor->GetName()));
+		//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Overlapped with: %s"), *OtherActor->GetName()));
 
-		// Add your custom gameplay logic here (e.g., damage, pickup, text prints)
+		// Get the targets ASC and apply the delivered projectile gameplay effect.
+		UAbilitySystemComponent* TargetASC = nullptr;
+		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(OtherActor))
+		{
+			TargetASC = ASCInterface->GetAbilitySystemComponent();
+
+			if (TargetASC && GameplayEffectSpec.IsValid())
+			{
+				//FGameplayEffectContextHandle Context = GameplayEffectSpec.Data->GetContext();
+				//Context.AddHitResult(Hit); // Hit not really something can do for Overlaps.
+				//GameplayEffectSpec.Data->SetContext(Context);
+
+				TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data);
+				//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Apply Projectile Gameplay Effect")));
+			}
+		}
+
+		Destroy();
 	}
 }

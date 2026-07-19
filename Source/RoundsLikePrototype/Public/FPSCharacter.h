@@ -2,6 +2,7 @@
 
 #pragma once
 
+// Preprocessor directives
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "ShooterWeaponHolder.h"
@@ -11,10 +12,14 @@
 #include "Weapons/IWeaponHolder.h"
 #include "FPSCharacter.generated.h"
 
+// Forward declarations
 class AShooterWeapon;
 class UInputAction;
 class UInputComponent;
 class UGameplayAbility;
+class UVitalityAttributeSet;
+class UMovementAttributeSet;
+class UGunplayAttributeSet;
 
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FBulletCountUpdatedDelegate, int32, MagazineSize, int32, Bullets);
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent);
@@ -93,6 +98,23 @@ public:
 
 	virtual AProjectileWeapon* GetEquippedWeapon_Implementation() const override;
 #pragma endregion
+
+#pragma endregion
+
+#pragma region Attributes
+
+protected:
+	UPROPERTY()
+	TObjectPtr<const UVitalityAttributeSet> VitalityAttributes;
+
+	UPROPERTY()
+	TObjectPtr<const UMovementAttributeSet> MovementAttributes;
+
+	UPROPERTY()
+	TObjectPtr<const UGunplayAttributeSet> GunplayAttributes;
+
+protected:
+	void OnHealthChanged(const FOnAttributeChangeData& Data);
 
 #pragma endregion
 

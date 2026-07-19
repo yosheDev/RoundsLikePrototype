@@ -47,8 +47,6 @@ void AFPSCharacter::BeginPlay()
 		CreateAndEquipWeapon_Implementation(DefaultWeaponClass);
 	}
 	#pragma endregion
-
-	CurrentHP = MaxHP;
 }
 
 void AFPSCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -238,7 +236,7 @@ void AFPSCharacter::OnRespawn()
 bool AFPSCharacter::IsDead() const
 {
 	// the character is dead if their current HP drops to zero
-	return CurrentHP <= 0.0f;
+	return VitalityAttributes->GetHealth() <= 0.0f;
 }
 #pragma endregion
 
@@ -296,8 +294,17 @@ void AFPSCharacter::InitializeAbilitySystem()
 			// Initialize local actor info for the ASC.
 			FPSAbilitySystemComponent->InitAbilityActorInfo(FPSPlayerState, this);
 
+			// Bind OnAbilitySpecRecieved to HandleAbilityGranted().
 			FPSAbilitySystemComponent->OnAbilitySpecRecieved.AddUObject(this, &AFPSCharacter::HandleAbilityGranted);
 
+			// Initialize Attribute Set References
+			VitalityAttributes = FPSAbilitySystemComponent->GetSet<UVitalityAttributeSet>();
+			MovementAttributes = FPSAbilitySystemComponent->GetSet<UMovementAttributeSet>();
+			GunplayAttributes = FPSAbilitySystemComponent->GetSet<UGunplayAttributeSet>();
+
+			// Bind Vitality Health changing with OnHealthChanged()
+			FPSAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UVitalityAttributeSet::GetHealthAttribute()).AddUObject(this,&AFPSCharacter::OnHealthChanged);
+			
 			// Server grants default abilities to character.
 			if (GetLocalRole() == ROLE_Authority)
 			{
@@ -480,3 +487,11 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 }
 
 #pragma endregion
+
+void AFPSCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
+{
+	float OldHealth = Data.OldValue;
+	float NewHealth = Data.NewValue;
+	float DamagedAmount = OldHealth - NewHealth;
+	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Take Damage [%f]"), *GetName(), DamagedAmount));
+}
