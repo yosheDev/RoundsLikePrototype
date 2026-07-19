@@ -2,6 +2,7 @@
 
 
 #include "Abilities/AttributeSets/VitalityAttributeSet.h"
+#include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
 
 void UVitalityAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -22,5 +23,17 @@ void UVitalityAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribu
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
 	}
 	Super::PreAttributeChange(Attribute, NewValue);
+}
+
+void UVitalityAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
+{
+	if (Data.EvaluatedData.Attribute == GetDamageAttribute())
+	{
+		const float AppliedDamage = GetDamage();
+		const float NewHealth = FMath::Clamp(GetHealth() - AppliedDamage, 0.0f, GetMaxHealth());
+
+		SetHealth(NewHealth);
+		SetDamage(0.f);
+	}
 }
 

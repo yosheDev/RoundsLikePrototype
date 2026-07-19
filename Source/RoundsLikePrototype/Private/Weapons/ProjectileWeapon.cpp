@@ -40,7 +40,9 @@ void AProjectileWeapon::PrimaryFire()
 	}
 
 	FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
-	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Weapon Primary Fire"), *RoleString));
+	//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Weapon Primary Fire"), *RoleString));
+
+	// Add logic for fire types i.e HasTag(Weapon.FireMode.Spread)
 
 	#pragma region Spawn Projectile
 	FVector Location(GetActorLocation());
@@ -52,9 +54,33 @@ void AProjectileWeapon::PrimaryFire()
 	#pragma region Initialize Projectile Specifiers (Damage, Speed, Size, Gravity, ETC.)
 	if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetOwner()))
 	{
+		// Initialize Projectile Parameters(Things relevant to projectile movement, size, and traits.)
 		UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent();
+
+		#pragma region Validation Checks
+		if (!IsValid(ASC))
+		{
+			UE_LOG(LogTemp, Error, TEXT("ASC is invalid"));
+			return;
+		}
+
+		if (!IsValid(ProjectileGameplayEffect))
+		{
+			UE_LOG(LogTemp, Error, TEXT("ProjectileGameplayEffect is invalid"));
+			return;
+		}
+		#pragma endregion
+
 		FBulletSpec Spec = UProjectileUtilities::MakeBulletSpec(Cast<UFPSAbilitySystemComponent>(ASC));
-		Projectile->InitializeSpec(Spec);
+		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Blue, FString::Printf(TEXT("[%f] Bullet Spec Speed"), Spec.BulletSpeed));
+		Projectile->InitializeBulletSpec(Spec);
+
+		// Assign Gameplay Effect Spec
+		FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
+		EffectContext.AddSourceObject(this);
+		EffectContext.AddInstigator(GetInstigator(), this);
+		FGameplayEffectSpecHandle GameplayEffectSpec = ASC->MakeOutgoingSpec(ProjectileGameplayEffect, 1, EffectContext);
+		Projectile->GameplayEffectSpec = GameplayEffectSpec;
 	}
 	else
 	{
@@ -68,7 +94,7 @@ void AProjectileWeapon::PrimaryFire()
 
 	if (Projectile)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Spawned Projectile"), *RoleString));
+		//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Spawned Projectile"), *RoleString));
 	}
 }
 

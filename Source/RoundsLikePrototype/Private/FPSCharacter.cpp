@@ -121,11 +121,11 @@ void AFPSCharacter::JumpStart()
 	if (!IsDead())
 	{
 		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
-		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Jump Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
+		//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Jump Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
 		
 		bool bActivated = FPSAbilitySystemComponent->TryActivateAbility(JumpAbilityHandle);
 
-		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("Did jump ability activate: %s"), bActivated ? TEXT("true") : TEXT("false")));
+		//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("Did jump ability activate: %s"), bActivated ? TEXT("true") : TEXT("false")));
 	}
 }
 
@@ -148,11 +148,11 @@ void AFPSCharacter::PrimaryFire()
 	if (!IsDead())
 	{
 		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
-		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Primary Fire Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
+		//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Primary Fire Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
 
 		bool bActivated = FPSAbilitySystemComponent->TryActivateAbility(PrimaryFireAbilityHandle);
 
-		GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("Did primary fire activate: %s"), bActivated ? TEXT("true") : TEXT("false")));
+		//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("Did primary fire activate: %s"), bActivated ? TEXT("true") : TEXT("false")));
 	}
 }
 
@@ -291,7 +291,7 @@ void AFPSCharacter::InitializeAbilitySystem()
 				break;
 			}
 			#pragma endregion
-			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s InitiateAbilitySystem()"), *RoleString));
+			//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s InitiateAbilitySystem()"), *RoleString));
 
 			// Initialize local actor info for the ASC.
 			FPSAbilitySystemComponent->InitAbilityActorInfo(FPSPlayerState, this);
@@ -351,7 +351,7 @@ void AFPSCharacter::GiveDefaultAbilities()
 				break;
 			}
 			#pragma endregion
-			GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s Granted Ability: %s"), *RoleString, *GrantedSpec->Ability->GetName()));
+			//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s Granted Ability: %s"), *RoleString, *GrantedSpec->Ability->GetName()));
 			// If the ability is the jump ability, cache it for future use.
 			
 

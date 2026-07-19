@@ -26,8 +26,8 @@ public:
 
 	// Maximum amount of damage each bullet can deal.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FGameplayAttributeData BulletDamage;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletDamage);
+	FGameplayAttributeData BulletImpactDamage;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletImpactDamage);
 
 	// Influence factor for bullet jumping.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)

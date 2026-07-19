@@ -12,9 +12,6 @@ struct FBulletSpec
     GENERATED_BODY()
 
     UPROPERTY()
-    float BulletDamage = 20.f;
-
-    UPROPERTY()
     float BulletSpeed = 1200.f;
 
     UPROPERTY()

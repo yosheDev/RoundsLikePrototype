@@ -7,6 +7,10 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Weapons/Projectiles/BulletSpec.h"
 #include "Net/UnrealNetwork.h"
+#include "AbilitySystemGlobals.h"
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
+#include "Components/FPSAbilitySystemComponent.h"
 
 // Sets default values
 ABulletProjectile::ABulletProjectile()
@@ -17,8 +21,13 @@ ABulletProjectile::ABulletProjectile()
 	bAlwaysRelevant = true;
 
 	#pragma region Create Components
-	SphereCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereCollision"));
-	SetRootComponent(SphereCollision);
+	SphereHitCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereHitCollision"));
+	SphereHitCollision->SetNotifyRigidBodyCollision(true);
+	SetRootComponent(SphereHitCollision);
+
+	SphereOverlapCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereOverlapCollision"));
+	SphereOverlapCollision->SetupAttachment(RootComponent);
+	SphereOverlapCollision->SetGenerateOverlapEvents(true);
 
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 	ProjectileMovementComponent->bAutoActivate = false;
@@ -34,6 +43,10 @@ void ABulletProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	// Binds Sphere Component collision methods to this .cpp scripts equivalent function.
+	SphereHitCollision->OnComponentHit.AddDynamic(this, &ABulletProjectile::OnComponentHit);
+	SphereOverlapCollision->OnComponentBeginOverlap.AddDynamic(this, &ABulletProjectile::OnComponentBeginOverlapEvent);
+
 	NiagaraComponent->Activate(true);
 }
 
@@ -52,15 +65,64 @@ void ABulletProjectile::Tick(float DeltaTime)
 
 void ABulletProjectile::OnRep_BulletSpec()
 {
-	InitializeSpec(BulletSpec);
+	InitializeBulletSpec(BulletSpec);
 }
 
-void ABulletProjectile::InitializeSpec(FBulletSpec InBulletSpec)
+void ABulletProjectile::InitializeBulletSpec(FBulletSpec InBulletSpec)
 {
 	BulletSpec = InBulletSpec;
-	ProjectileMovementComponent->Velocity = GetActorForwardVector() * BulletSpec.BulletSpeed;
+	ProjectileMovementComponent->Velocity = GetInstigator()->GetActorForwardVector() * BulletSpec.BulletSpeed;
+	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%f] Bullet Spec Speed"), BulletSpec.BulletSpeed));
 	ProjectileMovementComponent->InitialSpeed = BulletSpec.BulletSpeed;
 	ProjectileMovementComponent->MaxSpeed = TNumericLimits<float>::Max();
 	ProjectileMovementComponent->ProjectileGravityScale = BulletSpec.BulletGravity;
+
+	ProjectileMovementComponent->bAutoActivate = true;
+	ProjectileMovementComponent->Activate();
 }
 
+void ABulletProjectile::InitializeGameplayEffectSpec(FGameplayEffectSpecHandle InEffectSpec)
+{
+	GameplayEffectSpec = InEffectSpec;
+}
+
+
+void ABulletProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!HasAuthority())
+	{
+		Destroy();
+		return;
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Projectile Hit: %s"), *OtherActor->GetName()));
+
+	// Get the targets ASC and apply the delivered projectile gameplay effect.
+	UAbilitySystemComponent* TargetASC = nullptr;
+	if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(OtherActor))
+	{
+		TargetASC = ASCInterface->GetAbilitySystemComponent();
+
+		if (TargetASC && GameplayEffectSpec.IsValid())
+		{
+			FGameplayEffectContextHandle Context = GameplayEffectSpec.Data->GetContext();
+			Context.AddHitResult(Hit);
+			GameplayEffectSpec.Data->SetContext(Context);
+
+			TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data);
+			GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Apply Projectile Gameplay Effect")));
+		}
+	}	
+
+	Destroy();
+}
+
+void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && (OtherActor != this) && (OtherActor != GetInstigator()))
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Overlapped with: %s"), *OtherActor->GetName()));
+
+		// Add your custom gameplay logic here (e.g., damage, pickup, text prints)
+	}
+}

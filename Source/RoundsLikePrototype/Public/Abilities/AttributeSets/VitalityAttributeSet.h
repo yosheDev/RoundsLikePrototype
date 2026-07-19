@@ -27,6 +27,11 @@ public:
 	FGameplayAttributeData Health;
 	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, Health);
 
+	// Transient damage value for detracting health.
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayAttributeData Damage;
+	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, Damage);
+
 	// Upper limit for health value
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData MaxHealth;
@@ -50,4 +55,5 @@ public:
 public:
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 
+	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 };
