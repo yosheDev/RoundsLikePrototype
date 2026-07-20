@@ -2,16 +2,23 @@
 
 #pragma once
 
+// Preprocessor Directives
 #include "CoreMinimal.h"
 #include "AttributeSet.h"
 #include "Components/FPSAbilitySystemComponent.h"
 #include "VitalityAttributeSet.generated.h"
+
+// Forward Declarations
+class AFPSCharacter;
 
 #define ATTRIBUTE_ACCESSORS(ClassName, PropertyName) \
 	GAMEPLAYATTRIBUTE_PROPERTY_GETTER(ClassName, PropertyName) \
 	GAMEPLAYATTRIBUTE_VALUE_GETTER(PropertyName) \
 	GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \
 	GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
+
+// Delegate used to immediately let clients display health changes. Later, they will be conciled through GAS replication.
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageTaken, float);
 
 /**
  * 
@@ -26,7 +33,7 @@ public:
 	UVitalityAttributeSet();
 
 	// Current health
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_Health)
 	FGameplayAttributeData Health;
 	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, Health);
 
@@ -36,7 +43,7 @@ public:
 	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, Damage);
 
 	// Upper limit for health value
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_MaxHealth)
 	FGameplayAttributeData MaxHealth;
 	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, MaxHealth);
 
@@ -55,6 +62,14 @@ public:
 	FGameplayAttributeData BodySize;
 	ATTRIBUTE_ACCESSORS(UVitalityAttributeSet, BodySize);
 
+#pragma region OnRep Functions
+protected:
+	UFUNCTION()
+	void OnRep_Health(const FGameplayAttributeData& OldHealth);
+
+	UFUNCTION()
+	void OnRep_MaxHealth(const FGameplayAttributeData& OldHealth);
+#pragma endregion
 public:
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 

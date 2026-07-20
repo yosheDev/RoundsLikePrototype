@@ -22,9 +22,6 @@ class UMovementAttributeSet;
 class UGunplayAttributeSet;
 class UWidgetComponent;
 
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FBulletCountUpdatedDelegate, int32, MagazineSize, int32, Bullets);
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent);
-
 /*
  *  Player character class. Inputs from controller are routed to here and handled.
  *  Manages abilities: Jump, PrimaryFire
@@ -121,30 +118,23 @@ protected:
 	UPROPERTY()
 	TObjectPtr<const UGunplayAttributeSet> GunplayAttributes;
 
+	// Used for client-side health bar displays. Is corrected anytime actual health is replicated by the server.
+	UPROPERTY()
+	float PredictedHealth;
+
 protected:
 	void OnHealthChanged(const FOnAttributeChangeData& Data);
 
+public:
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastDamageTaken(float Damage);
 #pragma endregion
 
 protected:
 	/** Max distance to use for aim traces */
 	UPROPERTY(EditAnywhere, Category = "Aim", meta = (ClampMin = 0, ClampMax = 100000, Units = "cm"))
 	float MaxAimDistance = 10000.0f;
-
-	/** Max HP this character can have */
-	UPROPERTY(EditAnywhere, Category = "Health")
-	float MaxHP = 500.0f;
-
-	/** Current HP remaining to this character */
-	float CurrentHP = 0.0f;
-
-	/** Team ID for this character*/
-	UPROPERTY(EditAnywhere, Category = "Team")
-	uint8 TeamByte = 0;
-
-	/** Actor tag to grant this character when it dies */
-	UPROPERTY(EditAnywhere, Category = "Team")
-	FName DeathTag = FName("Dead");
 
 public:
 
@@ -166,11 +156,6 @@ protected:
 	virtual void OnRep_PlayerState() override;
 
 	void InitializeAbilitySystem();
-
-public:
-
-	/** Handle incoming damage */
-	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
 #pragma region Input Functions
 public:

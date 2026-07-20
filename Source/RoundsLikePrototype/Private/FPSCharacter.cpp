@@ -32,6 +32,7 @@
 // Constructor
 AFPSCharacter::AFPSCharacter()
 {
+	#pragma region Construct Components
 	#pragma region Construct Camera
 	/* Spring Arm */
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
@@ -52,6 +53,11 @@ AFPSCharacter::AFPSCharacter()
 
 	// Create Noise Emitter
 	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("PawnNoiseEmitter"));
+	#pragma endregion
+
+	bReplicates = true;
+	NetUpdateFrequency = 100.0f;
+	MinNetUpdateFrequency = 30.0f;
 }
 
 void AFPSCharacter::BeginPlay()
@@ -219,31 +225,9 @@ AProjectileWeapon* AFPSCharacter::GetEquippedWeapon_Implementation() const
 
 #pragma endregion
 #pragma region RandomCrapToCleanUp
-float AFPSCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	// ignore if already dead
-	if (CurrentHP <= 0.0f)
-	{
-		return 0.0f;
-	}
-
-	// Reduce HP
-	CurrentHP -= Damage;
-
-	// Have we depleted HP?
-	if (CurrentHP <= 0.0f)
-	{
-		Die();
-	}
-
-	return Damage;
-}
 
 void AFPSCharacter::Die()
 {
-	// grant the death tag to the character
-	Tags.Add(DeathTag);
-
 	// stop character movement
 	GetCharacterMovement()->StopMovementImmediately();
 
@@ -329,9 +313,12 @@ void AFPSCharacter::InitializeAbilitySystem()
 			MovementAttributes = FPSAbilitySystemComponent->GetSet<UMovementAttributeSet>();
 			GunplayAttributes = FPSAbilitySystemComponent->GetSet<UGunplayAttributeSet>();
 
-			// Bind Vitality Health changing with OnHealthChanged()
+			// Initialize Predicted Health
+			PredictedHealth = VitalityAttributes->GetHealth();
+
+			// Bind Vitality Health changing with OnHealthChanged(). This is authoritative and only happens when server replicates.
 			FPSAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UVitalityAttributeSet::GetHealthAttribute()).AddUObject(this,&AFPSCharacter::OnHealthChanged);
-			
+
 			// Server grants default abilities to character.
 			if (GetLocalRole() == ROLE_Authority)
 			{
@@ -515,16 +502,37 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 
 #pragma endregion
 
+// Authoratative Update Health
 void AFPSCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 {
+	/* 
+	  This function is called when the server replicates Health updates.
+	  It is authoratative and should be used to correct client predictions.
+	*/
 	float OldHealth = Data.OldValue;
 	float NewHealth = Data.NewValue;
+	PredictedHealth = Data.NewValue;
 	float DamagedAmount = OldHealth - NewHealth;
-	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Take Damage [%f]"), *GetName(), DamagedAmount));
+	//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Take Damage [%f]"), *GetName(), DamagedAmount));
 
 	// Update Health Bar
 	if (auto* Widget = Cast<UHealthBar>(HealthWidget->GetUserWidgetObject()))
 	{
 		Widget->UpdateHealthBar(NewHealth, VitalityAttributes->GetMaxHealth());
+	}
+}
+
+// Multicast RPC called from server when server knows damage is taken.
+void AFPSCharacter::MulticastDamageTaken_Implementation(float Damage)
+{
+	if (GetLocalRole() != ROLE_Authority)
+	{
+
+		if (auto* Widget = Cast<UHealthBar>(HealthWidget->GetUserWidgetObject()))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Green, FString::Printf(TEXT("[%s] Multicast Damage [%f]"), *GetName(), Damage));
+			Widget->UpdateHealthBar(PredictedHealth - Damage, VitalityAttributes->GetMaxHealth());
+			PredictedHealth = FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max());
+		}
 	}
 }

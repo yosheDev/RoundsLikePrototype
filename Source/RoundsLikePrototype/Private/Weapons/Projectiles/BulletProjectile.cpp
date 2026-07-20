@@ -72,7 +72,6 @@ void ABulletProjectile::InitializeBulletSpec(FBulletSpec InBulletSpec)
 {
 	BulletSpec = InBulletSpec;
 	ProjectileMovementComponent->Velocity = GetInstigator()->GetActorForwardVector() * BulletSpec.BulletSpeed;
-	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%f] Bullet Spec Speed"), BulletSpec.BulletSpeed));
 	ProjectileMovementComponent->InitialSpeed = BulletSpec.BulletSpeed;
 	ProjectileMovementComponent->MaxSpeed = TNumericLimits<float>::Max();
 	ProjectileMovementComponent->ProjectileGravityScale = BulletSpec.BulletGravity;
@@ -100,12 +99,19 @@ void ABulletProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, AActor
 
 void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	#pragma region Client Predicts Damage
 	if (!HasAuthority())
 	{
+		if (OtherActor && (OtherActor != this) && (OtherActor != GetInstigator()))
+		{
+
+		}
 		Destroy();
 		return;
 	}
+	#pragma endregion
 
+	#pragma region Server Applys Damage
 	if (OtherActor && (OtherActor != this) && (OtherActor != GetInstigator()))
 	{
 		//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Overlapped with: %s"), *OtherActor->GetName()));
@@ -129,4 +135,5 @@ void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* Overla
 
 		Destroy();
 	}
+	#pragma endregion
 }

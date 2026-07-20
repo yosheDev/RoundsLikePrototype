@@ -1,9 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
+// Preprocessor Directives
 #include "Abilities/AttributeSets/VitalityAttributeSet.h"
 #include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
+#include "FPSCharacter.h"
 
 UVitalityAttributeSet::UVitalityAttributeSet()
 {
@@ -14,12 +15,24 @@ UVitalityAttributeSet::UVitalityAttributeSet()
 void UVitalityAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UVitalityAttributeSet, Health);
-	DOREPLIFETIME(UVitalityAttributeSet, MaxHealth);
+	DOREPLIFETIME_CONDITION_NOTIFY(UVitalityAttributeSet, Health, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UVitalityAttributeSet, MaxHealth, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME(UVitalityAttributeSet, HealthRegen);
 	DOREPLIFETIME(UVitalityAttributeSet, HealthRegenDuration);
 	DOREPLIFETIME(UVitalityAttributeSet, BodySize);
 }
+
+#pragma region OnRep Functions
+void UVitalityAttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVitalityAttributeSet, Health, OldHealth);
+}
+
+void UVitalityAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldMaxHealth)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVitalityAttributeSet, MaxHealth, OldMaxHealth);
+}
+#pragma endregion
 
 void UVitalityAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
@@ -40,6 +53,12 @@ void UVitalityAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCa
 
 		SetHealth(NewHealth);
 		SetDamage(0.f);
+
+		// Broadcast a damage event so that clients can see health bar updating smoothly instead of waiting for OnRep stuff.
+		if (AFPSCharacter* Character = Cast<AFPSCharacter>(Data.Target.AbilityActorInfo->AvatarActor.Get()))
+		{
+			Character->MulticastDamageTaken(AppliedDamage);
+		}
 	}
 }
 
