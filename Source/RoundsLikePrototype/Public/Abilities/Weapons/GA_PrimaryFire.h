@@ -18,6 +18,9 @@ public:
 
     UGA_PrimaryFire();
 
+    UPROPERTY()
+    FTransform CachedSpawnTransform;
+
 protected:
 
     virtual void ActivateAbility(

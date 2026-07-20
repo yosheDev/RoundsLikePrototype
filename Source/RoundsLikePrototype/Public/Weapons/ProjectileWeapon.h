@@ -7,8 +7,6 @@
 #include "Weapons/IWeapon.h"
 #include "ProjectileWeapon.generated.h"
 
-// To do: Make interface for interacting with owner
-
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API AProjectileWeapon : public AActor, public IWeapon
 {
@@ -37,9 +35,12 @@ public:
 	virtual TArray<FTransform> GetMuzzleLocations() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	virtual void PrimaryFire();
+	virtual void PrimaryFire(const FGameplayAbilitySpecHandle& AbilityHandle, const FGameplayAbilityActivationInfo& ActivationInfo, const FProjectileSpawnData& SpawnData);
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void SpawnProjectile(const FGameplayAbilitySpecHandle& AbilityHandle, const FGameplayAbilityActivationInfo& ActivationInfo, const FProjectileSpawnData& SpawnData);
 };

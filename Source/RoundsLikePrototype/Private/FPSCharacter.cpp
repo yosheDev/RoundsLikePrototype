@@ -75,10 +75,10 @@ void AFPSCharacter::BeginPlay()
 	}*/
 
 	#pragma region Instantiate Weapon
-	if (HasAuthority())
-	{
-		CreateAndEquipWeapon_Implementation(DefaultWeaponClass);
-	}
+	//if (HasAuthority())
+	//{
+	//	CreateAndEquipWeapon_Implementation(DefaultWeaponClass);
+	//}
 	#pragma endregion
 }
 
@@ -102,8 +102,14 @@ void AFPSCharacter::PossessedBy(AController* NewController)
 	{
 		InitializeAbilitySystem();
 	}
+
+	if (!CurrentWeapon && HasAuthority())
+	{
+		CreateAndEquipWeapon_Implementation(DefaultWeaponClass);
+	}
 }
 
+#pragma region OnRep Functions
 void AFPSCharacter::OnRep_PlayerState()
 {
 	/* Only runs on clients. */
@@ -114,6 +120,17 @@ void AFPSCharacter::OnRep_PlayerState()
 		InitializeAbilitySystem();
 	}
 }
+
+void AFPSCharacter::OnRep_CurrentWeapon()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Green, TEXT("Current weapon replciated"));
+
+	UE_LOG(LogTemp, Warning, TEXT("[%s] CurrentWeapon replicated: %s"),
+		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
+		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));
+}
+
+#pragma endregion
 
 #pragma region Input Actions
 void AFPSCharacter::Look(const FInputActionValue& Value)

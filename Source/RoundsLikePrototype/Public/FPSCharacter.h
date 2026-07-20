@@ -84,8 +84,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
 	TSubclassOf<AProjectileWeapon> DefaultWeaponClass;
 
-	UPROPERTY(EditAnywhere, Category = "Weapons", Replicated)
+	UPROPERTY(EditAnywhere, Category = "Weapons", ReplicatedUsing = OnRep_CurrentWeapon)
 	TObjectPtr<AProjectileWeapon> CurrentWeapon;
+
+	UFUNCTION()
+	void OnRep_CurrentWeapon();
+
 protected:
 
 	/** Name of the first person mesh weapon socket */

@@ -4,6 +4,7 @@
 #include "Abilities/Weapons/GA_PrimaryFire.h"
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "FPSCharacter.h"
+#include "Weapons/Projectiles/ProjectileSpawnData.h"
 
 // Constructor
 UGA_PrimaryFire::UGA_PrimaryFire()
@@ -52,9 +53,21 @@ void UGA_PrimaryFire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 
         const UGunplayAttributeSet* Attributes = GetAbilitySystemComponentFromActorInfo()->GetSet<UGunplayAttributeSet>();
 
+        GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("[%s] Weapon = %s"),
+            Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
+            Weapon ? *Weapon->GetName() : TEXT("NULL")));
+
         if (Weapon && Weapon->CanFire())
         {
-            Weapon->PrimaryFire();
+            APlayerController* PC = ActorInfo->PlayerController.Get();
+            FVector AimLocation = PC->PlayerCameraManager->GetCameraLocation();//ActorInfo->AvatarActor->GetActorLocation()
+            FRotator AimRotation = PC->PlayerCameraManager->GetCameraRotation().Vector().Rotation();
+
+            CachedSpawnTransform = FTransform(AimRotation, AimLocation);
+
+            FProjectileSpawnData SpawnData;
+            SpawnData.SpawnTransform = CachedSpawnTransform;
+            Weapon->PrimaryFire(Handle, ActivationInfo, SpawnData);
         }
         else 
         {
@@ -63,6 +76,9 @@ void UGA_PrimaryFire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
     }
 
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+
+    // COmmented out, trying to make end ability happen later on after projectiles are done?
+    //EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
 void UGA_PrimaryFire::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)

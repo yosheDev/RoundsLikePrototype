@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Weapons/Projectiles/BulletSpec.h"
+#include "Weapons/Projectiles/ProjectileSpawnData.h"
 #include "Net/UnrealNetwork.h"
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystemInterface.h"
@@ -17,7 +18,14 @@ ABulletProjectile::ABulletProjectile()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	bReplicates = true;
+	if (!HasAuthority())
+	{
+		SetReplicates(false);
+	}
+	else 
+	{
+		SetReplicates(true);
+	}
 	bAlwaysRelevant = true;
 
 	#pragma region Create Components
@@ -43,6 +51,12 @@ void ABulletProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (!HasAuthority() && !bPredictedProjectile)
+	{
+		// This is flawed, it makes client unable to see the servers real projectiles as well...
+		SetActorHiddenInGame(true);
+	}
+
 	// Binds Sphere Component collision methods to this .cpp scripts equivalent function.
 	SphereHitCollision->OnComponentHit.AddDynamic(this, &ABulletProjectile::OnComponentHit);
 	SphereOverlapCollision->OnComponentBeginOverlap.AddDynamic(this, &ABulletProjectile::OnComponentBeginOverlapEvent);
@@ -54,7 +68,7 @@ void ABulletProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ABulletProjectile, BulletSpec);
+	DOREPLIFETIME(ABulletProjectile, BulletData);
 }
 
 // Called every frame
@@ -63,18 +77,24 @@ void ABulletProjectile::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void ABulletProjectile::OnRep_BulletSpec()
+void ABulletProjectile::OnRep_BulletData()
 {
-	InitializeBulletSpec(BulletSpec);
+	InitializeBulletData(BulletData);
 }
 
-void ABulletProjectile::InitializeBulletSpec(FBulletSpec InBulletSpec)
+void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 {
-	BulletSpec = InBulletSpec;
-	ProjectileMovementComponent->Velocity = GetInstigator()->GetActorForwardVector() * BulletSpec.BulletSpeed;
-	ProjectileMovementComponent->InitialSpeed = BulletSpec.BulletSpeed;
+	UE_LOG(LogTemp, Warning, TEXT("[%s] InitializeBulletSpec Authority=%s"),
+		*GetName(),
+		HasAuthority() ? TEXT("YES") : TEXT("NO"));
+
+	BulletData = InBulletData;
+	ProjectileMovementComponent->bInitialVelocityInLocalSpace = false;
+	ProjectileMovementComponent->InitialSpeed = 0.0f;
+	ProjectileMovementComponent->Velocity = GetActorForwardVector() * InBulletData.BulletSpec.BulletSpeed;
+	ProjectileMovementComponent->InitialSpeed = InBulletData.BulletSpec.BulletSpeed;
 	ProjectileMovementComponent->MaxSpeed = TNumericLimits<float>::Max();
-	ProjectileMovementComponent->ProjectileGravityScale = BulletSpec.BulletGravity;
+	ProjectileMovementComponent->ProjectileGravityScale = InBulletData.BulletSpec.BulletGravity;
 
 	ProjectileMovementComponent->bAutoActivate = true;
 	ProjectileMovementComponent->Activate();
@@ -99,41 +119,99 @@ void ABulletProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, AActor
 
 void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	#pragma region Client Predicts Damage
-	if (!HasAuthority())
+	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator())
 	{
-		if (OtherActor && (OtherActor != this) && (OtherActor != GetInstigator()))
-		{
+		return;
+	}
 
-		}
+	if (bPredictedProjectile)
+	{
+		PredictDamage(OtherActor);
 		Destroy();
 		return;
 	}
-	#pragma endregion
 
-	#pragma region Server Applys Damage
-	if (OtherActor && (OtherActor != this) && (OtherActor != GetInstigator()))
+	if (HasAuthority())
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Overlapped with: %s"), *OtherActor->GetName()));
-
-		// Get the targets ASC and apply the delivered projectile gameplay effect.
-		UAbilitySystemComponent* TargetASC = nullptr;
-		if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(OtherActor))
-		{
-			TargetASC = ASCInterface->GetAbilitySystemComponent();
-
-			if (TargetASC && GameplayEffectSpec.IsValid())
-			{
-				//FGameplayEffectContextHandle Context = GameplayEffectSpec.Data->GetContext();
-				//Context.AddHitResult(Hit); // Hit not really something can do for Overlaps.
-				//GameplayEffectSpec.Data->SetContext(Context);
-
-				TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data);
-				//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Apply Projectile Gameplay Effect")));
-			}
-		}
-
+		ApplyDamage(OtherActor);
 		Destroy();
 	}
-	#pragma endregion
+
+	//#pragma region Client Predicts Damage
+	//if (!HasAuthority())
+	//{
+	//	if (OtherActor && (OtherActor != this) && (OtherActor != GetInstigator()))
+	//	{
+	//		// Call predicition health thing on the other actor
+	//	}
+	//	Destroy();
+	//	return;
+	//}
+	//#pragma endregion
+
+	//#pragma region Server Applys Damage
+	//if (OtherActor && (OtherActor != this) && (OtherActor != GetInstigator()))
+	//{
+	//	//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Overlapped with: %s"), *OtherActor->GetName()));
+
+	//	// Get the targets ASC and apply the delivered projectile gameplay effect.
+	//	UAbilitySystemComponent* TargetASC = nullptr;
+	//	if (IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(OtherActor))
+	//	{
+	//		TargetASC = ASCInterface->GetAbilitySystemComponent();
+
+	//		if (TargetASC && GameplayEffectSpec.IsValid())
+	//		{
+	//			//FGameplayEffectContextHandle Context = GameplayEffectSpec.Data->GetContext();
+	//			//Context.AddHitResult(Hit); // Hit not really something can do for Overlaps.
+	//			//GameplayEffectSpec.Data->SetContext(Context);
+
+	//			TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data);
+	//			//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("Apply Projectile Gameplay Effect")));
+	//		}
+	//	}
+
+	//	Destroy();
+	//}
+	//#pragma endregion
+}
+
+void ABulletProjectile::PredictDamage(AActor* Target)
+{
+	// Get ASC Properly
+	IAbilitySystemInterface* TargetInterface = Cast<IAbilitySystemInterface>(Target);
+	if (!TargetInterface) { return; }
+	UAbilitySystemComponent* TargetASC = TargetInterface->GetAbilitySystemComponent();
+	if (!TargetASC) { return; }
+	UAbilitySystemComponent* SourceASC = Cast<IAbilitySystemInterface>(GetInstigator())->GetAbilitySystemComponent();
+	if (!SourceASC) { return; }
+
+	FGameplayEffectContextHandle Context = SourceASC->MakeEffectContext();
+	Context.AddSourceObject(this);
+
+	FScopedPredictionWindow PredictionWindow(SourceASC, true);
+
+	FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(ProjectileGameplayEffect, 1, Context);
+
+	if (SpecHandle.IsValid())
+	{
+		TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
+}
+
+void ABulletProjectile::ApplyDamage(AActor* Target)
+{
+	IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(Target);
+
+	if (!ASCInterface)
+	{
+		return;
+	}
+
+	UAbilitySystemComponent* TargetASC = ASCInterface->GetAbilitySystemComponent();
+
+	if (TargetASC && GameplayEffectSpec.IsValid())
+	{
+		TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data);
+	}
 }

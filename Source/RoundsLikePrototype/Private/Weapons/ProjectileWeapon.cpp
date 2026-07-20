@@ -6,6 +6,7 @@
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "Components/FPSAbilitySystemComponent.h"
+#include "Weapons/Projectiles/ProjectileSpawnData.h"
 
 // Constructor
 AProjectileWeapon::AProjectileWeapon()
@@ -32,69 +33,66 @@ TArray<FTransform> AProjectileWeapon::GetMuzzleLocations() const
 	return TArray<FTransform>();
 }
 
-void AProjectileWeapon::PrimaryFire()
+void AProjectileWeapon::PrimaryFire(const FGameplayAbilitySpecHandle& AbilityHandle, const FGameplayAbilityActivationInfo& ActivationInfo, const FProjectileSpawnData& SpawnData)
 {
-	if (!HasAuthority())
+	SpawnProjectile(AbilityHandle, ActivationInfo, SpawnData);
+}
+
+void AProjectileWeapon::SpawnProjectile(const FGameplayAbilitySpecHandle& AbilityHandle, const FGameplayAbilityActivationInfo& ActivationInfo, const FProjectileSpawnData& SpawnData)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Green, FString::Printf(TEXT("[%s] SpawnProjectile"), *GetInstigator()->GetName()));
+	const FTransform& SpawnTransform = SpawnData.SpawnTransform;
+
+	ABulletProjectile* Projectile = GetWorld()->SpawnActorDeferred<ABulletProjectile>(ProjectileClass, SpawnTransform, this, GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+	if (!Projectile)
 	{
 		return;
 	}
 
-	FString RoleString = HasAuthority() ? TEXT("Server") : TEXT("Client");
-	//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Weapon Primary Fire"), *RoleString));
+	Projectile->bPredictedProjectile = !HasAuthority();
+	UE_LOG(LogTemp, Warning,
+		TEXT("%s spawned projectile. Authority=%d Predicted=%d"),
+		*Projectile->GetName(),
+		Projectile->HasAuthority(),
+		Projectile->bPredictedProjectile);
 
-	// Add logic for fire types i.e HasTag(Weapon.FireMode.Spread)
+	Projectile->SourceAbilityHandle = AbilityHandle;
+	Projectile->SourceActivationInfo = ActivationInfo;
+	Projectile->ProjectileGameplayEffect = ProjectileGameplayEffect;
+	
+	// Initialize projectile gameplay data
 
-	#pragma region Spawn Projectile
-	FVector Location(GetActorLocation());
-	FRotator Rotation(0.0f, 0.0f, 0.0f);
-	FTransform SpawnTransform(Rotation, Location);
-
-	TObjectPtr<ABulletProjectile> Projectile = GetWorld()->SpawnActorDeferred<ABulletProjectile>(ProjectileClass, SpawnTransform, this, GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-
-	#pragma region Initialize Projectile Specifiers (Damage, Speed, Size, Gravity, ETC.)
 	if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetOwner()))
 	{
-		// Initialize Projectile Parameters(Things relevant to projectile movement, size, and traits.)
 		UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent();
 
-		#pragma region Validation Checks
-		if (!IsValid(ASC))
+		if (ASC)
 		{
-			UE_LOG(LogTemp, Error, TEXT("ASC is invalid"));
-			return;
+			FBulletSpec Spec = UProjectileUtilities::MakeBulletSpec(Cast<UFPSAbilitySystemComponent>(ASC));
+			
+			FProjectileSpawnData ProjectileData;
+			ProjectileData.BulletSpec = Spec;
+			ProjectileData.SpawnTransform = SpawnTransform;
+			Projectile->InitializeBulletData(ProjectileData);
+
+			FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+
+			Context.AddSourceObject(this);
+			Context.AddInstigator(GetInstigator(), this);
+
+			if (!ProjectileGameplayEffect)
+			{
+				UE_LOG(LogTemp, Error,
+					TEXT("[%s] ProjectileGameplayEffect is NULL. Authority=%d"),
+					*GetName(),
+					HasAuthority());
+				Projectile->FinishSpawning(SpawnTransform);
+				return;
+			}
+			Projectile->GameplayEffectSpec = ASC->MakeOutgoingSpec(ProjectileGameplayEffect, 1, Context);
 		}
-
-		if (!IsValid(ProjectileGameplayEffect))
-		{
-			UE_LOG(LogTemp, Error, TEXT("ProjectileGameplayEffect is invalid"));
-			return;
-		}
-		#pragma endregion
-
-		FBulletSpec Spec = UProjectileUtilities::MakeBulletSpec(Cast<UFPSAbilitySystemComponent>(ASC));
-		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Blue, FString::Printf(TEXT("[%f] Bullet Spec Speed"), Spec.BulletSpeed));
-		Projectile->InitializeBulletSpec(Spec);
-
-		// Assign Gameplay Effect Spec
-		FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
-		EffectContext.AddSourceObject(this);
-		EffectContext.AddInstigator(GetInstigator(), this);
-		FGameplayEffectSpecHandle GameplayEffectSpec = ASC->MakeOutgoingSpec(ProjectileGameplayEffect, 1, EffectContext);
-		Projectile->GameplayEffectSpec = GameplayEffectSpec;
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Weapon was unable to retrieve the ASC. (Trying to initialize bullet spec)"));
-	}
-	#pragma endregion
 
 	Projectile->FinishSpawning(SpawnTransform);
-
-	#pragma endregion
-
-	if (Projectile)
-	{
-		//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Spawned Projectile"), *RoleString));
-	}
 }
-
