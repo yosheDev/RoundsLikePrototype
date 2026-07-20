@@ -19,7 +19,8 @@ public class RoundsLikePrototype : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
-			"GameplayAbilities",
+			"SlateCore",
+            "GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks",
 			"Niagara"

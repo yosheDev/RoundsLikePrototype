@@ -20,6 +20,7 @@ class UGameplayAbility;
 class UVitalityAttributeSet;
 class UMovementAttributeSet;
 class UGunplayAttributeSet;
+class UWidgetComponent;
 
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FBulletCountUpdatedDelegate, int32, MagazineSize, int32, Bullets);
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDamagedDelegate, float, LifePercent);
@@ -27,6 +28,7 @@ class UGunplayAttributeSet;
 /*
  *  Player character class. Inputs from controller are routed to here and handled.
  *  Manages abilities: Jump, PrimaryFire
+ *  Reacts to health attribute changes.
  */
 
 UCLASS(abstract)
@@ -50,6 +52,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	UWidgetComponent* HealthWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	TSubclassOf<UUserWidget> HealthWidgetClass;
 
 #pragma endregion
 

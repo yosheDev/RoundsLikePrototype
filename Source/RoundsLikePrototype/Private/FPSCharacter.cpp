@@ -1,20 +1,33 @@
 // Copyrighted Jacob Jones 2026
 
+#pragma region Preprocessor Directives
+#pragma region Custom Includes
 #include "FPSCharacter.h"
 #include "FPSPlayerState.h"
+#include "UI/HUD/HealthBar.h"
+#include "ShooterWeapon.h"
+#pragma endregion
+
+#pragma region Unreal Includes
 #include "Abilities/GameplayAbility.h"
 #include "GameplayTagContainer.h"
 #include "Engine/World.h"
-#include "ShooterWeapon.h"
-#include "EnhancedInputComponent.h"
-#include "Components/InputComponent.h"
-#include "Components/PawnNoiseEmitterComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Camera/CameraComponent.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
+#pragma endregion
+
+#pragma region Components
+#include "EnhancedInputComponent.h"
+#include "Components/InputComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Components/PawnNoiseEmitterComponent.h"
+#include "Components/WidgetComponent.h"
+#pragma endregion
+#pragma endregion
 
 // Constructor
 AFPSCharacter::AFPSCharacter()
@@ -33,6 +46,10 @@ AFPSCharacter::AFPSCharacter()
 	FirstPersonCamera->bUsePawnControlRotation = false;
 	#pragma endregion
 
+	/* Health Bar */
+	HealthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthWidget"));
+	HealthWidget->SetupAttachment(GetCapsuleComponent());
+
 	// Create Noise Emitter
 	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("PawnNoiseEmitter"));
 }
@@ -40,6 +57,16 @@ AFPSCharacter::AFPSCharacter()
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Assign HealthWidgetClass default from Blueprint class.
+	/*if (HealthWidgetClass)
+	{
+		HealthWidget->SetWidgetClass(HealthWidgetClass);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("HealthWidgetClass is null on [%s]"), *GetName());
+	}*/
 
 	#pragma region Instantiate Weapon
 	if (HasAuthority())
@@ -494,4 +521,10 @@ void AFPSCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 	float NewHealth = Data.NewValue;
 	float DamagedAmount = OldHealth - NewHealth;
 	GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::White, FString::Printf(TEXT("[%s] Take Damage [%f]"), *GetName(), DamagedAmount));
+
+	// Update Health Bar
+	if (auto* Widget = Cast<UHealthBar>(HealthWidget->GetUserWidgetObject()))
+	{
+		Widget->UpdateHealthBar(NewHealth, VitalityAttributes->GetMaxHealth());
+	}
 }
