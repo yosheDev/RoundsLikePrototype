@@ -54,7 +54,8 @@ void ABulletProjectile::BeginPlay()
 	if (!HasAuthority() && !bPredictedProjectile)
 	{
 		// This is flawed, it makes client unable to see the servers real projectiles as well...
-		SetActorHiddenInGame(true);
+		//SetActorHiddenInGame(true);
+		SetActorEnableCollision(false);
 	}
 
 	// Binds Sphere Component collision methods to this .cpp scripts equivalent function.
