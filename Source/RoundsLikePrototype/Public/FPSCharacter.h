@@ -41,15 +41,19 @@ public:
 
 protected:
 
+	/** Camera used for the first-person perspective. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<class UCameraComponent> FirstPersonCamera;
 
+	/** Handles camera distance and lag. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<class USpringArmComponent> SpringArm;
 
+	/** Handles ability activation and replication. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
 
+	/** Displays health above Character head for a duration after being damaged or healed. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	UWidgetComponent* HealthWidget;
 
@@ -60,16 +64,16 @@ protected:
 
 #pragma region Abilities
 protected:
-	// Iterates through and grants default abilities.
+	/** Iterates through and grants default abilities. */
 	void GiveDefaultAbilities();
 
-	// Observes FPSAbilitySystemComponent::OnAbilityGranted(), responds when an ability is granted to this character.
+	/** Observes FPSAbilitySystemComponent::OnAbilityGranted(), responds when an ability is granted to this character. */
 	void HandleAbilityGranted(const FGameplayAbilitySpec& Spec);
 
-	// If granted ability is listed in this function, cache it. Only caches frequently used abilities(such as Jump and Shoot.)
+	/** If granted ability is listed in this function, cache it.Only caches frequently used abilities(such as Jump and Shoot.) */
 	void TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec);
 
-	// Array exposed to the Editor to pick default abilities in Blueprint subclass.
+	/** Array exposed to the Editor to pick default abilities in Blueprint subclass. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
 
@@ -81,9 +85,11 @@ private:
 
 #pragma region Weapons
 public:
+	/** The default weapon class for this character to use. */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
 	TSubclassOf<AProjectileWeapon> DefaultWeaponClass;
 
+	/** This characters currently held/equipped weapon. */
 	UPROPERTY(EditAnywhere, Category = "Weapons", ReplicatedUsing = OnRep_CurrentWeapon)
 	TObjectPtr<AProjectileWeapon> CurrentWeapon;
 
@@ -102,9 +108,10 @@ protected:
 
 #pragma region IWeaponHolder
 public:
-
+	/** Handles creation and equipping of weapon. */
 	virtual void CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileWeapon> WeaponClass) override;
 
+	/** Returns the currently equipped weapon. */
 	virtual AProjectileWeapon* GetEquippedWeapon_Implementation() const override;
 #pragma endregion
 
@@ -142,15 +149,12 @@ protected:
 
 public:
 
-	/** Constructor */
 	AFPSCharacter();
 
 protected:
 
-	/** Gameplay initialization */
 	virtual void BeginPlay();
 
-	/** Gameplay cleanup */
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -159,6 +163,7 @@ protected:
 
 	virtual void OnRep_PlayerState() override;
 
+	/** Handles instantiation of ability system including default abilities and cached ability handles. */
 	void InitializeAbilitySystem();
 
 #pragma region Input Functions

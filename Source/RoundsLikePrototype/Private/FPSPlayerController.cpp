@@ -127,13 +127,13 @@ void AFPSPlayerController::JumpInputCompleted(const FInputActionValue& Value)
 
 void AFPSPlayerController::PrimaryFireInputStarted(const FInputActionValue& Value)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInputStarted() from FPSPlayerController."));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInputStarted() from FPSPlayerController."));
 	PlayerCharacter->PrimaryFire();
 }
 
 void AFPSPlayerController::PrimaryFireInputTriggered(const FInputActionValue& Value)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInputTriggered() from FPSPlayerController."));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInputTriggered() from FPSPlayerController."));
 	PlayerCharacter->PrimaryFire();
 }
 

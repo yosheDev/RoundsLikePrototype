@@ -34,7 +34,7 @@ void UFPSAbilitySystemComponent::OnGiveAbility(FGameplayAbilitySpec& AbilitySpec
 		break;
 	}
 	#pragma endregion
-	GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Purple, FString::Printf(TEXT("%s OnGiveAbility()"), *RoleString));
+	//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Purple, FString::Printf(TEXT("%s OnGiveAbility()"), *RoleString));
 
     Super::OnGiveAbility(AbilitySpec);
     OnAbilitySpecRecieved.Broadcast(AbilitySpec);

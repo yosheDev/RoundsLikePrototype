@@ -2,13 +2,11 @@
 
 #pragma once
 
+// Preprocessor directives
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
 #include "GA_PrimaryFire.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UGA_PrimaryFire : public UGameplayAbility
 {
@@ -18,8 +16,9 @@ public:
 
     UGA_PrimaryFire();
 
+    /** Origin point for Weapon to use. Camera location and rotation. May be replaced later on with scene component chid of fp camera.*/
     UPROPERTY()
-    FTransform CachedSpawnTransform;
+    FTransform SpawnTransform;
 
 protected:
 

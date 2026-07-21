@@ -1,6 +1,6 @@
 // Copyrighted Jacob Jones 2026
 
-
+// Preprocessor directives
 #include "Abilities/Weapons/GA_PrimaryFire.h"
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "FPSCharacter.h"
@@ -10,34 +10,24 @@
 UGA_PrimaryFire::UGA_PrimaryFire()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-
     NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
-
     ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 
     AbilityTags.AddTag(FGameplayTag::RequestGameplayTag("GameplayAbility.Weapon.PrimaryFire"));
 }
 
-void UGA_PrimaryFire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+void UGA_PrimaryFire::ActivateAbility(
+    const FGameplayAbilitySpecHandle Handle, 
+    const FGameplayAbilityActorInfo* ActorInfo, 
+    const FGameplayAbilityActivationInfo ActivationInfo, 
+    const FGameplayEventData* TriggerEventData)
 {
     Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-
-    //AFPSCharacter* Character = Cast<AFPSCharacter>(ActorInfo->AvatarActor.Get());
-
-    // Put any custom "can this activate?" logic here.
-    // if (Weapon != nullptr && Weapon->CanFire())
-
-    // If GAS determines ability cannot be activated, immediately EndAbility().
-    // Calling CommitAbility() here also pays any activation costs setup by GAS.
-    if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
-    {
-        EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-        return;
-    }
 
     // Is there an avatar actor?
     if (AActor* Avatar = ActorInfo->AvatarActor.Get())
     {
+        #pragma region Can This Avatar Shoot?
         // Is avatar a weapon holder?
         if (!Avatar->Implements<UWeaponHolder>())
         {
@@ -45,43 +35,52 @@ void UGA_PrimaryFire::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
             return;
         }
 
-        FString RoleString = Avatar->HasAuthority() ? TEXT("Server") : TEXT("Client");
-
-        GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("[%s] Ability Primary Fire"), *RoleString));
-
         AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
+
+        // Put any custom "can this activate?" logic here.
+        if (Weapon == nullptr || !(Weapon->CanFire()))
+        {
+            EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+            return;
+        }
+
+        // If GAS determines ability cannot be activated, immediately EndAbility().
+        // Calling CommitAbility() here also pays any activation costs setup by GAS.
+        if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+        {
+            EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+            return;
+        }
+        #pragma endregion
+
+        FString RoleString = Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+        UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: Ability Primary Fire. Weapon is [%s]"), *RoleString, Weapon ? *Weapon->GetName() : TEXT("NULL"));
 
         const UGunplayAttributeSet* Attributes = GetAbilitySystemComponentFromActorInfo()->GetSet<UGunplayAttributeSet>();
 
-        GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Yellow, FString::Printf(TEXT("[%s] Weapon = %s"),
-            Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
-            Weapon ? *Weapon->GetName() : TEXT("NULL")));
+        #pragma region Activate Primary Fire
+        APlayerController* PC = ActorInfo->PlayerController.Get();
+        FVector AimLocation = PC->PlayerCameraManager->GetCameraLocation();
+        FRotator AimRotation = PC->PlayerCameraManager->GetCameraRotation().Vector().Rotation();
+        SpawnTransform = FTransform(AimRotation, AimLocation);
 
-        if (Weapon && Weapon->CanFire())
-        {
-            APlayerController* PC = ActorInfo->PlayerController.Get();
-            FVector AimLocation = PC->PlayerCameraManager->GetCameraLocation();//ActorInfo->AvatarActor->GetActorLocation()
-            FRotator AimRotation = PC->PlayerCameraManager->GetCameraRotation().Vector().Rotation();
+        // Create SpawnTransform of SpawnData here. Weapon unique properties(spread, stats, bullets) will propograte in the AProjectileWeapon.
+        FProjectileSpawnData SpawnData;
+        SpawnData.SpawnTransform = SpawnTransform;
 
-            CachedSpawnTransform = FTransform(AimRotation, AimLocation);
-
-            FProjectileSpawnData SpawnData;
-            SpawnData.SpawnTransform = CachedSpawnTransform;
-            Weapon->PrimaryFire(Handle, ActivationInfo, SpawnData);
-        }
-        else 
-        {
-            GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Red, FString::Printf(TEXT("[%s] WEAPON IS NULL. Avatar is [%s]"), *RoleString, *Avatar->GetName()));
-        }
+        Weapon->PrimaryFire(Handle, ActivationInfo, SpawnData);
+        #pragma endregion
     }
 
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
-
-    // COmmented out, trying to make end ability happen later on after projectiles are done?
-    //EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
-void UGA_PrimaryFire::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+void UGA_PrimaryFire::EndAbility(
+    const FGameplayAbilitySpecHandle Handle, 
+    const FGameplayAbilityActorInfo* ActorInfo, 
+    const FGameplayAbilityActivationInfo ActivationInfo, 
+    bool bReplicateEndAbility, 
+    bool bWasCancelled)
 {
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
