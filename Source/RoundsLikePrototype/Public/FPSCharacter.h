@@ -142,6 +142,10 @@ public:
 	void MulticastDamageTaken(float Damage);
 #pragma endregion
 
+public:
+	UPROPERTY(EditAnywhere)
+	bool IsDead;
+
 protected:
 	/** Max distance to use for aim traces */
 	UPROPERTY(EditAnywhere, Category = "Aim", meta = (ClampMin = 0, ClampMax = 100000, Units = "cm"))
@@ -203,11 +207,6 @@ protected:
 
 	/** Called from the respawn timer to destroy this character and force the PC to respawn */
 	void OnRespawn();
-
-public:
-
-	/** Returns true if the character is dead */
-	bool IsDead() const;
 
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;

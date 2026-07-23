@@ -8,6 +8,7 @@
 #include "InputMappingContext.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerStart.h"
+#include "FPSHudController.h"
 #include "FPSCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "RoundsLikePrototype.h"
@@ -137,4 +138,14 @@ void AFPSPlayerController::PrimaryFireInputTriggered(const FInputActionValue& Va
 	PlayerCharacter->PrimaryFire();
 }
 
+#pragma endregion
+
+#pragma region Local UI
+void AFPSPlayerController::Client_ShowDraftScreen_Implementation()
+{
+	if (AFPSHudController* HUD = Cast<AFPSHudController>(GetHUD()))
+	{
+		HUD->ShowAbilitySelection();
+	}
+}
 #pragma endregion

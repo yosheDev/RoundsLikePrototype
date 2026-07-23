@@ -4,6 +4,7 @@
 #pragma region Custom Includes
 #include "FPSCharacter.h"
 #include "FPSPlayerState.h"
+#include "FPSGameMode.h"
 #include "UI/HUD/HealthBar.h"
 #include "ShooterWeapon.h"
 #pragma endregion
@@ -138,7 +139,7 @@ void AFPSCharacter::Look(const FInputActionValue& Value)
 	FVector2D LookVector = Value.Get<FVector2D>() * 1.0f; // Replace the constant float with look sensitivity when that value has a home.
 
 	// only route inputs if the character is not dead
-	if (!IsDead())
+	if (!IsDead)
 	{
 		AddControllerYawInput(LookVector.X);
 
@@ -150,7 +151,7 @@ void AFPSCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (!IsDead())
+	if (!IsDead)
 	{
 		const FRotator YawRotation(0, GetControlRotation().Yaw, 0);
 
@@ -166,7 +167,7 @@ void AFPSCharacter::Move(const FInputActionValue& Value)
 void AFPSCharacter::JumpStart()
 {
 	// only route inputs if the character is not dead
-	if (!IsDead())
+	if (!IsDead)
 	{
 		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
 		//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Jump Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
@@ -180,7 +181,7 @@ void AFPSCharacter::JumpStart()
 void AFPSCharacter::JumpEnd()
 {
 	// only route inputs if the character is not dead
-	if (!IsDead())
+	if (!IsDead)
 	{
 		//FGameplayTagContainer JumpTags;
 		//JumpTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump")));
@@ -193,7 +194,7 @@ void AFPSCharacter::JumpEnd()
 void AFPSCharacter::PrimaryFire()
 {
 	// only route inputs if the character is not dead
-	if (!IsDead())
+	if (!IsDead)
 	{
 		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
 		//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s cached Primary Fire Handle: %s"), *GetName(), JumpAbilityHandle.IsValid() ? TEXT("true") : TEXT("false")));
@@ -246,14 +247,29 @@ AProjectileWeapon* AFPSCharacter::GetEquippedWeapon_Implementation() const
 
 void AFPSCharacter::Die()
 {
+	if (IsDead)
+	{
+		return;
+	}
+
+	IsDead = true;
+
 	// stop character movement
 	GetCharacterMovement()->StopMovementImmediately();
 
 	// disable controls
 	DisableInput(nullptr);
 
-	// call the BP handler
-	//BP_OnDeath();
+	// Inform GameMode that this player has died.
+	if (HasAuthority())
+	{
+		AFPSGameMode* FPSGameMode = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
+
+		if (FPSGameMode)
+		{
+			FPSGameMode->OnPlayerDefeated(Cast<APlayerController>(GetController()));
+		}
+	}
 }
 
 void AFPSCharacter::OnRespawn()
@@ -262,11 +278,6 @@ void AFPSCharacter::OnRespawn()
 	Destroy();
 }
 
-bool AFPSCharacter::IsDead() const
-{
-	// the character is dead if their current HP drops to zero
-	return VitalityAttributes->GetHealth() <= 0.0f;
-}
 #pragma endregion
 
 #pragma region FPS Ability System Component
@@ -537,6 +548,11 @@ void AFPSCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 	if (auto* Widget = Cast<UHealthBar>(HealthWidget->GetUserWidgetObject()))
 	{
 		Widget->UpdateHealthBar(NewHealth, VitalityAttributes->GetMaxHealth());
+	}
+
+	if (NewHealth <= 0.0f)
+	{
+		Die();
 	}
 }
 

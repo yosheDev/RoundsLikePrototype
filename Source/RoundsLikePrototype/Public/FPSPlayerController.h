@@ -5,6 +5,7 @@
 // Preprocessor Directives
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "FPSHudController.h"
 #include "EnhancedInputSubsystems.h"
 #include "FPSPlayerController.generated.h"
 
@@ -55,6 +56,9 @@ protected:
 	FName PlayerPawnTag = FName("Player");
 	
 	
+public:
+	UFUNCTION(Client, Reliable)
+	void Client_ShowDraftScreen();
 
 protected:
 	#pragma region Input Functions

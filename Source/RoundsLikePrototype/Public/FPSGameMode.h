@@ -40,6 +40,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match")
 	uint8 PlayerTwoWins = 0;
 	
+protected:
+	UPROPERTY()
+	APlayerController* CurrentLoserController;
 public:
 
 	virtual void BeginPlay() override;
@@ -62,7 +65,7 @@ public:
 	void StartRound();
 
 	/** Executes when a player dies. First player to die is the loser. */
-	void OnPlayerDefeated(AController* Winner, AController* Loser);
+	void OnPlayerDefeated(APlayerController* Loser);
 
 	/** The round has ended. */
 	void EndRound();
