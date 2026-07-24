@@ -27,8 +27,13 @@ public:
 
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-    UPROPERTY(ReplicatedUsing = OnRep_MatchPhase)
+    UPROPERTY(ReplicatedUsing = OnRep_MatchPhase, BlueprintReadOnly)
     EMatchPhase MatchPhase;
+
+    UFUNCTION()
+    void HandleMatchPhaseChanged();
+
+protected:
 
     UFUNCTION()
     void OnRep_MatchPhase();

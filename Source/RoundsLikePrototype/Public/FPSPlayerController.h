@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "FPSHudController.h"
 #include "EnhancedInputSubsystems.h"
+#include "FPSGameState.h"
 #include "FPSPlayerController.generated.h"
 
 // Forward Declarations
@@ -60,6 +61,12 @@ public:
 	UFUNCTION(Client, Reliable)
 	void Client_ShowDraftScreen();
 
+	UFUNCTION(Client, Reliable)
+	void Client_SetCanSelectUI(bool CanSelectUI);
+
+	UFUNCTION()
+	void OnMatchPhaseChanged(EMatchPhase NewPhase);
+
 protected:
 	#pragma region Input Functions
 	virtual void MoveInput(const FInputActionValue& Value);
@@ -81,8 +88,4 @@ protected:
 	/** Called if the possessed pawn is destroyed */
 	UFUNCTION()
 	void OnPawnDestroyed(AActor* DestroyedActor);
-
-	/** Called when the possessed pawn is damaged */
-	UFUNCTION()
-	void OnPawnDamaged(float LifePercent);
 };

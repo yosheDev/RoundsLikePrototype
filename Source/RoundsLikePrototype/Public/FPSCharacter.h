@@ -144,7 +144,10 @@ public:
 
 public:
 	UPROPERTY(EditAnywhere)
-	bool IsDead;
+	bool bIsDead;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	bool bCanInput = false;
 
 protected:
 	/** Max distance to use for aim traces */

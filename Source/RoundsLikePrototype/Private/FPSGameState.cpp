@@ -3,6 +3,7 @@
 
 #include "FPSGameState.h"
 #include "Net/UnrealNetwork.h"
+#include "FPSPlayerController.h"
 
 void AFPSGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -13,5 +14,16 @@ void AFPSGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 void AFPSGameState::OnRep_MatchPhase()
 {
-	
+    HandleMatchPhaseChanged();
+}
+
+void AFPSGameState::HandleMatchPhaseChanged()
+{
+    for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+    {
+        if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(*It))
+        {
+            PC->OnMatchPhaseChanged(MatchPhase);
+        }
+    }
 }

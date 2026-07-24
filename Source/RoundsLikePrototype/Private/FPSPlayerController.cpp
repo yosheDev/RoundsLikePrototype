@@ -11,6 +11,7 @@
 #include "FPSHudController.h"
 #include "FPSCharacter.h"
 #include "EnhancedInputComponent.h"
+#include "FPSGameState.h"
 #include "RoundsLikePrototype.h"
 
 void AFPSPlayerController::BeginPlay()
@@ -39,8 +40,6 @@ void AFPSPlayerController::SetupMappingContexts()
 	}
 }
 
-
-
 void AFPSPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -65,29 +64,21 @@ void AFPSPlayerController::OnPossess(APawn* InPawn)
 
 void AFPSPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
 {
-	// reset the bullet counter HUD
-	/*if (IsValid(BulletCounterUI))
-	{
-		BulletCounterUI->BP_UpdateBulletCounter(0, 0);
-	}*/
-
-	//// find the player start
-	//TArray<AActor*> ActorList;
-	//UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), ActorList);
-
-	//if (ActorList.Num() > 0)
-	//{
-	//	// select a random player start
-	//	AActor* RandomPlayerStart = ActorList[FMath::RandRange(0, ActorList.Num() - 1)];
-
-	//	// spawn a character at the player start
-	//	const FTransform SpawnTransform = RandomPlayerStart->GetActorTransform();
-	//}
+	
 }
 
-void AFPSPlayerController::OnPawnDamaged(float LifePercent)
+void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
 {
+	switch (NewPhase)
+	{
+		case EMatchPhase::RoundStarting:
+			// Disable Gameplay Input
+			break;
 
+		case EMatchPhase::InRound:
+			// Enable Gameplay Input
+			break;
+	}
 }
 
 #pragma region Input
@@ -145,7 +136,36 @@ void AFPSPlayerController::Client_ShowDraftScreen_Implementation()
 {
 	if (AFPSHudController* HUD = Cast<AFPSHudController>(GetHUD()))
 	{
+		// Destroy controlled pawn.
+		if (IsValid(GetPawn()))
+		{
+			GetPawn()->Destroy();
+		}
+
 		HUD->ShowAbilitySelection();
+	}
+}
+
+void AFPSPlayerController::Client_SetCanSelectUI_Implementation(bool CanSelectUI)
+{
+	if (CanSelectUI)
+	{
+		// Set Input Mode to UI Only
+		FInputModeUIOnly InputModeData;
+		InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
+		//InputModeData.SetWidgetToFocus(DraftWidget->TakeWidget());
+		SetInputMode(InputModeData);
+		SetShowMouseCursor(true);
+		bEnableClickEvents = true;
+		bEnableMouseOverEvents = true;
+	}
+	else
+	{
+		FInputModeGameOnly InputModeData;
+		SetInputMode(InputModeData);
+		SetShowMouseCursor(false);
+		bEnableClickEvents = false;
+		bEnableMouseOverEvents = false;
 	}
 }
 #pragma endregion
