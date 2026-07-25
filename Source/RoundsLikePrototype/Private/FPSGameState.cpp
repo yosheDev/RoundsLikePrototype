@@ -27,3 +27,8 @@ void AFPSGameState::HandleMatchPhaseChanged()
         }
     }
 }
+
+void AFPSGameState::OnRep_CurrentLoserState()
+{
+
+}

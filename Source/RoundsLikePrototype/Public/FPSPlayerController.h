@@ -64,6 +64,9 @@ public:
 	UFUNCTION(Client, Reliable)
 	void Client_SetCanSelectUI(bool CanSelectUI);
 
+	UFUNCTION(Server, Reliable)
+	void Server_FinishedDraft();
+
 	UFUNCTION()
 	void OnMatchPhaseChanged(EMatchPhase NewPhase);
 

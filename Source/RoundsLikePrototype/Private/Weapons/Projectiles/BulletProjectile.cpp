@@ -51,13 +51,20 @@ void ABulletProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!IsValid(GetInstigator()))
+	{
+		Destroy();
+		return;
+	}
+
 	// If I am the client and this projectile is coming from the character I control, but it is not one of my predicted projectiles.
 	if (!HasAuthority() && GetInstigator()->IsLocallyControlled() && !bPredictedProjectile)
 	{
-		Destroy();
 		// Hide and deactivate collision.
 		SetActorHiddenInGame(true);
 		SetActorEnableCollision(false);
+		Destroy();
+		return;
 	}
 
 	// Binds Sphere Component collision methods to this .cpp scripts equivalent function.

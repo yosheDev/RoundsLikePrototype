@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "FPSPlayerState.h"
 #include "FPSPlayerController.h"
 #include "FPSGameState.h"
 #include "Enums/SpawnSide.h"
@@ -29,10 +28,10 @@ public:
 	AFPSGameState* FPSGameState;
 
 	UPROPERTY()
-	AFPSPlayerController* PlayerOneController;
+	TObjectPtr<AFPSPlayerController> PlayerOneController;
 
 	UPROPERTY()
-	AFPSPlayerController* PlayerTwoController;
+	TObjectPtr<AFPSPlayerController> PlayerTwoController;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match")
 	uint8 RoundNumber = 0;
@@ -45,14 +44,10 @@ public:
 	
 protected:
 	UPROPERTY()
-	AFPSPlayerState* PlayerOne;
+	TObjectPtr<AFPSPlayerState> PlayerOne;
 
 	UPROPERTY()
-	AFPSPlayerState* PlayerTwo;
-
-	/** The player state of the previous rounds loser. Used to keep track of who gets to pick an ability for the draft stage. */
-	UPROPERTY()
-	AFPSPlayerState* CurrentLoserState;
+	TObjectPtr<AFPSPlayerState> PlayerTwo;
 
 	/** The timer handle that will be used for any countdowns, delays, etc. for match state transitions and flow. */
 	UPROPERTY()
@@ -61,11 +56,15 @@ protected:
 private:
 	/** Stores player starts that have already been assigned a player. This prevents players from ever spawning at the same location. */
 	UPROPERTY()
-	TArray<AFPSPlayerStart*> UsedPlayerStarts;
+	TArray<TObjectPtr<AFPSPlayerStart>> UsedPlayerStarts;
 
 	/** Randomly assigned after loading an arena. This determines which ESpawnSide PlayerOne and PlayerTwo will choose a PlayerStart from. */
 	UPROPERTY()
 	bool bPlayerOneIsRed;
+
+	/** Keeps track of which player controllers are ready to progress with the match. */
+	UPROPERTY()
+	TSet<TObjectPtr<AFPSPlayerController>> ReadyPlayers;
 
 public:
 
@@ -90,8 +89,8 @@ protected:
 	/** Callback once ServerTravel() has completely finished. */
 	virtual void PostSeamlessTravel() override;
 
-	/** Used for checking if round start countdown should occur yet. */
-	bool bHasFinishedTravel = false;
+	/** Used for checking if round start countdown should occur yet. True by default for editor testing (being able to load in straight away.) */
+	bool bHasFinishedTravel = true;
 	
 public:
 
@@ -124,9 +123,15 @@ public:
 	/** Executes when a player dies. First player to die is the loser. */
 	void OnPlayerDefeated(APlayerController* Loser);
 
-	/** The round has ended. */
-	void EndRound();
+	/** Clients call this once they have completed round end animations/procedures. Ensures client and server are both ready for the draft phase, even on low latency. */
+	UFUNCTION()
+	void ServerNotifyRoundEndComplete(AFPSPlayerController* PlayerController);
 
 	/** The match has ended. */
 	void EndMatch();
+
+	private:
+
+		/** Clears the HashSet being used to store which players are ready to progress. */
+		void ResetReadyPlayers();
 };

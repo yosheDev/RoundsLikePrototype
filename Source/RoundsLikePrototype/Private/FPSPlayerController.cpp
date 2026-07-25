@@ -12,6 +12,8 @@
 #include "FPSCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "FPSGameState.h"
+#include "FPSGameMode.h"
+#include "FPSPlayerState.h"
 #include "RoundsLikePrototype.h"
 
 void AFPSPlayerController::BeginPlay()
@@ -69,15 +71,39 @@ void AFPSPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
 
 void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
 {
+	UE_LOG(LogTemp, Log, TEXT("[%s]: OnMatchPhaseChanged() to [%s]"), HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"), *UEnum::GetValueAsString(NewPhase));
 	switch (NewPhase)
 	{
 		case EMatchPhase::RoundStarting:
+		{
 			// Disable Gameplay Input
+			DisableInput(this);
 			break;
-
+		}
 		case EMatchPhase::InRound:
+		{
 			// Enable Gameplay Input
+			EnableInput(this);
 			break;
+		}
+		case EMatchPhase::RoundEnd:
+		{
+			/* Perform and finish any animations, sequences, UI, etc. before calling ServerNotifyRoundEndComplete(). */
+
+			AFPSGameMode* FPSGameMode = Cast<AFPSGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+			FPSGameMode->ServerNotifyRoundEndComplete(this);
+			break;
+		}
+		case EMatchPhase::AbilityDraft:
+		{
+			/* Bring up Ability Draft UI and determine */
+
+			AFPSGameState* FPSGameState = Cast<AFPSGameState>(GetWorld()->GetGameState());
+			const bool bCanSelect = (GetPlayerState<AFPSPlayerState>() == FPSGameState->CurrentLoserState);
+			Client_SetCanSelectUI(bCanSelect);
+			Client_ShowDraftScreen();
+			break;
+		}
 	}
 }
 
@@ -166,6 +192,14 @@ void AFPSPlayerController::Client_SetCanSelectUI_Implementation(bool CanSelectUI
 		SetShowMouseCursor(false);
 		bEnableClickEvents = false;
 		bEnableMouseOverEvents = false;
+	}
+}
+
+void AFPSPlayerController::Server_FinishedDraft_Implementation()
+{
+	if (AFPSGameMode* FPSGameMode = GetWorld()->GetAuthGameMode<AFPSGameMode>())
+	{
+		FPSGameMode->PlayerFinishedDraft(this);
 	}
 }
 #pragma endregion

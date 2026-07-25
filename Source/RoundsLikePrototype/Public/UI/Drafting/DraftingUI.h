@@ -21,4 +21,11 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* DraftingPlayerText;
+
+protected:
+
+	virtual void NativeConstruct() override;
+
+	UFUNCTION()
+	void HandleMyButtonClick();
 };

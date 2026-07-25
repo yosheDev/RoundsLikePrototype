@@ -64,6 +64,11 @@ void AFPSGameMode::PostSeamlessTravel()
 {
 	Super::PostSeamlessTravel();
 
+	if (!IsValid(FPSGameState))
+	{
+		FPSGameState = GetGameState<AFPSGameState>();
+	}
+
 	bHasFinishedTravel = true;
 
 	TryRoundStart();
@@ -78,7 +83,7 @@ void AFPSGameMode::RestartPlayer(AController* NewPlayer)
 	// Disable player input. Input will be renabled upon countdown end.
 	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(NewPlayer))
 	{
-		PC->DisableInput(nullptr);
+		PC->DisableInput(PC);
 	}
 
 	// Attempt to start the round.
@@ -134,6 +139,9 @@ AActor* AFPSGameMode::ChoosePlayerStart_Implementation(AController* Player)
 
 void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 {
+	FString PhaseString = UEnum::GetValueAsString(NewPhase);
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, FString::Printf(TEXT("Set Match Phase To: [%s]"), *PhaseString));
+
 	if (!FPSGameState)
 	{
 		UE_LOG(LogTemp, Error, TEXT("FPSGameState is NULL. Please assign a GameState derived from FPSGameState in the GameMode class details panel."));
@@ -146,60 +154,49 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 	switch (NewPhase)
 	{
 		case EMatchPhase::AbilityDraft:
-			StartDraft();
+			/* == MATCH REPLICATION NOTE ==
+			* Player controllers react locally to this change, and setup their own UI based on FPSGameState->CurrentLoserState.
+			* Only losers can select the ability, the winners just get to watch.
+			*/
 			break;
+
 		case EMatchPhase::RoundStarting:
+			/* == MATCH REPLICATION NOTE ==
+			 * The ability draft phase has finished. Begin preparing the next round. 
+			 * AFPSGameMode::TryRoundStart() is called only after map is loaded and both players have spawned in.
+			 */
 			LoadNextArena();
 			break;
+
 		case EMatchPhase::InRound:
 			break;
+
 		case EMatchPhase::RoundEnd:
-			SetMatchPhase(EMatchPhase::AbilityDraft);
+			/* == MATCH REPLICATION NOTE ==
+			 * Player controllers react locally to this change, and begin their animations, ui, etc. for round ending.
+			 * Once completed, it calls AFPSGameMode::ServerNotifyRoundEndComplete().
+			 * Only once all players have reported complete, will AFPSGameMode::SetMatchPhase(EMatchPhase::AbilityDraft) be called.
+			 */
 			break;
+
 		case EMatchPhase::MatchEnd:
 			EndMatch();
 			break;
+
 		default:
 			break;
 	}
 }
 
-void AFPSGameMode::GivePoint(uint8 PlayerID)
-{
-	if (PlayerID == 1)
-	{
-		PlayerOneWins++;
-	}
-	else
-	{
-		PlayerTwoWins++;
-	}
-}
-
 void AFPSGameMode::StartDraft()
-{
-	// Display the draft screen for all player controllers.
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
-	{
-		if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(*It))
-		{
-			PC->Client_ShowDraftScreen();
-
-			// Setup which user is the one selecting. Setup manager for selection? Hhmm...
-			const bool bCanSelect = (PC->GetPlayerState<AFPSPlayerState>() == CurrentLoserState);
-			PC->Client_SetCanSelectUI(bCanSelect);
-		}
-	}
-}
-
-void AFPSGameMode::GenerateAbilityChoices()
-{
-
+{	
+	GenerateAbilityChoices();
+	SetMatchPhase(EMatchPhase::AbilityDraft);
 }
 
 void AFPSGameMode::PlayerFinishedDraft(AFPSPlayerController* PC)
 {
-	if (PC->GetPlayerState<AFPSPlayerState>() == CurrentLoserState)
+	if (PC->GetPlayerState<AFPSPlayerState>() == FPSGameState->CurrentLoserState)
 	{
 		SetMatchPhase(EMatchPhase::RoundStarting);
 	}
@@ -223,6 +220,17 @@ void AFPSGameMode::BeginRoundStartCountdown()
 
 void AFPSGameMode::TryRoundStart()
 {
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, FString::Printf(TEXT("Try Round Start")));
+	if (!IsValid(FPSGameState))
+	{
+		FPSGameState = GetGameState<AFPSGameState>();
+	}
+
+	if (!IsValid(FPSGameState))
+	{
+		return;
+	}
+
 	if (FPSGameState->MatchPhase == EMatchPhase::RoundStarting && bHasFinishedTravel && (SpawnedPlayers.Num() >= 2))
 	{
 		bHasFinishedTravel = false;
@@ -232,30 +240,23 @@ void AFPSGameMode::TryRoundStart()
 void AFPSGameMode::StartRound()
 {
 	// Players should already be spawned by this point. Countdown has ended. Fight!
-	
-	//EnableInput();
 
 	SetMatchPhase(EMatchPhase::InRound);
 }
 
 void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 {
-	CurrentLoserState = Loser->GetPlayerState<AFPSPlayerState>();
+	FPSGameState->CurrentLoserState = Loser->GetPlayerState<AFPSPlayerState>();
 
-	if (CurrentLoserState == PlayerOne)
+	if (FPSGameState->CurrentLoserState == PlayerOne)
 	{
 		GivePoint(2);
 	}
-	else if (CurrentLoserState == PlayerTwo)
+	else if (FPSGameState->CurrentLoserState == PlayerTwo)
 	{
 		GivePoint(1);
 	}
 
-	EndRound();
-}
-
-void AFPSGameMode::EndRound()
-{
 	SetMatchPhase(EMatchPhase::RoundEnd);
 }
 
@@ -263,3 +264,43 @@ void AFPSGameMode::EndMatch()
 {
 
 }
+
+#pragma region Server Pending Players Ready
+
+void AFPSGameMode::ServerNotifyRoundEndComplete(AFPSPlayerController* PlayerController)
+{
+	ReadyPlayers.Add(PlayerController);
+
+	/** Advance to AbilityDraft phase once all players are ready. */
+	if (ReadyPlayers.Num() == 2)
+	{
+		ResetReadyPlayers();
+		StartDraft();
+	}
+}
+#pragma endregion
+
+#pragma region Utility
+
+void AFPSGameMode::ResetReadyPlayers()
+{
+	ReadyPlayers.Empty();
+}
+
+void AFPSGameMode::GivePoint(uint8 PlayerID)
+{
+	if (PlayerID == 1)
+	{
+		PlayerOneWins++;
+	}
+	else
+	{
+		PlayerTwoWins++;
+	}
+}
+
+void AFPSGameMode::GenerateAbilityChoices()
+{
+
+}
+#pragma endregion
