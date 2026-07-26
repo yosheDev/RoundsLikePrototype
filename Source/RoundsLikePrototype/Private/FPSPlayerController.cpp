@@ -49,19 +49,9 @@ void AFPSPlayerController::OnPossess(APawn* InPawn)
 	// subscribe to the pawn's OnDestroyed delegate
 	//InPawn->OnDestroyed.AddDynamic(this, &AFPSPlayerController::OnPawnDestroyed);
 
-	// is this a shooter character?
-	if (AFPSCharacter* FPSCharacter = Cast<AFPSCharacter>(InPawn))
-	{
-		// add the player tag
-		FPSCharacter->Tags.Add(PlayerPawnTag);
+	PlayerCharacter = Cast<AFPSCharacter>(InPawn);
 
-		// subscribe to the pawn's delegates
-		//FPSCharacter->OnBulletCountUpdated.AddDynamic(this, &AFPSPlayerController::OnBulletCountUpdated);
-		//FPSCharacter->OnDamaged.AddDynamic(this, &AFPSPlayerController::OnPawnDamaged);
-
-		// force update the life bar
-		//FPSCharacter->OnDamaged.Broadcast(1.0f);
-	}
+	PlayerCharacter->Tags.Add(PlayerPawnTag);
 }
 
 void AFPSPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
@@ -71,7 +61,12 @@ void AFPSPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
 
 void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
 {
-	UE_LOG(LogTemp, Log, TEXT("[%s]: OnMatchPhaseChanged() to [%s]"), HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"), *UEnum::GetValueAsString(NewPhase));
+	if (!IsLocalController())
+	{
+		return;
+	}
+
+	//UE_LOG(LogTemp, Log, TEXT("[%s]: OnMatchPhaseChanged() to [%s]"), HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"), *UEnum::GetValueAsString(NewPhase));
 	switch (NewPhase)
 	{
 		case EMatchPhase::RoundStarting:
@@ -84,14 +79,14 @@ void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
 		{
 			// Enable Gameplay Input
 			EnableInput(this);
+			Client_SetCanSelectUI(false);
 			break;
 		}
 		case EMatchPhase::RoundEnd:
 		{
 			/* Perform and finish any animations, sequences, UI, etc. before calling ServerNotifyRoundEndComplete(). */
-
-			AFPSGameMode* FPSGameMode = Cast<AFPSGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-			FPSGameMode->ServerNotifyRoundEndComplete(this);
+			
+			Server_NotifyRoundEndComplete();
 			break;
 		}
 		case EMatchPhase::AbilityDraft:
@@ -125,6 +120,7 @@ void AFPSPlayerController::SetupInputComponent()
 
 void AFPSPlayerController::MoveInput(const FInputActionValue& Value)
 {
+	UE_LOG(LogTemp, Log, TEXT("Move Input"));
 	PlayerCharacter->Move(Value);
 }
 
@@ -157,17 +153,29 @@ void AFPSPlayerController::PrimaryFireInputTriggered(const FInputActionValue& Va
 
 #pragma endregion
 
+#pragma region Server RPCs
+void AFPSPlayerController::Server_NotifyRoundEndComplete_Implementation()
+{
+	if (AFPSGameMode* GM = GetWorld()->GetAuthGameMode<AFPSGameMode>())
+	{
+		GM->NotifyRoundEndComplete(this);
+	}
+}
+
+void AFPSPlayerController::Server_FinishedDraft_Implementation()
+{
+	if (AFPSGameMode* FPSGameMode = GetWorld()->GetAuthGameMode<AFPSGameMode>())
+	{
+		FPSGameMode->PlayerFinishedDraft(this);
+	}
+}
+#pragma endregion
+
 #pragma region Local UI
 void AFPSPlayerController::Client_ShowDraftScreen_Implementation()
 {
 	if (AFPSHudController* HUD = Cast<AFPSHudController>(GetHUD()))
 	{
-		// Destroy controlled pawn.
-		if (IsValid(GetPawn()))
-		{
-			GetPawn()->Destroy();
-		}
-
 		HUD->ShowAbilitySelection();
 	}
 }
@@ -176,6 +184,7 @@ void AFPSPlayerController::Client_SetCanSelectUI_Implementation(bool CanSelectUI
 {
 	if (CanSelectUI)
 	{
+		//UE_LOG(LogTemp, Log, TEXT("[%s]: YES SELECT UI"), HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"));
 		// Set Input Mode to UI Only
 		FInputModeUIOnly InputModeData;
 		InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::LockAlways);
@@ -187,19 +196,12 @@ void AFPSPlayerController::Client_SetCanSelectUI_Implementation(bool CanSelectUI
 	}
 	else
 	{
+		//UE_LOG(LogTemp, Log, TEXT("[%s]: NO SELECT UI"), HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"));
 		FInputModeGameOnly InputModeData;
 		SetInputMode(InputModeData);
 		SetShowMouseCursor(false);
 		bEnableClickEvents = false;
 		bEnableMouseOverEvents = false;
-	}
-}
-
-void AFPSPlayerController::Server_FinishedDraft_Implementation()
-{
-	if (AFPSGameMode* FPSGameMode = GetWorld()->GetAuthGameMode<AFPSGameMode>())
-	{
-		FPSGameMode->PlayerFinishedDraft(this);
 	}
 }
 #pragma endregion

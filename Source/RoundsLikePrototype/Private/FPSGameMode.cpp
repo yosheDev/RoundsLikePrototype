@@ -190,6 +190,7 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 
 void AFPSGameMode::StartDraft()
 {	
+	DestroyPawns();
 	GenerateAbilityChoices();
 	SetMatchPhase(EMatchPhase::AbilityDraft);
 }
@@ -246,18 +247,21 @@ void AFPSGameMode::StartRound()
 
 void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 {
-	FPSGameState->CurrentLoserState = Loser->GetPlayerState<AFPSPlayerState>();
-
-	if (FPSGameState->CurrentLoserState == PlayerOne)
+	if (FPSGameState->MatchPhase == EMatchPhase::InRound)
 	{
-		GivePoint(2);
-	}
-	else if (FPSGameState->CurrentLoserState == PlayerTwo)
-	{
-		GivePoint(1);
-	}
+		FPSGameState->CurrentLoserState = Loser->GetPlayerState<AFPSPlayerState>();
 
-	SetMatchPhase(EMatchPhase::RoundEnd);
+		if (FPSGameState->CurrentLoserState == PlayerOne)
+		{
+			GivePoint(2);
+		}
+		else if (FPSGameState->CurrentLoserState == PlayerTwo)
+		{
+			GivePoint(1);
+		}
+
+		SetMatchPhase(EMatchPhase::RoundEnd);
+	}
 }
 
 void AFPSGameMode::EndMatch()
@@ -267,7 +271,7 @@ void AFPSGameMode::EndMatch()
 
 #pragma region Server Pending Players Ready
 
-void AFPSGameMode::ServerNotifyRoundEndComplete(AFPSPlayerController* PlayerController)
+void AFPSGameMode::NotifyRoundEndComplete(AFPSPlayerController* PlayerController)
 {
 	ReadyPlayers.Add(PlayerController);
 
@@ -302,5 +306,18 @@ void AFPSGameMode::GivePoint(uint8 PlayerID)
 void AFPSGameMode::GenerateAbilityChoices()
 {
 
+}
+
+void AFPSGameMode::DestroyPawns()
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+
+		if (IsValid(PC) && IsValid(PC->GetPawn()))
+		{
+			PC->GetPawn()->Destroy();
+		}
+	}
 }
 #pragma endregion

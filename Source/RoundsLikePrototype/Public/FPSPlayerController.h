@@ -65,6 +65,9 @@ public:
 	void Client_SetCanSelectUI(bool CanSelectUI);
 
 	UFUNCTION(Server, Reliable)
+	void Server_NotifyRoundEndComplete();
+
+	UFUNCTION(Server, Reliable)
 	void Server_FinishedDraft();
 
 	UFUNCTION()

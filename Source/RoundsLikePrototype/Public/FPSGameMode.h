@@ -125,7 +125,7 @@ public:
 
 	/** Clients call this once they have completed round end animations/procedures. Ensures client and server are both ready for the draft phase, even on low latency. */
 	UFUNCTION()
-	void ServerNotifyRoundEndComplete(AFPSPlayerController* PlayerController);
+	void NotifyRoundEndComplete(AFPSPlayerController* PlayerController);
 
 	/** The match has ended. */
 	void EndMatch();
@@ -134,4 +134,7 @@ public:
 
 		/** Clears the HashSet being used to store which players are ready to progress. */
 		void ResetReadyPlayers();
+
+		/** Destroys all player pawns. */
+		void DestroyPawns();
 };
