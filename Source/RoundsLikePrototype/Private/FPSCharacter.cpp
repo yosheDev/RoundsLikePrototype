@@ -124,11 +124,9 @@ void AFPSCharacter::OnRep_PlayerState()
 
 void AFPSCharacter::OnRep_CurrentWeapon()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Green, TEXT("Current weapon replciated"));
-
-	UE_LOG(LogTemp, Warning, TEXT("[%s] CurrentWeapon replicated: %s"),
+	/*UE_LOG(LogTemp, Warning, TEXT("[%s] CurrentWeapon replicated: %s"),
 		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
-		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));
+		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));*/
 }
 
 #pragma endregion

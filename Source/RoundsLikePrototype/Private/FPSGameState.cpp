@@ -2,6 +2,7 @@
 
 
 #include "FPSGameState.h"
+#include "Subsystems/MatchInstanceSubsystem.h"
 #include "Net/UnrealNetwork.h"
 #include "FPSPlayerController.h"
 
@@ -31,4 +32,39 @@ void AFPSGameState::HandleMatchPhaseChanged()
 void AFPSGameState::OnRep_CurrentLoserState()
 {
 
+}
+
+void AFPSGameState::OnRep_MatchWinnerState()
+{
+
+}
+
+void AFPSGameState::UpdateMatchSubsystem()
+{
+    UMatchInstanceSubsystem* MatchSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>();
+
+    FMatchData NewData;
+
+    NewData.MatchPhase = MatchPhase;
+    NewData.RoundNumber = RoundNumber;
+    NewData.PlayerOne = PlayerOne;
+    NewData.PlayerTwo = PlayerTwo;
+    NewData.PlayerOneWins = PlayerOneWins;
+    NewData.PlayerTwoWins = PlayerTwoWins;
+
+    MatchSubsystem->SetMatchData(NewData);
+}
+
+void AFPSGameState::InitializeMatchData()
+{
+    UMatchInstanceSubsystem* MatchSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>();
+
+    FMatchData NewData = MatchSubsystem->GetMatchData();
+
+    MatchPhase = NewData.MatchPhase;
+    RoundNumber = NewData.RoundNumber;
+    PlayerOne = NewData.PlayerOne;
+    PlayerTwo = NewData.PlayerTwo;
+    PlayerOneWins = NewData.PlayerOneWins;
+    PlayerTwoWins = NewData.PlayerTwoWins;
 }

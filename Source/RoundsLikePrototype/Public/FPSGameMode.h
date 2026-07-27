@@ -19,35 +19,15 @@ class ROUNDSLIKEPROTOTYPE_API AFPSGameMode : public AGameModeBase
 public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Default | Match")
-	uint8 WinsRequired = 5;
+	uint8 WinsRequired = 2;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Default | Maps")
 	TArray<TSoftObjectPtr<UWorld>> ArenaMaps;
 
 	UPROPERTY()
 	AFPSGameState* FPSGameState;
-
-	UPROPERTY()
-	TObjectPtr<AFPSPlayerController> PlayerOneController;
-
-	UPROPERTY()
-	TObjectPtr<AFPSPlayerController> PlayerTwoController;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match")
-	uint8 RoundNumber = 0;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match")
-	uint8 PlayerOneWins = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match")
-	uint8 PlayerTwoWins = 0;
 	
 protected:
-	UPROPERTY()
-	TObjectPtr<AFPSPlayerState> PlayerOne;
-
-	UPROPERTY()
-	TObjectPtr<AFPSPlayerState> PlayerTwo;
 
 	/** The timer handle that will be used for any countdowns, delays, etc. for match state transitions and flow. */
 	UPROPERTY()

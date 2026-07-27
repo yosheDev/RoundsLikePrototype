@@ -25,15 +25,18 @@ void AFPSGameMode::PostLogin(APlayerController* NewPlayer)
 	Super::PostLogin(NewPlayer);
 
 	AFPSPlayerState* PS = NewPlayer->GetPlayerState<AFPSPlayerState>();
+	UMatchInstanceSubsystem* MatchSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>();
 
-	if (!PlayerOne)
+	if (!MatchSubsystem->MatchData.PlayerOne)
 	{
-		PlayerOne = PS;
+		FPSGameState->PlayerOne = PS;
 	}
-	else if (!PlayerTwo)
+	else if (!MatchSubsystem->MatchData.PlayerTwo)
 	{
-		PlayerTwo = PS;
+		FPSGameState->PlayerTwo = PS;
 	}
+
+	FPSGameState->UpdateMatchSubsystem();
 }
 
 #pragma region Arena Loading / Player Spawning
@@ -67,6 +70,7 @@ void AFPSGameMode::PostSeamlessTravel()
 	if (!IsValid(FPSGameState))
 	{
 		FPSGameState = GetGameState<AFPSGameState>();
+		FPSGameState->InitializeMatchData();
 	}
 
 	bHasFinishedTravel = true;
@@ -95,7 +99,18 @@ ESpawnSide AFPSGameMode::GetSpawnSide(AController* Player)
 {
 	AFPSPlayerState* PS = Player->GetPlayerState<AFPSPlayerState>();
 
-	if (PS == PlayerOne)
+	if (!IsValid(FPSGameState))
+	{
+		FPSGameState = GetGameState<AFPSGameState>();
+		FPSGameState->InitializeMatchData();
+	}
+
+	if (!FPSGameState)
+	{
+		return bPlayerOneIsRed ? ESpawnSide::Red : ESpawnSide::Blue;
+	}
+
+	if (PS == FPSGameState->PlayerOne)
 	{
 		return bPlayerOneIsRed ? ESpawnSide::Red : ESpawnSide::Blue;
 	}
@@ -142,6 +157,11 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 	FString PhaseString = UEnum::GetValueAsString(NewPhase);
 	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, FString::Printf(TEXT("Set Match Phase To: [%s]"), *PhaseString));
 
+	UE_LOG(LogTemp, Warning,
+		TEXT("SetMatchPhase: %s Authority=%d"),
+		*UEnum::GetValueAsString(NewPhase),
+		HasAuthority());
+
 	if (!FPSGameState)
 	{
 		UE_LOG(LogTemp, Error, TEXT("FPSGameState is NULL. Please assign a GameState derived from FPSGameState in the GameMode class details panel."));
@@ -150,6 +170,8 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 
 	FPSGameState->MatchPhase = NewPhase;
 	FPSGameState->HandleMatchPhaseChanged();
+
+	FPSGameState->UpdateMatchSubsystem();
 
 	switch (NewPhase)
 	{
@@ -197,18 +219,18 @@ void AFPSGameMode::StartDraft()
 
 void AFPSGameMode::PlayerFinishedDraft(AFPSPlayerController* PC)
 {
-	if (PC->GetPlayerState<AFPSPlayerState>() == FPSGameState->CurrentLoserState)
+	if (FPSGameState->MatchPhase == EMatchPhase::AbilityDraft)
 	{
-		SetMatchPhase(EMatchPhase::RoundStarting);
+		if (PC->GetPlayerState<AFPSPlayerState>() == FPSGameState->CurrentLoserState)
+		{
+			SetMatchPhase(EMatchPhase::RoundStarting);
+		}
 	}
 }
 
 void AFPSGameMode::BeginRoundStartCountdown()
 {
-	// TODO LATER WHEN MAKING FOR REAL: Use state machine more. Can put this entire thing just in my state machine.
-	// UI Animation. Could bind to delegate here to know when continue? Worry about specs later after draft concept is known.
-
-	//RespawnPlayers(); // Input disabled, just spawning in and they see countdown and arena they are in before match starts at end of countdown.
+	/** This timer acts as a countdown */
 
 	GetWorldTimerManager().SetTimer(
 		MatchTimerHandle,
@@ -234,8 +256,9 @@ void AFPSGameMode::TryRoundStart()
 
 	if (FPSGameState->MatchPhase == EMatchPhase::RoundStarting && bHasFinishedTravel && (SpawnedPlayers.Num() >= 2))
 	{
+		// TO DO: I also need to make sure the pawns have spawned in that the controllers should possess.
 		bHasFinishedTravel = false;
-		StartRound();
+		BeginRoundStartCountdown();
 	}
 }
 void AFPSGameMode::StartRound()
@@ -243,6 +266,8 @@ void AFPSGameMode::StartRound()
 	// Players should already be spawned by this point. Countdown has ended. Fight!
 
 	SetMatchPhase(EMatchPhase::InRound);
+
+	FPSGameState->RoundNumber++;
 }
 
 void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
@@ -251,22 +276,48 @@ void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 	{
 		FPSGameState->CurrentLoserState = Loser->GetPlayerState<AFPSPlayerState>();
 
-		if (FPSGameState->CurrentLoserState == PlayerOne)
+		bool bMatchEnd = false;
+		if (FPSGameState->CurrentLoserState == FPSGameState->PlayerOne)
 		{
 			GivePoint(2);
+
+			if (FPSGameState->PlayerTwoWins >= WinsRequired)
+			{
+				bMatchEnd = true;
+				FPSGameState->MatchWinnerState = FPSGameState->PlayerTwo;
+			}
+
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player One Wins: [%u]"), FPSGameState->PlayerOneWins));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player Two Wins: [%u]"), FPSGameState->PlayerTwoWins));
 		}
-		else if (FPSGameState->CurrentLoserState == PlayerTwo)
+		else if (FPSGameState->CurrentLoserState == FPSGameState->PlayerTwo)
 		{
 			GivePoint(1);
+
+			if (FPSGameState->PlayerOneWins >= WinsRequired)
+			{
+				bMatchEnd = true;
+				FPSGameState->MatchWinnerState = FPSGameState->PlayerOne;
+			}
+
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player One Wins: [%u]"), FPSGameState->PlayerOneWins));
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player Two Wins: [%u]"), FPSGameState->PlayerTwoWins));
 		}
 
-		SetMatchPhase(EMatchPhase::RoundEnd);
+		if (bMatchEnd)
+		{
+			SetMatchPhase(EMatchPhase::MatchEnd);
+		}
+		else
+		{
+			SetMatchPhase(EMatchPhase::RoundEnd);
+		}
 	}
 }
 
 void AFPSGameMode::EndMatch()
 {
-
+	UE_LOG(LogTemp, Log, TEXT("Match has ended! Winner is [%s]"), *GetNameSafe(Cast<AFPSPlayerController>(FPSGameState->MatchWinnerState->GetOwner())->GetPawn()));
 }
 
 #pragma region Server Pending Players Ready
@@ -293,13 +344,14 @@ void AFPSGameMode::ResetReadyPlayers()
 
 void AFPSGameMode::GivePoint(uint8 PlayerID)
 {
+
 	if (PlayerID == 1)
 	{
-		PlayerOneWins++;
+		FPSGameState->PlayerOneWins++;
 	}
 	else
 	{
-		PlayerTwoWins++;
+		FPSGameState->PlayerTwoWins++;
 	}
 }
 

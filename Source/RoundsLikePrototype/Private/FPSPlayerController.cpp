@@ -51,6 +51,8 @@ void AFPSPlayerController::OnPossess(APawn* InPawn)
 
 	PlayerCharacter = Cast<AFPSCharacter>(InPawn);
 
+	SetupMappingContexts();
+
 	PlayerCharacter->Tags.Add(PlayerPawnTag);
 }
 
@@ -120,35 +122,52 @@ void AFPSPlayerController::SetupInputComponent()
 
 void AFPSPlayerController::MoveInput(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Log, TEXT("Move Input"));
-	PlayerCharacter->Move(Value);
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->Move(Value);
+	}
 }
 
 void AFPSPlayerController::LookInput(const FInputActionValue& Value)
 {
-	PlayerCharacter->Look(Value);
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->Look(Value);
+	}
 }
 
 void AFPSPlayerController::JumpInputStarted(const FInputActionValue& Value)
 {
-	PlayerCharacter->JumpStart();
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->JumpStart();
+	}
 }
 
 void AFPSPlayerController::JumpInputCompleted(const FInputActionValue& Value)
 {
-	PlayerCharacter->JumpEnd();
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->JumpEnd();
+	}
 }
 
 void AFPSPlayerController::PrimaryFireInputStarted(const FInputActionValue& Value)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInputStarted() from FPSPlayerController."));
-	PlayerCharacter->PrimaryFire();
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->PrimaryFire();
+	}
 }
 
 void AFPSPlayerController::PrimaryFireInputTriggered(const FInputActionValue& Value)
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, TEXT("PrimaryFireInputTriggered() from FPSPlayerController."));
-	PlayerCharacter->PrimaryFire();
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->PrimaryFire();
+	}
 }
 
 #pragma endregion
