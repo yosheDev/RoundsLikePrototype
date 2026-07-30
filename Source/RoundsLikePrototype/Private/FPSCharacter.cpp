@@ -207,6 +207,12 @@ void AFPSCharacter::PrimaryFireTriggered()
 {
 	PrimaryFire();
 }
+
+void AFPSCharacter::PrimaryFireCompleted()
+{
+	FPSAbilitySystemComponent->CancelAbilityHandle(PrimaryFireAbilityHandle);
+}
+
 #pragma endregion
 
 #pragma endregion

@@ -117,6 +117,7 @@ void AFPSPlayerController::SetupInputComponent()
 		Input->BindAction(JumpAction, ETriggerEvent::Completed, this, &AFPSPlayerController::JumpInputCompleted);
 		Input->BindAction(PrimaryFireAction, ETriggerEvent::Started, this, &AFPSPlayerController::PrimaryFireInputStarted);
 		Input->BindAction(PrimaryFireAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::PrimaryFireInputTriggered);
+		Input->BindAction(PrimaryFireAction, ETriggerEvent::Completed, this, &AFPSPlayerController::PrimaryFireInputCompleted);
 	}
 }
 
@@ -170,6 +171,13 @@ void AFPSPlayerController::PrimaryFireInputTriggered(const FInputActionValue& Va
 	}
 }
 
+void AFPSPlayerController::PrimaryFireInputCompleted(const FInputActionValue& Value)
+{
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->PrimaryFireCompleted();
+	}
+}
 #pragma endregion
 
 #pragma region Server RPCs

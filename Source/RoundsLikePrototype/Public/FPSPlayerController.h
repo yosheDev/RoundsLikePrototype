@@ -83,6 +83,7 @@ protected:
 
 	virtual void PrimaryFireInputStarted(const FInputActionValue& Value);
 	virtual void PrimaryFireInputTriggered(const FInputActionValue& Value);
+	virtual void PrimaryFireInputCompleted(const FInputActionValue& Value);
 	#pragma endregion
 
 	/** Gameplay Initialization */

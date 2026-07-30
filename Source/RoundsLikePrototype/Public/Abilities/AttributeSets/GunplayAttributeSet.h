@@ -24,6 +24,7 @@ public:
 
 	UGunplayAttributeSet();
 
+	#pragma region Bullet Attributes
 	// Maximum amount of damage each bullet can deal.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FGameplayAttributeData BulletImpactDamage;
@@ -64,6 +65,9 @@ public:
 	FGameplayAttributeData BulletType;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletType);
 
+	#pragma endregion
+
+	#pragma region Fire Attributes
 	// Amount of bullets fired for each shot.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BulletAmount;
@@ -79,6 +83,11 @@ public:
 	FGameplayAttributeData BulletRegen;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletRegen);
 
+	// Fire rate for auto fire.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData AutoFireRate;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, AutoFireRate);
+
 	// Maximum amount of bullets in each clip.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData ClipCapacity;
@@ -88,4 +97,5 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData RecoilFactor;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, RecoilFactor);
+	#pragma endregion
 };

@@ -197,6 +197,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void PrimaryFireTriggered();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void PrimaryFireCompleted();
 #pragma endregion
 
 protected:

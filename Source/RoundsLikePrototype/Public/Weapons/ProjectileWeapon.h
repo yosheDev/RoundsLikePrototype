@@ -27,6 +27,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class UGameplayEffect> ProjectileGameplayEffect;
 
+	UPROPERTY()
+	bool bTriggerringPrimary = false;
+
 public:	
 	
 	AProjectileWeapon();

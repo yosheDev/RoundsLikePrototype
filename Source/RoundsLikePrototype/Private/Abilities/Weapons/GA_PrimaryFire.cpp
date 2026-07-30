@@ -14,6 +14,9 @@ UGA_PrimaryFire::UGA_PrimaryFire()
     ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateYes;
 
     AbilityTags.AddTag(FGameplayTag::RequestGameplayTag("GameplayAbility.Weapon.PrimaryFire"));
+
+    NextFireTime = 0.0f;
+    LastFireTime = 0.0f;
 }
 
 void UGA_PrimaryFire::ActivateAbility(
@@ -27,8 +30,8 @@ void UGA_PrimaryFire::ActivateAbility(
     // Is there an avatar actor?
     if (AActor* Avatar = ActorInfo->AvatarActor.Get())
     {
-        #pragma region Can This Avatar Shoot?
-        // Is avatar a weapon holder?
+        #pragma region Weapon Validation
+
         if (!Avatar->Implements<UWeaponHolder>())
         {
             EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
@@ -36,11 +39,24 @@ void UGA_PrimaryFire::ActivateAbility(
         }
 
         AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
-
-        // Put any custom "can this activate?" logic here.
         if (Weapon == nullptr || !(Weapon->CanFire()))
         {
             EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+            return;
+        }
+        #pragma endregion
+
+        // This allows users to shoot fast while spam clicking, but not faster than bare minimum .1f.
+        double CurrentTime = GetWorld()->GetTimeSeconds();
+        if (CurrentTime < (LastFireTime + .1f))
+        {
+            EndAbility(
+                CurrentSpecHandle,
+                CurrentActorInfo,
+                CurrentActivationInfo,
+                true,
+                false);
+
             return;
         }
 
@@ -51,28 +67,18 @@ void UGA_PrimaryFire::ActivateAbility(
             EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
             return;
         }
-        #pragma endregion
+
+        Attributes = GetAbilitySystemComponentFromActorInfo()->GetSet<UGunplayAttributeSet>();
+
+        FireShot();
+
+        ScheduleNextShot();
 
         FString RoleString = Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
         UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: Ability Primary Fire. Weapon is [%s]"), *RoleString, Weapon ? *Weapon->GetName() : TEXT("NULL"));
-
-        const UGunplayAttributeSet* Attributes = GetAbilitySystemComponentFromActorInfo()->GetSet<UGunplayAttributeSet>();
-
-        #pragma region Activate Primary Fire
-        APlayerController* PC = ActorInfo->PlayerController.Get();
-        FVector AimLocation = PC->PlayerCameraManager->GetCameraLocation();
-        FRotator AimRotation = PC->PlayerCameraManager->GetCameraRotation().Vector().Rotation();
-        SpawnTransform = FTransform(AimRotation, AimLocation);
-
-        // Create SpawnTransform of SpawnData here. Weapon unique properties(spread, stats, bullets) will propograte in the AProjectileWeapon.
-        FProjectileSpawnData SpawnData;
-        SpawnData.SpawnTransform = SpawnTransform;
-
-        Weapon->PrimaryFire(Handle, ActivationInfo, SpawnData);
-        #pragma endregion
     }
 
-    EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+    //EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
 void UGA_PrimaryFire::EndAbility(
@@ -82,5 +88,87 @@ void UGA_PrimaryFire::EndAbility(
     bool bReplicateEndAbility, 
     bool bWasCancelled)
 {
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().ClearTimer(FireTimerHandle);
+    }
+
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+void UGA_PrimaryFire::ScheduleNextShot()
+{
+    UWorld* World = GetWorld();
+
+    if (!World)
+    {
+        return;
+    }
+
+    World->GetTimerManager().SetTimer(
+        FireTimerHandle,
+        this,
+        &UGA_PrimaryFire::FireShot,
+        GetFireInterval(),
+        false);
+}
+
+void UGA_PrimaryFire::FireShot()
+{
+    if (!CanFire())
+    {
+        EndAbility(
+            CurrentSpecHandle,
+            CurrentActorInfo,
+            CurrentActivationInfo,
+            true,
+            false);
+
+        return;
+    }
+
+    LastFireTime = GetWorld()->GetTimeSeconds();
+    NextFireTime = NextFireTime + GetFireInterval();
+
+    #pragma region Activate Primary Fire
+    APlayerController* PC = CurrentActorInfo->PlayerController.Get();
+    FVector AimLocation = PC->PlayerCameraManager->GetCameraLocation();
+    FRotator AimRotation = PC->PlayerCameraManager->GetCameraRotation().Vector().Rotation();
+    SpawnTransform = FTransform(AimRotation, AimLocation);
+
+    // Create SpawnTransform of SpawnData here. Weapon unique properties(spread, stats, bullets) will propograte in the AProjectileWeapon.
+    FProjectileSpawnData SpawnData;
+    SpawnData.SpawnTransform = SpawnTransform;
+
+    AActor* Avatar = CurrentActorInfo->AvatarActor.Get();
+    AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
+
+    Weapon->PrimaryFire(CurrentSpecHandle, CurrentActivationInfo, SpawnData);
+    #pragma endregion
+
+    ScheduleNextShot();
+}
+
+float UGA_PrimaryFire::GetFireInterval() const
+{
+    float FireRate = Attributes->GetAutoFireRate();
+
+    if (FireRate <= 0.f)
+    {
+        return 5.0f;
+    }
+
+    return 1.0f / FireRate;
+}
+
+bool UGA_PrimaryFire::CanFire() const
+{
+    double CurrentTime = GetWorld()->GetTimeSeconds();
+
+    if (CurrentTime < NextFireTime)
+    {
+        return false;
+    }
+
+    return true;
 }

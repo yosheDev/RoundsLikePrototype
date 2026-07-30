@@ -5,6 +5,7 @@
 // Preprocessor directives
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "GA_PrimaryFire.generated.h"
 
 UCLASS()
@@ -20,6 +21,14 @@ public:
     UPROPERTY()
     FTransform SpawnTransform;
 
+private:
+    FTimerHandle FireTimerHandle;
+
+    float NextFireTime;
+    float LastFireTime;
+
+    const UGunplayAttributeSet* Attributes;
+
 protected:
 
     virtual void ActivateAbility(
@@ -34,4 +43,14 @@ protected:
         const FGameplayAbilityActivationInfo ActivationInfo,
         bool bReplicateEndAbility,
         bool bWasCancelled) override;
+
+private:
+
+    void FireShot();
+
+    void ScheduleNextShot();
+
+    float GetFireInterval() const;
+
+    bool CanFire() const;
 };

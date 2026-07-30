@@ -29,6 +29,7 @@ void AProjectileWeapon::PrimaryFire(
 	const FGameplayAbilityActivationInfo& ActivationInfo, 
 	const FProjectileSpawnData& SpawnData)
 {
+
 	SpawnProjectile(AbilityHandle, ActivationInfo, SpawnData);
 }
 
