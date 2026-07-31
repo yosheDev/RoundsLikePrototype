@@ -8,7 +8,7 @@ UGunplayAttributeSet::UGunplayAttributeSet()
 {
 	InitBulletGravity(1.0f);
 	InitBulletSpeed(4000.0f);
-	InitBulletImpactDamage(100.0f);
+	InitBulletImpactDamage(25.0f);
 	InitAutoFireRate(5.0f); // Bullets/s
 }
 

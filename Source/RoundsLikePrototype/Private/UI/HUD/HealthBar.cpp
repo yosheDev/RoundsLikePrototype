@@ -9,7 +9,7 @@ void UHealthBar::NativeConstruct()
     Super::NativeConstruct();
 
     // Set default health values.
-    UpdateHealthBar(10000.0f, 10000.0f);
+    UpdateHealthBar(100.0f, 100.0f);
 }
 
 void UHealthBar::UpdateHealthBar(float CurrentHealth, float MaxHealth)

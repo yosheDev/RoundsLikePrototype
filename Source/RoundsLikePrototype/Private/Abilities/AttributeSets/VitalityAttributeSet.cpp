@@ -8,8 +8,8 @@
 
 UVitalityAttributeSet::UVitalityAttributeSet()
 {
-	InitHealth(10000.0f);
-	InitMaxHealth(10000.0f);
+	InitHealth(100.0f);
+	InitMaxHealth(100.0f);
 }
 
 void UVitalityAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

@@ -75,6 +75,7 @@ void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
 		{
 			// Disable Gameplay Input
 			DisableInput(this);
+			SetDisplayHUD(true);
 			break;
 		}
 		case EMatchPhase::InRound:
@@ -82,6 +83,7 @@ void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
 			// Enable Gameplay Input
 			EnableInput(this);
 			Client_SetCanSelectUI(false);
+			SetDisplayHUD(true);
 			break;
 		}
 		case EMatchPhase::RoundEnd:
@@ -229,6 +231,14 @@ void AFPSPlayerController::Client_SetCanSelectUI_Implementation(bool CanSelectUI
 		SetShowMouseCursor(false);
 		bEnableClickEvents = false;
 		bEnableMouseOverEvents = false;
+	}
+}
+
+void AFPSPlayerController::SetDisplayHUD(bool bShouldDisplay)
+{
+	if (AFPSHudController* HUD = Cast<AFPSHudController>(GetHUD()))
+	{
+		HUD->SetDisplayHUD(bShouldDisplay);
 	}
 }
 #pragma endregion

@@ -10,6 +10,10 @@
 // Forward declarations
 class UProgressBar;
 
+/*
+ * NOTE: This health bar is specifically for world display above other players heads. HUD Health Bar is on PlayerHUD
+ */
+
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UHealthBar : public UUserWidget
 {

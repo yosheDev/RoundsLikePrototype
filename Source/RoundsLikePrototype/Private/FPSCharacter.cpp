@@ -554,22 +554,40 @@ void AFPSCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 		Widget->UpdateHealthBar(NewHealth, VitalityAttributes->GetMaxHealth());
 	}
 
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (AFPSHudController* HUD = Cast<AFPSHudController>(PC->GetHUD()))
+		{
+			HUD->UpdateHealthHUD(NewHealth, VitalityAttributes->GetMaxHealth());
+		}
+	}
+
 	if (NewHealth <= 0.0f)
 	{
 		Die();
 	}
 }
 
-// Multicast RPC called from server when server knows damage is taken.
+// Multicast RPC called from server when server knows damage is taken. Used for predictions.
 void AFPSCharacter::MulticastDamageTaken_Implementation(float Damage)
 {
 	if (GetLocalRole() != ROLE_Authority)
 	{
-
+		// World-Space Health Widget
 		if (auto* Widget = Cast<UHealthBar>(HealthWidget->GetUserWidgetObject()))
 		{
-			Widget->UpdateHealthBar(PredictedHealth - Damage, VitalityAttributes->GetMaxHealth());
-			PredictedHealth = FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max());
+			Widget->UpdateHealthBar(FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max()), VitalityAttributes->GetMaxHealth());
 		}
+
+		// Local player HUD widget.
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (AFPSHudController* HUD = Cast<AFPSHudController>(PC->GetHUD()))
+			{
+				HUD->UpdateHealthHUD(FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max()), VitalityAttributes->GetMaxHealth());
+			}
+		}
+
+		PredictedHealth = FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max());
 	}
 }

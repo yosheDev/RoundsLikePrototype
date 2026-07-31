@@ -64,6 +64,9 @@ public:
 	UFUNCTION(Client, Reliable)
 	void Client_SetCanSelectUI(bool CanSelectUI);
 
+	UFUNCTION()
+	void SetDisplayHUD(bool bCanDisplay);
+
 	UFUNCTION(Server, Reliable)
 	void Server_NotifyRoundEndComplete();
 
