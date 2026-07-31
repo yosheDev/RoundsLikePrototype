@@ -43,5 +43,7 @@ void UFPSAbilitySystemComponent::OnGiveAbility(FGameplayAbilitySpec& AbilitySpec
 void UFPSAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
 {
 	Super::InitAbilityActorInfo(InOwnerActor, InAvatarActor);
+
+
 }
 

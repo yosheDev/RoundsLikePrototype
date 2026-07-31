@@ -8,6 +8,7 @@
 #include "Abilities/AttributeSets/VitalityAttributeSet.h"
 #include "Abilities/AttributeSets/MovementAttributeSet.h"
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
+#include "Engine/DataTable.h"
 #include "FPSPlayerState.generated.h"
 
 /**
@@ -31,9 +32,20 @@ public:
 	UPROPERTY()
 	TObjectPtr<UGunplayAttributeSet> GunplayAttributeSet;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attributes")
+	TObjectPtr<UDataTable> VitalityAttributeDataTable;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attributes")
+	TObjectPtr<UDataTable> MovementAttributeDataTable;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attributes")
+	TObjectPtr<UDataTable> GunplayAttributeDataTable;
+
 public:
 	AFPSPlayerState();
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
+
+	virtual void PostInitializeComponents() override;
 
 protected:
 

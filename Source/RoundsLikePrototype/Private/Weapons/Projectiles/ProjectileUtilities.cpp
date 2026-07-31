@@ -16,6 +16,18 @@ FBulletSpec UProjectileUtilities::MakeBulletSpec(const UFPSAbilitySystemComponen
 
     const UGunplayAttributeSet* Attributes = ASC->GetSet<UGunplayAttributeSet>();
 
+    UE_LOG(LogTemp, Warning,
+        TEXT("MYTEST Bullet ASC Owner: %s"),
+        *GetNameSafe(ASC->GetOwner()));
+
+    UE_LOG(LogTemp, Warning,
+        TEXT("MYTEST Bullet Gunplay Set: %s"),
+        *GetNameSafe(Attributes));
+
+    UE_LOG(LogTemp, Warning,
+        TEXT("MYTEST Bullet Speed: %f"),
+        Attributes->GetBulletSpeed());
+
     Spec.BulletSpeed = Attributes->GetBulletSpeed();
     Spec.BulletGravity = Attributes->GetBulletGravity();
 
