@@ -15,6 +15,7 @@
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #pragma endregion
 
 #pragma region Components
@@ -349,8 +350,9 @@ void AFPSCharacter::InitializeAbilitySystem()
 			// Initialize Predicted Health
 			PredictedHealth = VitalityAttributes->GetHealth();
 
-			// Bind Vitality Health changing with OnHealthChanged(). This is authoritative and only happens when server replicates.
-			FPSAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UVitalityAttributeSet::GetHealthAttribute()).AddUObject(this,&AFPSCharacter::OnHealthChanged);
+			BindAttributeSetDelegates();
+			InitializeMovementFromAttributes();
+			InitializeVitalityFromAttributes();
 
 			// Server grants default abilities to character.
 			if (GetLocalRole() == ROLE_Authority)
@@ -535,10 +537,59 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 
 #pragma endregion
 
-// Authoratative Update Health
+// Multicast RPC called from server when server knows damage is taken. Used for predictions.
+void AFPSCharacter::MulticastDamageTaken_Implementation(float Damage)
+{
+	if (GetLocalRole() != ROLE_Authority)
+	{
+		// World-Space Health Widget
+		if (auto* Widget = Cast<UHealthBar>(HealthWidget->GetUserWidgetObject()))
+		{
+			Widget->UpdateHealthBar(FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max()), VitalityAttributes->GetMaxHealth());
+		}
+
+		// Local player HUD widget.
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (AFPSHudController* HUD = Cast<AFPSHudController>(PC->GetHUD()))
+			{
+				HUD->UpdateHealthHUD(FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max()), VitalityAttributes->GetMaxHealth());
+			}
+		}
+
+		PredictedHealth = FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max());
+	}
+}
+
+void AFPSCharacter::InitializeMovementFromAttributes()
+{
+	GetCharacterMovement()->MaxWalkSpeed = MovementAttributes->GetMaxSpeed();
+	GetCharacterMovement()->JumpZVelocity = MovementAttributes->GetJumpStrength();
+	JumpMaxCount = MovementAttributes->GetJumpCount();
+	GetCharacterMovement()->GravityScale = MovementAttributes->GetGravityScale();
+	GetCharacterMovement()->CrouchedHalfHeight = MovementAttributes->GetCrouchedHalfHeight();
+}
+
+void AFPSCharacter::InitializeVitalityFromAttributes()
+{
+	// Body size
+	SetActorScale3D(FVector(VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize()));
+}
+
+#pragma region On Attribute Changed Delegate Functions
+
+void AFPSCharacter::BindAttributeSetDelegates()
+{
+	// Bind Vitality Health changing with OnHealthChanged(). This is authoritative and only happens when server replicates.
+	FPSAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UVitalityAttributeSet::GetHealthAttribute()).AddUObject(this, &AFPSCharacter::OnHealthChanged);
+
+	// Bind Movement Attribute Changes
+	FPSAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMovementAttributeSet::GetMaxSpeedAttribute()).AddUObject(this, &AFPSCharacter::OnMaxSpeedChanged);
+}
+
 void AFPSCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 {
-	/* 
+	/*
 	  This function is called when the server replicates Health updates.
 	  It is authoratative and should be used to correct client predictions.
 	*/
@@ -568,26 +619,17 @@ void AFPSCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 	}
 }
 
-// Multicast RPC called from server when server knows damage is taken. Used for predictions.
-void AFPSCharacter::MulticastDamageTaken_Implementation(float Damage)
+void AFPSCharacter::OnMaxSpeedChanged(const FOnAttributeChangeData& Data)
 {
-	if (GetLocalRole() != ROLE_Authority)
-	{
-		// World-Space Health Widget
-		if (auto* Widget = Cast<UHealthBar>(HealthWidget->GetUserWidgetObject()))
-		{
-			Widget->UpdateHealthBar(FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max()), VitalityAttributes->GetMaxHealth());
-		}
+	/*
+	  This function is called when the server replicates MaxSpeed updates.
+	  It is authoratative and should be used to correct client predictions.
+	*/
 
-		// Local player HUD widget.
-		if (APlayerController* PC = Cast<APlayerController>(GetController()))
-		{
-			if (AFPSHudController* HUD = Cast<AFPSHudController>(PC->GetHUD()))
-			{
-				HUD->UpdateHealthHUD(FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max()), VitalityAttributes->GetMaxHealth());
-			}
-		}
+	float OldSpeed = Data.OldValue;
+	float NewSpeed = Data.NewValue;
 
-		PredictedHealth = FMath::Clamp(PredictedHealth - Damage, 0.0f, TNumericLimits<float>::Max());
-	}
+	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
 }
+
+#pragma endregion
