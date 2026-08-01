@@ -68,6 +68,11 @@ public:
 #pragma endregion
 
 #pragma region Fire Attributes
+	// Arc of initial fire velocity
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletArc;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletArc);
+
 	// Amount of bullets fired for each shot.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BulletAmount;

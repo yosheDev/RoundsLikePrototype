@@ -115,8 +115,10 @@ public:
 	UPROPERTY()
 	FGameplayAbilityActivationInfo SourceActivationInfo;
 
-	// NOTES
-	// I don't really have prediction functioning practically.
-	//The FPredictionKey handles the synchronization of ability execution (e.g., starting an animation montage or firing a weapon) 
-	// between the local client and the server. It ties the locally predicted action to the server's acknowledgment so effects aren't duplicated.
+protected:
+	UPROPERTY()
+	uint8 BounceCount = 0;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	uint8 MaxBounces = 1;
 };

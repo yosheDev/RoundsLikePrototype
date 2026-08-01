@@ -134,6 +134,7 @@ void UGA_PrimaryFire::FireShot()
     APlayerController* PC = CurrentActorInfo->PlayerController.Get();
     FVector AimLocation = PC->PlayerCameraManager->GetCameraLocation();
     FRotator AimRotation = PC->PlayerCameraManager->GetCameraRotation().Vector().Rotation();
+    AimRotation.Pitch += Attributes->GetBulletArc();
     SpawnTransform = FTransform(AimRotation, AimLocation);
 
     // Create SpawnTransform of SpawnData here. Weapon unique properties(spread, stats, bullets) will propograte in the AProjectileWeapon.

@@ -105,6 +105,11 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	ProjectileMovementComponent->MaxSpeed = TNumericLimits<float>::Max();
 	ProjectileMovementComponent->ProjectileGravityScale = InBulletData.BulletSpec.BulletGravity;
 
+	ProjectileMovementComponent->bShouldBounce = true;
+	ProjectileMovementComponent->Bounciness = 0.6f;
+	ProjectileMovementComponent->Friction = 0.2f;
+	ProjectileMovementComponent->BounceVelocityStopSimulatingThreshold = 5.f;
+
 	ProjectileMovementComponent->bAutoActivate = true;
 	ProjectileMovementComponent->Activate();
 }
@@ -118,7 +123,12 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 
 void ABulletProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	Destroy();
+	BounceCount++;
+
+	if (BounceCount > MaxBounces)
+	{
+		Destroy();
+	}
 }
 
 void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
