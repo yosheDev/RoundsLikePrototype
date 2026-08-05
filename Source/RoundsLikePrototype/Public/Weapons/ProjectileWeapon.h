@@ -34,6 +34,10 @@ public:
 	
 	AProjectileWeapon();
 
+	/** Forces clients to make this weapon visible. Used to make servers third person weapon visible to clients while still being hidden to self. */
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	USkeletalMeshComponent* GetMesh();
+
 	/** Is this weapon currently able to fire a projectile? */
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual bool CanFire() const;

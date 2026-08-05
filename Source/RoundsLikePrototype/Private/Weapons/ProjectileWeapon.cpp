@@ -19,9 +19,16 @@ AProjectileWeapon::AProjectileWeapon()
 	SetRootComponent(Mesh);
 }
 
+USkeletalMeshComponent* AProjectileWeapon::GetMesh()
+{
+	return Mesh;
+}
+
 void AProjectileWeapon::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Mesh->SetOwnerNoSee(true);
 }
 
 void AProjectileWeapon::PrimaryFire(
