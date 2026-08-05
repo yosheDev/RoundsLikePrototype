@@ -5,7 +5,7 @@
 // Preprocessor directives
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "ShooterWeaponHolder.h"
+#include "ShooterWeaponHolder.h"//
 #include "AbilitySystemInterface.h"
 #include "Abilities/GameplayAbility.h"
 #include "Weapons/ProjectileWeapon.h"
@@ -13,7 +13,7 @@
 #include "FPSCharacter.generated.h"
 
 // Forward declarations
-class AShooterWeapon;
+class AFirstPersonWeapon;
 class UInputAction;
 class UInputComponent;
 class UGameplayAbility;
@@ -89,9 +89,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
 	TSubclassOf<AProjectileWeapon> DefaultWeaponClass;
 
-	/** This characters currently held/equipped weapon. */
+	/** This characters currently held/equipped weapon. Visible to everyone except the owning client. */
 	UPROPERTY(EditAnywhere, Category = "Weapons", ReplicatedUsing = OnRep_CurrentWeapon)
 	TObjectPtr<AProjectileWeapon> CurrentWeapon;
+
+	/** The default weapon class for this character to use. */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
+	TSubclassOf<AFirstPersonWeapon> DefaultFPWeaponClass;
+
+	/** This characters first person weapon mesh. For local cosmetics. Only visible on owning clients. */
+	UPROPERTY(EditAnywhere, Category = "Weapons")
+	TObjectPtr<AFirstPersonWeapon> FirstPersonWeapon;
 
 	UFUNCTION()
 	void OnRep_CurrentWeapon();
@@ -151,9 +159,6 @@ private:
 public:
 	UPROPERTY(EditAnywhere)
 	bool bIsDead;
-
-	UPROPERTY(Replicated, BlueprintReadOnly)
-	bool bCanInput = false;
 
 protected:
 	/** Max distance to use for aim traces */

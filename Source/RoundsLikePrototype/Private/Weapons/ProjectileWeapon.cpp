@@ -9,7 +9,6 @@
 #include "AbilitySystemComponent.h"
 #include "Components/FPSAbilitySystemComponent.h"
 
-
 AProjectileWeapon::AProjectileWeapon()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -89,6 +88,8 @@ void AProjectileWeapon::SpawnProjectile(
 
 	// Finish Spawning (Deferred)
 	Projectile->FinishSpawning(SpawnData.SpawnTransform);
+
+	OnPrimaryFire.Broadcast();
 }
 
 #pragma region Utility Functions

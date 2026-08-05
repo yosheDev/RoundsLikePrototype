@@ -6,7 +6,9 @@
 #include "FPSPlayerState.h"
 #include "FPSGameMode.h"
 #include "UI/HUD/HealthBar.h"
-#include "ShooterWeapon.h"
+#include "ShooterWeapon.h"//
+#include "Weapons/FirstPerson/FirstPersonWeapon.h"
+#include "Weapons/IWeaponHolder.h"
 #pragma endregion
 
 #pragma region Unreal Includes
@@ -65,23 +67,6 @@ AFPSCharacter::AFPSCharacter()
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// Assign HealthWidgetClass default from Blueprint class.
-	/*if (HealthWidgetClass)
-	{
-		HealthWidget->SetWidgetClass(HealthWidgetClass);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("HealthWidgetClass is null on [%s]"), *GetName());
-	}*/
-
-	#pragma region Instantiate Weapon
-	//if (HasAuthority())
-	//{
-	//	CreateAndEquipWeapon_Implementation(DefaultWeaponClass);
-	//}
-	#pragma endregion
 }
 
 void AFPSCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -125,9 +110,24 @@ void AFPSCharacter::OnRep_PlayerState()
 
 void AFPSCharacter::OnRep_CurrentWeapon()
 {
-	/*UE_LOG(LogTemp, Warning, TEXT("[%s] CurrentWeapon replicated: %s"),
+	UE_LOG(LogTemp, Warning, TEXT("[%s] CurrentWeapon replicated: %s"),
 		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
-		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));*/
+		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));
+
+	FirstPersonWeapon = GetWorld()->SpawnActor<AFirstPersonWeapon>(DefaultFPWeaponClass);
+
+	if (FirstPersonWeapon)
+	{
+		FirstPersonWeapon->SetOwner(this);
+		FirstPersonWeapon->SetInstigator(this);
+		FirstPersonWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FirstPersonWeaponSocket);
+
+		if (CurrentWeapon)
+		{
+			FirstPersonWeapon->BindToWeapon(CurrentWeapon);
+		}
+		else { UE_LOG(LogTemp, Error, TEXT("Failed to BindToWeapon() because either FirstPersonWeapon or CurrentWeapon is null.")) }
+	}
 }
 
 #pragma endregion
@@ -192,6 +192,7 @@ void AFPSCharacter::JumpEnd()
 #pragma region Weapon Input Handling
 void AFPSCharacter::PrimaryFire()
 {
+
 	// only route inputs if the character is not dead
 	if (!bIsDead)
 	{
@@ -223,6 +224,8 @@ void AFPSCharacter::PrimaryFireCompleted()
 #pragma region IWeaponHolder
 void AFPSCharacter::CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileWeapon> WeaponClass)
 {
+	/** This function only ever calls on the server. */
+
 	AProjectileWeapon* Weapon = GetWorld()->SpawnActor<AProjectileWeapon>(WeaponClass);
 
 	// Validate the weapon actually spawned.
@@ -234,10 +237,27 @@ void AFPSCharacter::CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileW
 
 	Weapon->SetOwner(this);
 	Weapon->SetInstigator(this);
-
-	Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FirstPersonWeaponSocket);
-
 	CurrentWeapon = Weapon;
+	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ThirdPersonWeaponSocket);
+
+	ForceNetUpdate();
+	CurrentWeapon->ForceNetUpdate();
+
+	/** Clients do this on OnRep_CurrentWeapon instead of here. */
+	FirstPersonWeapon = GetWorld()->SpawnActor<AFirstPersonWeapon>(DefaultFPWeaponClass);
+
+	if (FirstPersonWeapon)
+	{
+		FirstPersonWeapon->SetOwner(this);
+		FirstPersonWeapon->SetInstigator(this);
+		FirstPersonWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FirstPersonWeaponSocket);
+
+		if (CurrentWeapon)
+		{
+			FirstPersonWeapon->BindToWeapon(CurrentWeapon);
+		}
+		else { UE_LOG(LogTemp, Error, TEXT("Failed to BindToWeapon() because either FirstPersonWeapon or CurrentWeapon is null.")) }
+	}
 }
 
 AProjectileWeapon* AFPSCharacter::GetEquippedWeapon_Implementation() const

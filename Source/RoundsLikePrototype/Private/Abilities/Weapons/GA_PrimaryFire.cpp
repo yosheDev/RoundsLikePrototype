@@ -26,7 +26,7 @@ void UGA_PrimaryFire::ActivateAbility(
     const FGameplayEventData* TriggerEventData)
 {
     Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-
+    
     // Is there an avatar actor?
     if (AActor* Avatar = ActorInfo->AvatarActor.Get())
     {
@@ -38,12 +38,17 @@ void UGA_PrimaryFire::ActivateAbility(
             return;
         }
 
+        // This is suddenly failing on clients. Didnt even change anything wtf. Weapon is null.
         AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
         if (Weapon == nullptr || !(Weapon->CanFire()))
         {
             EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
             return;
         }
+
+        FString RoleString = ActorInfo->AvatarActor.Get()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+        UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: Has passed weapon check"), *RoleString);
+
         #pragma endregion
 
         // This allows users to shoot fast while spam clicking, but not faster than bare minimum .1f.
@@ -74,8 +79,9 @@ void UGA_PrimaryFire::ActivateAbility(
 
         ScheduleNextShot();
 
-        FString RoleString = Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
-        UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: Ability Primary Fire. Weapon is [%s]"), *RoleString, Weapon ? *Weapon->GetName() : TEXT("NULL"));
+        //FString 
+            RoleString = Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+        UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: End of Primary Fire Ability. Weapon is [%s]"), *RoleString, Weapon ? *Weapon->GetName() : TEXT("NULL"));
     }
 
     //EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
@@ -115,6 +121,7 @@ void UGA_PrimaryFire::ScheduleNextShot()
 
 void UGA_PrimaryFire::FireShot()
 {
+    UE_LOG(LogTemp, Log, TEXT("FireLog: FireShot()"));
     if (!CanFire())
     {
         EndAbility(

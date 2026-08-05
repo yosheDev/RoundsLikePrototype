@@ -8,6 +8,8 @@
 #include "Weapons/IWeapon.h"
 #include "ProjectileWeapon.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPrimaryFireDelegate);
+
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API AProjectileWeapon : public AActor, public IWeapon
 {
@@ -34,7 +36,6 @@ public:
 	
 	AProjectileWeapon();
 
-	/** Forces clients to make this weapon visible. Used to make servers third person weapon visible to clients while still being hidden to self. */
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	USkeletalMeshComponent* GetMesh();
 
@@ -63,4 +64,8 @@ protected:
 		const FGameplayAbilitySpecHandle& AbilityHandle, 
 		const FGameplayAbilityActivationInfo& ActivationInfo, 
 		const FProjectileSpawnData& SpawnData);
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnPrimaryFireDelegate OnPrimaryFire;
 };
