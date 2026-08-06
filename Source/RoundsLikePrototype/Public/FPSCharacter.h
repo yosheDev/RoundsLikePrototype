@@ -49,6 +49,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<class USpringArmComponent> SpringArm;
 
+	/** The transform origin for the FP Weapon. Child of the FirstPersonCamera. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class USceneComponent> FPWeaponOffset;
+
 	/** Handles ability activation and replication. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
@@ -114,6 +118,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Weapons")
 	FName ThirdPersonWeaponSocket = FName("HandGrip_R");
 
+private:
+	void SpawnFirstPersonWeapon();
 #pragma region IWeaponHolder
 public:
 	/** Handles creation and equipping of weapon. */

@@ -30,6 +30,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/PawnNoiseEmitterComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Components/SceneComponent.h"
 #pragma endregion
 #pragma endregion
 
@@ -49,6 +50,9 @@ AFPSCharacter::AFPSCharacter()
 	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCamera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	FirstPersonCamera->bUsePawnControlRotation = false;
+
+	FPWeaponOffset = CreateDefaultSubobject<USceneComponent>(TEXT("FPWeaponOffset"));
+	FPWeaponOffset->SetupAttachment(FirstPersonCamera);
 	#pragma endregion
 
 	/* Health Bar */
@@ -114,20 +118,8 @@ void AFPSCharacter::OnRep_CurrentWeapon()
 		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
 		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));
 
-	FirstPersonWeapon = GetWorld()->SpawnActor<AFirstPersonWeapon>(DefaultFPWeaponClass);
-
-	if (FirstPersonWeapon)
-	{
-		FirstPersonWeapon->SetOwner(this);
-		FirstPersonWeapon->SetInstigator(this);
-		FirstPersonWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FirstPersonWeaponSocket);
-
-		if (CurrentWeapon)
-		{
-			FirstPersonWeapon->BindToWeapon(CurrentWeapon);
-		}
-		else { UE_LOG(LogTemp, Error, TEXT("Failed to BindToWeapon() because either FirstPersonWeapon or CurrentWeapon is null.")) }
-	}
+	// Server does this in CreateAndEquipWeapon instead of here.
+	SpawnFirstPersonWeapon();
 }
 
 #pragma endregion
@@ -244,13 +236,18 @@ void AFPSCharacter::CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileW
 	CurrentWeapon->ForceNetUpdate();
 
 	/** Clients do this on OnRep_CurrentWeapon instead of here. */
+	SpawnFirstPersonWeapon();
+}
+
+void AFPSCharacter::SpawnFirstPersonWeapon()
+{
 	FirstPersonWeapon = GetWorld()->SpawnActor<AFirstPersonWeapon>(DefaultFPWeaponClass);
 
 	if (FirstPersonWeapon)
 	{
 		FirstPersonWeapon->SetOwner(this);
 		FirstPersonWeapon->SetInstigator(this);
-		FirstPersonWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FirstPersonWeaponSocket);
+		FirstPersonWeapon->AttachToComponent(FPWeaponOffset, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 		if (CurrentWeapon)
 		{
