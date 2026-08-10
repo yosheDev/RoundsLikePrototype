@@ -149,6 +149,11 @@ void UGA_PrimaryFire::FireShot()
     SpawnData.SpawnTransform = SpawnTransform;
 
     AActor* Avatar = CurrentActorInfo->AvatarActor.Get();
+    if (!IsValid(Avatar))
+    {
+        return;
+    }
+
     AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
 
     Weapon->PrimaryFire(CurrentSpecHandle, CurrentActivationInfo, SpawnData);
