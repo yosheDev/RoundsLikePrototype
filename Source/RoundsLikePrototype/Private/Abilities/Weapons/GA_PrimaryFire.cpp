@@ -5,6 +5,7 @@
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "FPSCharacter.h"
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
+#include "Weapons/AmmoComponent.h"
 
 // Constructor
 UGA_PrimaryFire::UGA_PrimaryFire()
@@ -30,7 +31,7 @@ void UGA_PrimaryFire::ActivateAbility(
     // Is there an avatar actor?
     if (AActor* Avatar = ActorInfo->AvatarActor.Get())
     {
-        #pragma region Weapon Validation
+        #pragma region Weapon and Ammo Validation
 
         if (!Avatar->Implements<UWeaponHolder>())
         {
@@ -38,7 +39,6 @@ void UGA_PrimaryFire::ActivateAbility(
             return;
         }
 
-        // This is suddenly failing on clients. Didnt even change anything wtf. Weapon is null.
         AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
         if (Weapon == nullptr || !(Weapon->CanFire()))
         {
@@ -46,9 +46,22 @@ void UGA_PrimaryFire::ActivateAbility(
             return;
         }
 
+        UAmmoComponent* AmmoComponent = Weapon->GetAmmoComponent();
+        if (!AmmoComponent)
+        {
+            EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+            return;
+        }
+
+        if (!AmmoComponent->HasAmmo())
+        {
+            EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+            return;
+        }
+
         FString RoleString = ActorInfo->AvatarActor.Get()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
         UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: Has passed weapon check"), *RoleString);
-
+        GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("%s Ammo: %d"), *RoleString, AmmoComponent->CurrentAmmo));
         #pragma endregion
 
         // This allows users to shoot fast while spam clicking, but not faster than bare minimum .1f.
@@ -134,8 +147,24 @@ void UGA_PrimaryFire::FireShot()
         return;
     }
 
+    AActor* Avatar = CurrentActorInfo->AvatarActor.Get();
+    if (!IsValid(Avatar))
+    {
+        return;
+    }
+
+    AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
+    UAmmoComponent* AmmoComponent = Weapon->GetAmmoComponent();
+
+    // Try to consume the ammo needed. 
+    if (!(AmmoComponent->TryConsumeAmmo()))
+    {
+        EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+        return;
+    }
+
     LastFireTime = GetWorld()->GetTimeSeconds();
-    NextFireTime = NextFireTime + GetFireInterval();
+    NextFireTime = LastFireTime + GetFireInterval();
 
     #pragma region Activate Primary Fire
     APlayerController* PC = CurrentActorInfo->PlayerController.Get();
@@ -147,14 +176,6 @@ void UGA_PrimaryFire::FireShot()
     // Create SpawnTransform of SpawnData here. Weapon unique properties(spread, stats, bullets) will propograte in the AProjectileWeapon.
     FProjectileSpawnData SpawnData;
     SpawnData.SpawnTransform = SpawnTransform;
-
-    AActor* Avatar = CurrentActorInfo->AvatarActor.Get();
-    if (!IsValid(Avatar))
-    {
-        return;
-    }
-
-    AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
 
     Weapon->PrimaryFire(CurrentSpecHandle, CurrentActivationInfo, SpawnData);
     #pragma endregion

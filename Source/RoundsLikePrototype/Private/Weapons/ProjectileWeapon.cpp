@@ -5,6 +5,7 @@
 #include "Weapons/Projectiles/BulletProjectile.h"
 #include "Weapons/Projectiles/ProjectileUtilities.h"
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
+#include "Weapons/AmmoComponent.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "Components/FPSAbilitySystemComponent.h"
@@ -16,11 +17,18 @@ AProjectileWeapon::AProjectileWeapon()
 
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMesh"));
 	SetRootComponent(Mesh);
+
+	AmmoComponent = CreateDefaultSubobject<UAmmoComponent>(TEXT("AmmoComponent"));
 }
 
 USkeletalMeshComponent* AProjectileWeapon::GetMesh()
 {
 	return Mesh;
+}
+
+UAmmoComponent* AProjectileWeapon::GetAmmoComponent() const
+{
+	return AmmoComponent;
 }
 
 void AProjectileWeapon::BeginPlay()

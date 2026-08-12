@@ -15,12 +15,17 @@ class ROUNDSLIKEPROTOTYPE_API AProjectileWeapon : public AActor, public IWeapon
 {
 	GENERATED_BODY()
 	
+public:
 	/** Weapon Mesh */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* Mesh;
 
 protected:
 	
+	/** Ammo Component */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<class UAmmoComponent> AmmoComponent;
+
 	/** Class of projectile this weapon fires. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class ABulletProjectile> ProjectileClass;
@@ -38,6 +43,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	USkeletalMeshComponent* GetMesh();
+
+	UFUNCTION(BlueprintCallable, Category="Weapon")
+	UAmmoComponent* GetAmmoComponent() const;
 
 	/** Is this weapon currently able to fire a projectile? */
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
