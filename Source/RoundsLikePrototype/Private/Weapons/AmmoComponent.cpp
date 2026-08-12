@@ -36,8 +36,6 @@ void UAmmoComponent::BeginPlay()
 
     CurrentAmmo = MaxAmmo;
     ClientPredictedAmmo = MaxAmmo;
-	// ...
-	
 }
 
 bool UAmmoComponent::TryConsumeAmmo()
