@@ -34,6 +34,13 @@ AFPSPlayerState::AFPSPlayerState()
 		GunplayAttributeSet->GetBulletSpeed());
 }
 
+void AFPSPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFPSPlayerState, AccruedAbilities);
+}
+
 void AFPSPlayerState::BeginPlay()
 {
 	Super::BeginPlay();

@@ -8,7 +8,9 @@
 #include "Abilities/AttributeSets/VitalityAttributeSet.h"
 #include "Abilities/AttributeSets/MovementAttributeSet.h"
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
+#include "GameplayTagContainer.h"
 #include "Engine/DataTable.h"
+#include "Net/UnrealNetwork.h"
 #include "FPSPlayerState.generated.h"
 
 /**
@@ -22,6 +24,15 @@ class ROUNDSLIKEPROTOTYPE_API AFPSPlayerState : public APlayerState
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Abilities)
 	TObjectPtr<UFPSAbilitySystemComponent> FPSAbilitySystemComponent;
+
+	UPROPERTY(Replicated)
+	TArray<FGameplayTag> AccruedAbilities;
+
+	/*   Do this when you need the definition from the AccruedAbility
+	
+	UAbilityDefinition* Definition = AbilityDefinitions::Find(AccruedAbilities[i].AbilityTag);
+
+	*/
 
 	UPROPERTY()
 	TObjectPtr<UVitalityAttributeSet> VitalityAttributeSet;
@@ -46,6 +57,8 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 
 	virtual void PostInitializeComponents() override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 
