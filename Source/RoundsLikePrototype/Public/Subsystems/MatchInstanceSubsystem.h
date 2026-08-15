@@ -28,7 +28,7 @@ struct FMatchData
 	EMatchPhase MatchPhase = EMatchPhase::RoundStarting; // When this is "Waiting For Players" Server cannot move but client can. No proper functionality there yet.
 
 	UPROPERTY()
-	uint8 RoundNumber = 0;
+	uint8 RoundNumber = 1;
 
 	UPROPERTY()
 	TObjectPtr<AFPSPlayerState> PlayerOne = nullptr;

@@ -27,7 +27,7 @@ public:
     TArray<TSubclassOf<UGameplayAbility>> GASAbilities;
 
     UPROPERTY(EditDefaultsOnly)
-    TArray<TSubclassOf<UGameplayEffect>> Effects;
+    TArray<TSubclassOf<UGameplayEffect>> GASEffects;
 
     UPROPERTY(EditDefaultsOnly)
     TArray<FGameplayTag> RequiredTags;

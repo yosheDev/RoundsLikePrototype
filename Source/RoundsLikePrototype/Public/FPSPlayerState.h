@@ -52,9 +52,25 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attributes")
 	TObjectPtr<UDataTable> GunplayAttributeDataTable;
 
+protected:
+	UPROPERTY()
+	TMap<FString, float> SavedVitalityAttributesMap;
+
+	UPROPERTY()
+	TMap<FString, float> SavedMovementAttributesMap;
+
+	UPROPERTY()
+	TMap<FString, float> SavedGunplayAttributesMap;
+
 public:
 	AFPSPlayerState();
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
+
+	virtual void CopyProperties(APlayerState* PlayerState) override;
+
+	void RestoreAttributesAfterTravel();
+
+	void ReapplyAbilitiesAfterTravel();
 
 	virtual void PostInitializeComponents() override;
 

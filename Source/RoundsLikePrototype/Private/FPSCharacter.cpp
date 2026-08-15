@@ -359,6 +359,12 @@ void AFPSCharacter::InitializeAbilitySystem()
 			// Bind OnAbilitySpecRecieved to HandleAbilityGranted().
 			FPSAbilitySystemComponent->OnAbilitySpecRecieved.AddUObject(this, &AFPSCharacter::HandleAbilityGranted);
 
+			// Restore gameplay attributes (must be called after InitAbilityActorInfo())
+			if (FPSPlayerState->HasAuthority())
+			{
+				FPSPlayerState->RestoreAttributesAfterTravel();
+			}
+			
 			// Initialize Attribute Set References
 			VitalityAttributes = FPSAbilitySystemComponent->GetSet<UVitalityAttributeSet>();
 			MovementAttributes = FPSAbilitySystemComponent->GetSet<UMovementAttributeSet>();
@@ -580,6 +586,10 @@ void AFPSCharacter::MulticastDamageTaken_Implementation(float Damage)
 
 void AFPSCharacter::InitializeMovementFromAttributes()
 {
+	UE_LOG(LogTemp, Warning,
+		TEXT("=== TRAVEL: InitializeMovementFromAttributes === MaxSpeed: %f"),
+		MovementAttributes->GetMaxSpeed());
+
 	GetCharacterMovement()->MaxWalkSpeed = MovementAttributes->GetMaxSpeed();
 	GetCharacterMovement()->JumpZVelocity = MovementAttributes->GetJumpStrength();
 	JumpMaxCount = MovementAttributes->GetJumpCount();
