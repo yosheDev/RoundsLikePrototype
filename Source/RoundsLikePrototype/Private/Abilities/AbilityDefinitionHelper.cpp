@@ -1,15 +1,18 @@
 // Copyright Jacob Jones 2026
 
-
 #include "Abilities/AbilityDefinitionHelper.h"
 #include "Abilities/AbilityDefinition.h"
 #include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
 
-UAbilityDefinition* AbilityDefinitions::Find(FGameplayTag AbilityTag)
+void AbilityDefinitions::Find(
+    FGameplayTag AbilityTag,
+    TFunction<void(UAbilityDefinition*)> CompletionCallback)
 {
     if (!AbilityTag.IsValid())
     {
-        return nullptr;
+        CompletionCallback(nullptr);
+        return;
     }
 
     const FPrimaryAssetId AssetId(
@@ -17,12 +20,52 @@ UAbilityDefinition* AbilityDefinitions::Find(FGameplayTag AbilityTag)
         AbilityTag.GetTagName()
     );
 
-    UAbilityDefinition* Definition = UAssetManager::Get().GetPrimaryAssetObject<UAbilityDefinition>(AssetId);
+    UAssetManager& AssetManager = UAssetManager::Get();
 
-    if (!Definition)
+    //UE_LOG(
+    //    LogTemp,
+    //    Warning,
+    //    TEXT("AbilityDefinitions: Looking for [%s]"),
+    //    *AssetId.ToString()
+    //);
+
+    // Ensure AbilityDefinition assets have been scanned.
+    AssetManager.ScanPathsForPrimaryAssets(
+        FPrimaryAssetType(TEXT("AbilityDefinition")),
+        { TEXT("/Game/Abilities/Data") },
+        UAbilityDefinition::StaticClass(),
+        false,
+        false,
+        true
+    );
+
+    if (UAbilityDefinition* Definition =
+        AssetManager.GetPrimaryAssetObject<UAbilityDefinition>(AssetId))
     {
-        // Async load.
+        CompletionCallback(Definition);
+        return;
     }
 
-    return Definition;
+    AssetManager.LoadPrimaryAsset(
+        AssetId,
+        {},
+        FStreamableDelegate::CreateLambda(
+            [AssetId, CompletionCallback = MoveTemp(CompletionCallback)]()
+            {
+                UAbilityDefinition* Definition =
+                    UAssetManager::Get()
+                    .GetPrimaryAssetObject<UAbilityDefinition>(AssetId);
+
+                /*UE_LOG(
+                    LogTemp,
+                    Warning,
+                    TEXT("AbilityDefinitions: Load completed for [%s], Definition = %s"),
+                    *AssetId.ToString(),
+                    *GetNameSafe(Definition)
+                );*/
+
+                CompletionCallback(Definition);
+            }
+        )
+    );
 }

@@ -61,6 +61,10 @@ public:
 
     #pragma endregion
 
+public:
+
+    AFPSPlayerState* GetCurrentLoserState();
+
 protected:
 
     UFUNCTION()

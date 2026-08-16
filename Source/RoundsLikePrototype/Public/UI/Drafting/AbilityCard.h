@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Abilities/AbilityDefinition.h"
+#include "GameplayTagContainer.h"
 #include "AbilityCard.generated.h"
 
 class UTextBlock;
@@ -22,9 +23,16 @@ protected:
 	//UFUNCTION()
 	//void HandleMyButtonClick();
 
+private:
+
+	void GiveAbilityToPlayer();
+
 public:
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UAbilityDefinition> AbilityDataAsset;
+
+protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	UButton* SelectAbilityButton;
@@ -33,5 +41,13 @@ public:
 	TObjectPtr<UTextBlock> AbilityName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UTextBlock> AbilityDef;
+	TObjectPtr<UTextBlock> AbilityDesc;
+
+private:
+
+	UPROPERTY()
+	bool bAlreadySelected = false;
+
+	UFUNCTION()
+	void SelectAbility();
 };

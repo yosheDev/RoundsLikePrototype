@@ -32,5 +32,5 @@ public:
     UPROPERTY(EditDefaultsOnly)
     TArray<FGameplayTag> RequiredTags;
 
-    FPrimaryAssetId GetPrimaryAssetID() const;
+    virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 };

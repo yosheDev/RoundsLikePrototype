@@ -76,6 +76,9 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UFUNCTION(Server, Reliable)
+	void Server_AddAccruedAbility(FGameplayTag AbilityTag);
+
 protected:
 
 	/** Gameplay initialization */

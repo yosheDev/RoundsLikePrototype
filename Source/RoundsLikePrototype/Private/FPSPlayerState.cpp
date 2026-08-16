@@ -248,49 +248,51 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 
 void AFPSPlayerState::ReapplyAbilitiesAfterTravel()
 {
-	if (!FPSAbilitySystemComponent || AccruedAbilities.Num() == 0) return;
+	if (!FPSAbilitySystemComponent || AccruedAbilities.Num() == 0)
+	{
+		return;
+	}
 
 	for (const FGameplayTag& AbilityTag : AccruedAbilities)
 	{
-		// Find the Definition Data Asset for this class and get the Gameplay Abilities it holds.
-		UAbilityDefinition* Definition = AbilityDefinitions::Find(AbilityTag);
-		if (!Definition)
+		AbilityDefinitions::Find(AbilityTag, [this, AbilityTag](UAbilityDefinition* Definition)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("ReapplyAbilitiesAfterTravel: Failed to find UAbilityDefinition for tag %s! Skipping."), *AbilityTag.ToString());
-			continue;
-		}
-
-		TArray<TSubclassOf<UGameplayAbility>> GameplayAbilities = Definition->GASAbilities;
-
-		// Grant all abilities provided by the Ability Definition.
-		for (TSubclassOf<UGameplayAbility>& AbilityClass : GameplayAbilities)
-		{
-			if (AbilityClass)
+			if (!Definition)
 			{
-				// Grant the abilities to the ASC
-				FGameplayAbilitySpec Spec(AbilityClass, 1, -1, this);
-				FPSAbilitySystemComponent->GiveAbility(Spec);
+				UE_LOG(LogTemp, Warning, TEXT("ReapplyAbilitiesAfterTravel: Failed to find UAbilityDefinition for tag %s! Skipping."), *AbilityTag.ToString());
+				return;
 			}
-		}
 
-		TArray<TSubclassOf<UGameplayEffect>> GameplayEffects = Definition->GASEffects;
-		for (TSubclassOf<UGameplayEffect>& EffectClass : GameplayEffects)
-		{
-			if (EffectClass)
+			// Grant all abilities provided by the Ability Definition.
+			for (const TSubclassOf<UGameplayAbility>& AbilityClass : Definition->GASAbilities)
 			{
-				// Create an execution context for the effect
-				FGameplayEffectContextHandle EffectContext = FPSAbilitySystemComponent->MakeEffectContext();
-				EffectContext.AddSourceObject(this);
-
-				// Build the outgoing spec wrapper
-				FGameplayEffectSpecHandle NewSpecHandle = FPSAbilitySystemComponent->MakeOutgoingSpec(EffectClass, 1, EffectContext);
-				if (NewSpecHandle.IsValid())
+				if (AbilityClass)
 				{
-					// Apply it to our own ASC
-					FPSAbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*NewSpecHandle.Data.Get());
+					FGameplayAbilitySpec Spec(AbilityClass, 1, -1, this);
+					FPSAbilitySystemComponent->GiveAbility(Spec);
 				}
 			}
-		}
+
+			// Apply all effects provided by the Ability Definition.
+			for (const TSubclassOf<UGameplayEffect>& EffectClass : Definition->GASEffects)
+			{
+				UE_LOG(LogTemp, Log, TEXT("TRAVEL - Reapplying effect: [%s]"), *GetNameSafe(EffectClass));
+
+				if (EffectClass)
+				{
+					FGameplayEffectContextHandle EffectContext = FPSAbilitySystemComponent->MakeEffectContext();
+
+					EffectContext.AddSourceObject(this);
+
+					FGameplayEffectSpecHandle NewSpecHandle = FPSAbilitySystemComponent->MakeOutgoingSpec(EffectClass, 1, EffectContext);
+
+					if (NewSpecHandle.IsValid())
+					{
+						FPSAbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*NewSpecHandle.Data.Get());
+					}
+				}
+			}
+		});
 	}
 }
 
@@ -335,4 +337,9 @@ void AFPSPlayerState::EndPlay(EEndPlayReason::Type EndPlayReason)
 UAbilitySystemComponent* AFPSPlayerState::GetAbilitySystemComponent() const
 {
 	return FPSAbilitySystemComponent;
+}
+
+void AFPSPlayerState::Server_AddAccruedAbility_Implementation(FGameplayTag AbilityTag)
+{
+	AccruedAbilities.Add(AbilityTag);
 }

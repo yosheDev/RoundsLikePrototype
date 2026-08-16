@@ -3,7 +3,7 @@
 
 #include "Abilities/AbilityDefinition.h"
 
-FPrimaryAssetId UAbilityDefinition::GetPrimaryAssetID() const
+FPrimaryAssetId UAbilityDefinition::GetPrimaryAssetId() const
 {
     return FPrimaryAssetId(
         FPrimaryAssetType(TEXT("AbilityDefinition")),

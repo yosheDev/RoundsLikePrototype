@@ -68,3 +68,8 @@ void AFPSGameState::InitializeMatchData()
     PlayerOneWins = NewData.PlayerOneWins;
     PlayerTwoWins = NewData.PlayerTwoWins;
 }
+
+AFPSPlayerState* AFPSGameState::GetCurrentLoserState()
+{
+    return CurrentLoserState;
+}

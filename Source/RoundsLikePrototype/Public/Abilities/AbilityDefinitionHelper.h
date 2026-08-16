@@ -9,5 +9,5 @@ class UAbilityDefinition;
 
 namespace AbilityDefinitions
 {
-    UAbilityDefinition* Find(FGameplayTag AbilityTag);
+    void Find(FGameplayTag AbilityTag, TFunction<void(UAbilityDefinition*)> CompletionCallback);
 }
