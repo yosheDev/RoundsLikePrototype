@@ -24,7 +24,7 @@ public:
     UFUNCTION()
     void HandleMatchPhaseChanged();
 
-    /** The player state of the previous rounds loser. Used to keep track of who gets to pick an ability for the draft stage. */
+    /** The player state of the rounds loser. Used to keep track of who gets to pick an ability for the draft stage. */
     UPROPERTY(ReplicatedUsing = OnRep_CurrentLoserState, BlueprintReadOnly)
     AFPSPlayerState* CurrentLoserState;
 
@@ -60,6 +60,12 @@ public:
     void InitializeMatchData();
 
     #pragma endregion
+
+    UPROPERTY(ReplicatedUsing = OnRep_CurrentAbilityOffers, BlueprintReadOnly)
+    TArray<FPrimaryAssetId> CurrentAbilityOffers;
+
+    UFUNCTION()
+    void OnRep_CurrentAbilityOffers();
 
 public:
 

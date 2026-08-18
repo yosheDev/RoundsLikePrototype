@@ -22,6 +22,10 @@ public:
 
     UFUNCTION()
     void HideAbilitySelection();
+    
+    // This is called when CurrentAbilityOffers is replicated to the client.
+    UFUNCTION()
+    void RefreshAbilitySelection();
 
     UFUNCTION()
     void SetDisplayHUD(bool bShouldDisplay);

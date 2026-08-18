@@ -38,6 +38,14 @@ void AFPSHudController::HideAbilitySelection()
     }
 }
 
+void AFPSHudController::RefreshAbilitySelection()
+{
+    if (DraftingWidget)
+    {
+        DraftingWidget->RefreshAbilityCards();
+    }
+}
+
 void AFPSHudController::SetDisplayHUD(bool bShouldDisplay)
 {
     if (!HUDWidget)

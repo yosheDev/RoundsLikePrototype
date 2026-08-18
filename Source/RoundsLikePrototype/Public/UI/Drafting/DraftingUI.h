@@ -8,6 +8,7 @@
 
 class UTextBlock;
 class UButton;
+class UHorizontalBox;
 
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UDraftingUI : public UUserWidget
@@ -21,6 +22,14 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* DraftingPlayerText;
+
+	UPROPERTY(meta = (BindWidget))
+	UHorizontalBox* AbilityCards;
+
+public:
+
+	UFUNCTION()
+	void RefreshAbilityCards();
 
 protected:
 

@@ -47,6 +47,7 @@ void UAbilityCard::GiveAbilityToPlayer()
         return;
     }
     
-    LoserState->Server_AddAccruedAbility_Implementation(AbilityDataAsset->AbilityTag);
+    // Is this valid on the client?
+    LoserState->Server_AddAccruedAbility(AbilityDataAsset->AbilityTag);
 }
 

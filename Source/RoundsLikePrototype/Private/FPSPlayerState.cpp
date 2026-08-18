@@ -252,6 +252,9 @@ void AFPSPlayerState::ReapplyAbilitiesAfterTravel()
 	{
 		return;
 	}
+	
+	// Force a scan of all AbilityDefinitions. Done since this is called immediately after travel, when AssetManager is not guarenteed to have scanned yet.
+	AbilityDefinitions::Scan();
 
 	for (const FGameplayTag& AbilityTag : AccruedAbilities)
 	{
@@ -341,5 +344,5 @@ UAbilitySystemComponent* AFPSPlayerState::GetAbilitySystemComponent() const
 
 void AFPSPlayerState::Server_AddAccruedAbility_Implementation(FGameplayTag AbilityTag)
 {
-	AccruedAbilities.Add(AbilityTag);
+	AccruedAbilities.AddUnique(AbilityTag);
 }

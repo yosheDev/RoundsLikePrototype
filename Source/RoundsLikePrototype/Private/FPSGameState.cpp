@@ -2,6 +2,7 @@
 
 
 #include "FPSGameState.h"
+#include "FPSHudController.h"
 #include "Subsystems/MatchInstanceSubsystem.h"
 #include "Net/UnrealNetwork.h"
 #include "FPSPlayerController.h"
@@ -11,11 +12,23 @@ void AFPSGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AFPSGameState, MatchPhase);
+    DOREPLIFETIME(AFPSGameState, CurrentAbilityOffers);
 }
 
 void AFPSGameState::OnRep_MatchPhase()
 {
     HandleMatchPhaseChanged();
+}
+
+void AFPSGameState::OnRep_CurrentAbilityOffers()
+{
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (PC)
+    {
+        AFPSHudController* HUD = PC->GetHUD<AFPSHudController>();
+
+        HUD->RefreshAbilitySelection();
+    }
 }
 
 void AFPSGameState::HandleMatchPhaseChanged()

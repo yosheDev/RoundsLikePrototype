@@ -6,6 +6,7 @@
 #include "FPSPlayerController.h"
 #include "FPSHudController.h"
 #include "FPSGameState.h"
+#include "Subsystems/AbilityPoolSubsystem.h"
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
 #include "Enums/SpawnSide.h"
@@ -212,7 +213,7 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 
 void AFPSGameMode::StartDraft()
 {	
-	DestroyPawns();
+	//DestroyPawns();
 	GenerateAbilityChoices();
 	SetMatchPhase(EMatchPhase::AbilityDraft);
 }
@@ -357,7 +358,24 @@ void AFPSGameMode::GivePoint(uint8 PlayerID)
 
 void AFPSGameMode::GenerateAbilityChoices()
 {
+	if (!HasAuthority()) { return; }
 
+	UAbilityPoolSubsystem* AbilityPool = GetGameInstance()->GetSubsystem<UAbilityPoolSubsystem>();
+
+	if (!AbilityPool) { return; }
+
+	FPSGameState->CurrentAbilityOffers = AbilityPool->GetAbilityOffers();
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("Generated %d ability offers on SERVER"),
+		FPSGameState->CurrentAbilityOffers.Num());
+
+	for (const FPrimaryAssetId& ID : FPSGameState->CurrentAbilityOffers)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("  Offer: %s"),
+			*ID.ToString());
+	}
 }
 
 void AFPSGameMode::DestroyPawns()

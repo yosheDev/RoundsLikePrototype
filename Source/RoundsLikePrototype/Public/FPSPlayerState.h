@@ -30,7 +30,7 @@ public:
 
 	/*   Do this when you need the definition from the AccruedAbility
 	
-	UAbilityDefinition* Definition = AbilityDefinitions::Find(AccruedAbilities[i].AbilityTag);
+	UAbilityDefinition* Definition = AbilityDefinitions::Find(AccruedAbilities[i].AbilityTag); (or instead of tag use the ID)
 
 	*/
 
