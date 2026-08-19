@@ -9,6 +9,7 @@
 // Forward declarations
 class UTextBlock;
 class UProgressBar;
+class UAmmoRadialSlider;
 
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UPlayerHUD : public UUserWidget
@@ -17,6 +18,7 @@ class ROUNDSLIKEPROTOTYPE_API UPlayerHUD : public UUserWidget
 	
 public:
 	// Update visual display of the health bar.
+	UFUNCTION(Category = "Health Bar")
 	void UpdateHealthBar(float CurrentHealth, float MaxHealth);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health Bar|Colors")
@@ -27,6 +29,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health Bar|Colors")
 	FLinearColor HealthColorHigh = FLinearColor::Green;
+
+	UFUNCTION(Category = "Ammo UI")
+	void UpdateAmmoSlider(int32 CurrentAmmo, int32 MaxAmmo, float AmmoRegenRemainingTime, float AmmoRegenDuration);
 
 protected:
 
@@ -39,4 +44,7 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* HealthText;
+
+	UPROPERTY(meta = (BindWidget))
+	UAmmoRadialSlider* AmmoRadialSlider;
 };

@@ -70,3 +70,15 @@ void AFPSHudController::UpdateHealthHUD(float CurrentHealth, float MaxHealth)
 {
     HUDWidget->UpdateHealthBar(CurrentHealth, MaxHealth);
 }
+
+UPlayerHUD* AFPSHudController::GetHUDWidget()
+{
+    if (HUDWidget)
+    {
+        return HUDWidget;
+    }
+    else
+    {
+        return nullptr;
+    }
+}

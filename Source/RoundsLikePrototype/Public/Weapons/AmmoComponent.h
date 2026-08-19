@@ -50,6 +50,10 @@ protected:
 
 	void AddAmmoReturn(float ReturnTime);
 
+private:
+
+	void UpdateAmmoUI();
+
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, ReplicatedUsing=OnRep_CurrentAmmo)
 	int32 CurrentAmmo = -1;

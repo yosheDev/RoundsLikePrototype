@@ -2,6 +2,7 @@
 
 
 #include "UI/HUD/PlayerHUD.h"
+#include "UI/HUD/AmmoRadialSlider.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Math/Color.h"
@@ -60,4 +61,9 @@ void UPlayerHUD::UpdateHealthBar(float CurrentHealth, float MaxHealth)
         FText FormattedText = FText::AsNumber(CurrentHealth, &Options);
         HealthText->SetText(FormattedText);
     }
+}
+
+void UPlayerHUD::UpdateAmmoSlider(int32 CurrentAmmo, int32 MaxAmmo, float AmmoRegenRemainingTime, float AmmoRegenDuration)
+{
+    AmmoRadialSlider->UpdateAmmoSlider(CurrentAmmo, MaxAmmo, AmmoRegenRemainingTime, AmmoRegenDuration);
 }

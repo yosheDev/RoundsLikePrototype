@@ -33,6 +33,9 @@ public:
     UFUNCTION()
     void UpdateHealthHUD(float CurrentHealth, float MaxHealth);
 
+    UFUNCTION()
+    UPlayerHUD* GetHUDWidget();
+
 protected:
 
     UPROPERTY(EditDefaultsOnly)

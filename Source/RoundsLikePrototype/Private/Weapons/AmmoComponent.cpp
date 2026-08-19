@@ -7,6 +7,9 @@
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"       
+#include "GameFramework/PlayerController.h"
+#include "FPSHudController.h"
 
 UAmmoComponent::UAmmoComponent()
 {
@@ -136,4 +139,28 @@ float UAmmoComponent::GetServerTime() const
 bool UAmmoComponent::HasAmmo() const
 {
     return CurrentAmmo > 0;
+}
+
+void UAmmoComponent::UpdateAmmoUI()
+{
+    AActor* Owner = GetOwner()->GetOwner();
+
+    if (!Owner)
+    {
+        return;
+    }
+
+    // Update UI
+    if (Owner->HasAuthority())
+    {
+        APlayerController* PC = Cast<APlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
+        if (PC)
+        {
+            AFPSHudController* HUD = Cast<AFPSHudController>(PC->GetHUD());
+            if (HUD)
+            {
+                HUD->GetHUDWidget()->UpdateAmmoSlider(ClientPredictedAmmo, MaxAmmo, (PendingReturns.IsValidIndex(0) ? PendingReturns[0] : 0.0f), AmmoReturnDelay);
+            }
+        }
+    }
 }
