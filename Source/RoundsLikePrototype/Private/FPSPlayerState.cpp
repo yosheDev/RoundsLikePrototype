@@ -161,11 +161,17 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 						FGameplayAttributeData* AttributeData = StructProp->ContainerPtrToValuePtr<FGameplayAttributeData>(VitalityAttributeSet);
 						if (AttributeData)
 						{
+							// Ignore these transient values, they will just Init to base value (multipliers apply in gameplay effects.)
+							if (AttributeName == TEXT("Health"))
+							{
+								continue;
+							}
+
 							/** Overwrite the default initialization value with the saved value */
 							float SavedValue = SavedVitalityAttributesMap[AttributeName];
 
 							AttributeData->SetBaseValue(SavedValue);
-							AttributeData->SetCurrentValue(SavedValue);
+							AttributeData->SetCurrentValue(AttributeData->GetBaseValue());
 						}
 					}
 				}
@@ -196,7 +202,7 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 							float SavedValue = SavedMovementAttributesMap[AttributeName];
 
 							AttributeData->SetBaseValue(SavedValue);
-							AttributeData->SetCurrentValue(SavedValue);
+							AttributeData->SetCurrentValue(AttributeData->GetBaseValue());
 						}
 					}
 				}
