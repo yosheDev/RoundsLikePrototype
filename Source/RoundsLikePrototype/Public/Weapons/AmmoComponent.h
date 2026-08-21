@@ -27,7 +27,7 @@ public:
 
 	bool HasAmmo() const;
 
-	// Server authoritative, returns false if there is no ammo.
+	// Branches into predicted or authoratative.
 	bool TryConsumeAmmo();
 
 	UFUNCTION(BlueprintPure)
@@ -40,6 +40,8 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	void ProcessAmmoReturns();
@@ -50,9 +52,12 @@ protected:
 
 	void AddAmmoReturn(float ReturnTime);
 
+	bool TryConsumeAmmo_Predicted();
+	bool TryConsumeAmmo_Authoratative();
+
 private:
 
-	void UpdateAmmoUI();
+	void UpdateLocalAmmoUI();
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, ReplicatedUsing=OnRep_CurrentAmmo)
@@ -73,5 +78,10 @@ public:
 	UPROPERTY()
 	TArray<float> PendingReturns;
 
+	UPROPERTY(ReplicatedUsing = OnRep_EarliestReturnServerTime)
+	float EarliestReturnServerTime = 0.0f;
+
+	UFUNCTION()
+	void OnRep_EarliestReturnServerTime();
 	FTimerHandle AmmoReturnTimerHandle;
 };
