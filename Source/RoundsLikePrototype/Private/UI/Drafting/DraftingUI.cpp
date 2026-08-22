@@ -12,6 +12,7 @@
 #include "UI/Drafting/AbilityCard.h"
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
+#include "UI/Drafting/DraftStatButton.h"
 
 void UDraftingUI::NativeConstruct()
 {
@@ -31,7 +32,7 @@ void UDraftingUI::RefreshAbilityCards()
     int32 CardIndex = 0;
     
     AFPSGameState* FPSGameState = GetWorld()->GetGameState<AFPSGameState>();
-    TArray<FPrimaryAssetId> AbilityOffers = FPSGameState->CurrentAbilityOffers;
+    TArray<FPrimaryAssetId> AbilityOffers = FPSGameState->EconomyComponent->CurrentAbilityOffers;
 
     const double Start = FPlatformTime::Seconds();
 

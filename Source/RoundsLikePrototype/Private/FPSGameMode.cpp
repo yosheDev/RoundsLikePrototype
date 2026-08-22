@@ -214,6 +214,7 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 void AFPSGameMode::StartDraft()
 {	
 	//DestroyPawns();
+	FPSGameState->EconomyComponent->SetBottlecaps(FPSGameState->EconomyComponent->MaxBottlecaps);
 	GenerateAbilityChoices();
 	SetMatchPhase(EMatchPhase::AbilityDraft);
 }
@@ -364,13 +365,13 @@ void AFPSGameMode::GenerateAbilityChoices()
 
 	if (!AbilityPool) { return; }
 
-	FPSGameState->CurrentAbilityOffers = AbilityPool->GetAbilityOffers();
+	FPSGameState->EconomyComponent->CurrentAbilityOffers = AbilityPool->GetAbilityOffers();
 
 	UE_LOG(LogTemp, Warning,
 		TEXT("Generated %d ability offers on SERVER"),
-		FPSGameState->CurrentAbilityOffers.Num());
+		FPSGameState->EconomyComponent->CurrentAbilityOffers.Num());
 
-	for (const FPrimaryAssetId& ID : FPSGameState->CurrentAbilityOffers)
+	for (const FPrimaryAssetId& ID : FPSGameState->EconomyComponent->CurrentAbilityOffers)
 	{
 		UE_LOG(LogTemp, Warning,
 			TEXT("  Offer: %s"),

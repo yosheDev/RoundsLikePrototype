@@ -6,29 +6,23 @@
 #include "Subsystems/MatchInstanceSubsystem.h"
 #include "Net/UnrealNetwork.h"
 #include "FPSPlayerController.h"
+#include "Components/MatchEconomyComponent.h"
+
+AFPSGameState::AFPSGameState()
+{
+    EconomyComponent = CreateDefaultSubobject<UMatchEconomyComponent>(TEXT("EconomyComponent"));
+}
 
 void AFPSGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AFPSGameState, MatchPhase);
-    DOREPLIFETIME(AFPSGameState, CurrentAbilityOffers);
 }
 
 void AFPSGameState::OnRep_MatchPhase()
 {
     HandleMatchPhaseChanged();
-}
-
-void AFPSGameState::OnRep_CurrentAbilityOffers()
-{
-    APlayerController* PC = GetWorld()->GetFirstPlayerController();
-    if (PC)
-    {
-        AFPSHudController* HUD = PC->GetHUD<AFPSHudController>();
-
-        HUD->RefreshAbilitySelection();
-    }
 }
 
 void AFPSGameState::HandleMatchPhaseChanged()

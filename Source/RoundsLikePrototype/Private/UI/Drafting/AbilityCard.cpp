@@ -8,6 +8,7 @@
 #include "Abilities/AbilityDefinition.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 
 void UAbilityCard::NativeConstruct()
 {

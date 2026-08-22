@@ -7,6 +7,7 @@
 #include "Net/UnrealNetwork.h"
 #include "FPSPlayerState.h"
 #include "Subsystems/MatchInstanceSubsystem.h"
+#include "Components/MatchEconomyComponent.h"
 #include "FPSGameState.generated.h"
 
 UCLASS()
@@ -16,8 +17,11 @@ class ROUNDSLIKEPROTOTYPE_API AFPSGameState : public AGameStateBase
 	
 public:
 
+    AFPSGameState();
+
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+    #pragma region Round Data
     UPROPERTY(ReplicatedUsing = OnRep_MatchPhase, BlueprintReadOnly)
     EMatchPhase MatchPhase = EMatchPhase::RoundStarting;
 
@@ -34,6 +38,7 @@ public:
 
     UFUNCTION()
     void OnRep_MatchWinnerState();
+    #pragma endregion
 
     #pragma region Match Data
     UPROPERTY()
@@ -61,11 +66,8 @@ public:
 
     #pragma endregion
 
-    UPROPERTY(ReplicatedUsing = OnRep_CurrentAbilityOffers, BlueprintReadOnly)
-    TArray<FPrimaryAssetId> CurrentAbilityOffers;
-
-    UFUNCTION()
-    void OnRep_CurrentAbilityOffers();
+    UPROPERTY()
+    TObjectPtr<UMatchEconomyComponent> EconomyComponent;
 
 public:
 

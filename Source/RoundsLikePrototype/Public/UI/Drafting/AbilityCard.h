@@ -10,6 +10,7 @@
 
 class UTextBlock;
 class UButton;
+class UImage;
 
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UAbilityCard : public UUserWidget
@@ -42,6 +43,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UTextBlock> AbilityDesc;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UImage> AbilityImage;
 
 private:
 
