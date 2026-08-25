@@ -54,4 +54,7 @@ private:
 
 	UFUNCTION()
 	void SelectAbility();
+
+	UPROPERTY(EditAnywhere)
+	uint8 Cost = 1;
 };

@@ -82,3 +82,8 @@ UPlayerHUD* AFPSHudController::GetHUDWidget()
         return nullptr;
     }
 }
+
+void AFPSHudController::BeginTranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocationSS)
+{
+    DraftingWidget->TranslateBottlecap(BottlecapID, TargetLocationSS);
+}

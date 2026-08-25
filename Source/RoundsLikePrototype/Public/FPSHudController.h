@@ -36,6 +36,10 @@ public:
     UFUNCTION()
     UPlayerHUD* GetHUDWidget();
 
+    UFUNCTION()
+
+    void BeginTranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocationSS);
+
 protected:
 
     UPROPERTY(EditDefaultsOnly)

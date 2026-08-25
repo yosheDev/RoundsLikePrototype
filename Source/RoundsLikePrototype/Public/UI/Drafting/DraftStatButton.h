@@ -24,4 +24,18 @@ protected:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void ClickButton();
+
+private:
+
+	bool bIsAllocated = false;
+
+	// This should never not be 1, but building it this way anyways in case I change mind.
+	UPROPERTY(EditAnywhere)
+	uint8 Cost = 1;
+
+	UFUNCTION()
+	bool TryAllocation();
+
+	UFUNCTION()
+	bool TryDeallocation();
 };

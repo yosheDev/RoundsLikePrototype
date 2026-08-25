@@ -214,7 +214,7 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 void AFPSGameMode::StartDraft()
 {	
 	//DestroyPawns();
-	FPSGameState->EconomyComponent->SetBottlecaps(FPSGameState->EconomyComponent->MaxBottlecaps);
+	FPSGameState->EconomyComponent->InitializeBottlecapAllocations();
 	GenerateAbilityChoices();
 	SetMatchPhase(EMatchPhase::AbilityDraft);
 }

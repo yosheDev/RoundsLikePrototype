@@ -26,13 +26,41 @@ public:
 
 	// The currency used for choosing upgrades / abilities.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	uint8 Bottlecaps = 3;
+	uint8 AvailableBottlecaps = 3;
+
+	UPROPERTY()
+	TArray<uint8> AvailableBottlecapIndices;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	uint8 MaxBottlecaps = 3;
 
+	// Index = ID(index) of bottlecap in DraftingUI
+	UPROPERTY()
+	TArray<bool> BottlecapAllocations;
+
+	UFUNCTION()
+	void InitializeBottlecapAllocations();
+
 	UFUNCTION()
 	void SetBottlecaps(uint8 Amount);
+
+	UFUNCTION()
+	bool CanAllocateBottlecaps(uint8 Amount);
+
+	UFUNCTION()
+	void AllocateBottlecaps(uint8 Amount, const TArray<FVector2D>& AllocationLocations);
+
+	UFUNCTION(Server, Reliable)
+	void Server_AllocateBottlecaps(uint8 Amount, const TArray<FVector2D>& AllocationLocations);
+
+	UFUNCTION()
+	void DeallocateBottlecaps(const TArray<uint8>& DeallocateIndices);
+
+	UFUNCTION(Server, Reliable)
+	void Server_DeallocateBottlecaps(const TArray<uint8>& DeallocateIndices);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_UpdateBottlecapHUD(uint8 BottlecapID, FVector2D AllocationLocation);
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentAbilityOffers, BlueprintReadOnly)
 	TArray<FPrimaryAssetId> CurrentAbilityOffers;
@@ -56,4 +84,12 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	uint8 UpgradeMovementSpeed = 0;
 	#pragma endregion
+
+private:
+
+	UPROPERTY()
+	APlayerController* PC;
+
+	UFUNCTION()
+	APlayerController* GetPlayerController();
 };

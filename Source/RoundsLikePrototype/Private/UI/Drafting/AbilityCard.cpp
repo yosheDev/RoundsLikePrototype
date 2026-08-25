@@ -9,6 +9,8 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Blueprint/SlateBlueprintLibrary.h"
 
 void UAbilityCard::NativeConstruct()
 {
@@ -28,6 +30,48 @@ void UAbilityCard::SelectAbility()
     if (!bAlreadySelected)
     {
         bAlreadySelected = true;
+
+        if (UWorld* World = GetWorld())
+        {
+            AFPSGameState* FPSGameState = World->GetGameState<AFPSGameState>();
+            if (FPSGameState)
+            {
+                if (FPSGameState->EconomyComponent->CanAllocateBottlecaps(Cost))
+                {
+                    TArray<FVector2D> Locations;
+                    for (int i = 0; i < Cost; i++)
+                    {
+                        // TO DO: Have widgets specifically for bottlecap locations instead of using select ability button. That way not the same spot for them all.
+                        // Dynamically reposition at construction based on cost.
+
+                        // Get target destinations for bottlecaps to slide to.
+                        FGeometry CachedGeometry = SelectAbilityButton->GetCachedGeometry();
+                        FVector2D LocalLocalCenter = CachedGeometry.GetLocalSize() * 0.5f;
+                        FVector2D AbsoluteScreenPosition = CachedGeometry.GetAccumulatedRenderTransform().TransformPoint(LocalLocalCenter);
+
+                        FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(SelectAbilityButton);
+                        FVector2D ViewportPosition = USlateBlueprintLibrary::AbsoluteToLocal(ViewportGeometry, AbsoluteScreenPosition);
+
+                        Locations.Add(ViewportPosition);
+                    }
+
+                    if (Locations.Num() != Cost)
+                    {
+                        return;
+                    }
+
+                    FPSGameState->EconomyComponent->AllocateBottlecaps(Cost, Locations);
+                }
+                else
+                {
+                    // Nuh uh sfx here
+                    return;
+                }
+            }
+        }
+
+
+        // TO DO: Do not apply this on click. Only apply selected cards when advancing past drafting screen.
         GiveAbilityToPlayer();
     }
 }
