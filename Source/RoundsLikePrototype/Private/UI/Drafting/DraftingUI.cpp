@@ -2,6 +2,7 @@
 
 
 #include "UI/Drafting/DraftingUI.h"
+#include "UI/Drafting/AllocationWidgetIDInterface.h"
 #include "FPSGameState.h"
 #include "Abilities/AbilityDefinitionHelper.h"
 #include "Kismet/GameplayStatics.h"
@@ -14,17 +15,41 @@
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
 #include "Components/Widget.h"
+#include "Components/CanvasPanel.h"
 #include "UI/Drafting/DraftStatButton.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 
 void UDraftingUI::NativeConstruct()
 {
     Super::NativeConstruct();
 
+    //ForceLayoutPrepass();
+
+    #pragma region Initialize Bottlecap Data
     Bottlecaps.Empty();
     Bottlecaps.Add(Bottlecap1, false);
-    Bottlecaps.Add(Bottlecap2, false);
+    //BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap1));
+    //BottlecapIsDefaultLocationTaken.Add(true);
+
+    Bottlecaps.Add(Bottlecap2, false); 
+    //BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap2));
+    //BottlecapIsDefaultLocationTaken.Add(true);
+
     Bottlecaps.Add(Bottlecap3, false);
+    //BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap3));
+    //BottlecapIsDefaultLocationTaken.Add(true);
+
+    FTimerHandle BottlecapInitializationTimer;
+
+    GetWorld()->GetTimerManager().SetTimer(
+        BottlecapInitializationTimer,
+        this,
+        &UDraftingUI::InitializeBottlecapDefaultLocations,
+        0.1f,
+        false
+    );
+    #pragma endregion
 
     for (int i = 0; i < Bottlecaps.Num(); i++)
     {
@@ -42,6 +67,57 @@ void UDraftingUI::NativeConstruct()
     }
 
     RefreshAbilityCards();
+    AssignStatWidgetIDs();
+}
+
+void UDraftingUI::InitializeBottlecapDefaultLocations()
+{
+    if (!Bottlecap1 || !Bottlecap2 || !Bottlecap3)
+    {
+        return;
+    }
+
+    BottlecapDefaultLocations.Empty();
+    BottlecapIsDefaultLocationTaken.Empty();
+
+    BottlecapDefaultLocations.Add(
+        GetWidgetCenterInViewport(Bottlecap1)
+    );
+
+    BottlecapIsDefaultLocationTaken.Add(true);
+
+    BottlecapDefaultLocations.Add(
+        GetWidgetCenterInViewport(Bottlecap2)
+    );
+
+    BottlecapIsDefaultLocationTaken.Add(true);
+
+    BottlecapDefaultLocations.Add(
+        GetWidgetCenterInViewport(Bottlecap3)
+    );
+
+    BottlecapIsDefaultLocationTaken.Add(true);
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Bottlecap slot 0: %s"),
+        *BottlecapDefaultLocations[0].ToString()
+    );
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Bottlecap slot 1: %s"),
+        *BottlecapDefaultLocations[1].ToString()
+    );
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Bottlecap slot 2: %s"),
+        *BottlecapDefaultLocations[2].ToString()
+    );
 }
 
 void UDraftingUI::RefreshAbilityCards()
@@ -75,84 +151,153 @@ void UDraftingUI::RefreshAbilityCards()
 
                 Card->AbilityDataAsset = Definitions[CardIndex];
 
+                // Assign Widget ID safely using the Unreal Engine Execute system
+                if (Card && Card->GetClass()->ImplementsInterface(UAllocationWidgetIDInterface::StaticClass()))
+                {
+                    IAllocationWidgetIDInterface::Execute_SetWidgetID(Card, CardIndex);
+                }
+
                 CardIndex++;
             }
         }
     );
 
     UE_LOG(LogTemp, Warning, TEXT("AbilityDefinitionHelper::Load() call itself: %.3f ms"), (FPlatformTime::Seconds() - Start) * 1000.0);
-
-    //for (int i = 0; AbilityCards->GetChildrenCount(); i++)
-    //{
-    //    // Assign data asset to correct card child of the horizontal box
-    //    UWidget* Child = AbilityCards->GetChildAt(i);
-
-    //    UAbilityCard* Card = Cast<UAbilityCard>(Child);
-
-    //    if (!Card)
-    //    {
-    //        continue;
-    //    }
-
-    //    if (!AbilityOffers.IsValidIndex(CardIndex))
-    //    {
-    //        break;
-    //    }
-
-    //    AbilityDefinitions::Find(
-    //        AbilityOffers[CardIndex],
-    //        [Card](UAbilityDefinition* Definition)
-    //        {
-    //            if (Definition)
-    //            {
-    //                Card->AbilityDataAsset = Definition;
-    //            }
-    //        }
-    //    );
-
-    //    CardIndex++;
-    //}
 }
 
-void UDraftingUI::TranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocSS)
+void UDraftingUI::AssignStatWidgetIDs()
 {
-    // Get base layout geometry (ignores current render transforms)
+    int32 StatIndex = 10;
+
+    for (int32 i = 0; i < StatButtons->GetChildrenCount(); i++)
+    {
+        UDraftStatButton* Button = Cast<UDraftStatButton>(StatButtons->GetChildAt(i));
+
+        if (!Button)
+        {
+            continue;
+        }
+
+        // Assign Widget ID
+        if (Button && Button->GetClass()->ImplementsInterface(UAllocationWidgetIDInterface::StaticClass()))
+        {
+            IAllocationWidgetIDInterface::Execute_SetWidgetID(Button, StatIndex);
+        }
+
+        StatIndex++;
+    }
+}
+
+void UDraftingUI::TranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocSS, bool bIsDeallocating)
+{
+    if (bIsDeallocating)
+    {
+        BottlecapIsDefaultLocationTaken[BottlecapID] = true;
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("Returning Bottlecap %d to: %s"),
+            BottlecapID,
+            *TargetLocSS.ToString());
+    }
+    else
+    {
+        BottlecapIsDefaultLocationTaken[BottlecapID] = false;
+    }
+
+    //// Get base layout geometry (ignores current render transforms)
+    //TArray<UImage*> BottlecapImages;
+    //Bottlecaps.GetKeys(BottlecapImages);
+
+    //FGeometry LayoutGeometry = BottlecapImages[BottlecapID]->GetCachedGeometry();
+
+    //// Get viewport pos
+    //FVector2D CurrentPixelPos;
+    //FVector2D CurrentViewportPos;
+    //USlateBlueprintLibrary::LocalToViewport(this, LayoutGeometry, FVector2D::ZeroVector, CurrentPixelPos, CurrentViewportPos);
+
+    //// Get start and end points for translation.
+    //BottlecapStartLocations[BottlecapID] = BottlecapImages[BottlecapID]->GetRenderTransform().Translation;
+    //BottlecapEndLocations[BottlecapID] = TargetLocSS - CurrentViewportPos;
+    //
+    //// Calculate distance for bottlecap translation.
+    //float Distance = FVector2D::Distance(BottlecapStartLocations[BottlecapID], BottlecapEndLocations[BottlecapID]);
+    //BottlecapTranslationDurations[BottlecapID] = FMath::Max(Distance / FMath::Max(.01f, BottlecapTranslationSpeed), 0.01f);
+
+    //BottlecapTimerElapsedTimes[BottlecapID] = 0.0f;
+
+    //// Bind input parameters for timer via FTimerDelegate.
+    //FTimerDelegate TimerDelegate;
+    //TimerDelegate.BindUObject(
+    //    this,
+    //    &UDraftingUI::UpdateBottlecapLocation,
+    //    BottlecapImages[BottlecapID],
+    //    BottlecapID
+    //);
+
+    //// Begin Timer
+    //GetWorld()->GetTimerManager().SetTimer(
+    //    BottlecapTranslationTimers[BottlecapID],
+    //    TimerDelegate,
+    //    .01f,
+    //    true
+    //);
+
     TArray<UImage*> BottlecapImages;
     Bottlecaps.GetKeys(BottlecapImages);
 
-    FGeometry LayoutGeometry = BottlecapImages[BottlecapID]->GetCachedGeometry();
+    if (!BottlecapImages.IsValidIndex(BottlecapID))
+    {
+        UE_LOG(LogTemp, Error, TEXT("TranslateBottlecap: Invalid BottlecapID %d"), BottlecapID);
+        return;
+    }
 
-    // Get viewport pos
-    FVector2D CurrentPixelPos;
-    FVector2D CurrentViewportPos;
-    USlateBlueprintLibrary::LocalToViewport(this, LayoutGeometry, FVector2D::ZeroVector, CurrentPixelPos, CurrentViewportPos);
+    UImage* Bottlecap = BottlecapImages[BottlecapID];
 
-    // Get start and end points for translation.
-    BottlecapStartLocations[BottlecapID] = BottlecapImages[BottlecapID]->GetRenderTransform().Translation;
-    BottlecapEndLocations[BottlecapID] = TargetLocSS - CurrentViewportPos;
-    
-    // Calculate distance for bottlecap translation.
-    float Distance = FVector2D::Distance(BottlecapStartLocations[BottlecapID], BottlecapEndLocations[BottlecapID]);
-    BottlecapTranslationDurations[BottlecapID] = FMath::Max(Distance / FMath::Max(.01f, BottlecapTranslationSpeed), 0.01f);
+    if (!Bottlecap)
+    {
+        return;
+    }
+
+    const FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(this);
+    const FVector2D TargetAbsolute = ViewportGeometry.LocalToAbsolute(TargetLocSS);
+
+    const FGeometry BottlecapGeometry = Bottlecap->GetCachedGeometry();
+    const FVector2D BottlecapCenterLocal = BottlecapGeometry.GetLocalSize() * 0.5f;
+    const FVector2D BottlecapCenterAbsolute = BottlecapGeometry.LocalToAbsolute(BottlecapCenterLocal);
+
+    const FSlateRenderTransform AccumulatedTransform = BottlecapGeometry.GetAccumulatedRenderTransform();
+
+    FVector2D LocalDelta = TargetAbsolute - BottlecapCenterAbsolute; // Not local yet, absolute
+    LocalDelta = AccumulatedTransform.Inverse().TransformVector(LocalDelta); // Local now
+
+    const FVector2D StartTranslation = Bottlecap->GetRenderTransform().Translation;
+    const FVector2D EndTranslation = StartTranslation + LocalDelta;
+
+    BottlecapStartLocations[BottlecapID] = StartTranslation;
+    BottlecapEndLocations[BottlecapID] = EndTranslation;
+
+    const float Distance = FVector2D::Distance(StartTranslation, EndTranslation);
+
+    const float Speed = FMath::Max(BottlecapTranslationSpeed, 0.01f);
+
+    BottlecapTranslationDurations[BottlecapID] = FMath::Max(Distance / Speed, 0.01f);
 
     BottlecapTimerElapsedTimes[BottlecapID] = 0.0f;
 
-    // Bind input parameters for timer via FTimerDelegate.
     FTimerDelegate TimerDelegate;
+
     TimerDelegate.BindUObject(
         this,
         &UDraftingUI::UpdateBottlecapLocation,
-        BottlecapImages[BottlecapID],
-        BottlecapID
-    );
+        Bottlecap,
+        BottlecapID);
 
-    // Begin Timer
     GetWorld()->GetTimerManager().SetTimer(
         BottlecapTranslationTimers[BottlecapID],
         TimerDelegate,
-        .01f,
-        true
-    );
+        0.01f,
+        true);
 }
 
 void UDraftingUI::UpdateBottlecapLocation(UImage* Bottlecap, uint8 BottlecapID)
@@ -189,5 +334,113 @@ void UDraftingUI::FinishDraftClick()
     {
         PC->Server_FinishedDraft();
     } 
+}
+
+const TArray<FVector2D> UDraftingUI::GetBottlecapReturnLocations(uint8 Amount)
+{
+    TArray<FVector2D> ReturnLocations;
+    
+    // If return location has bottlecap allocated, add to array.
+    for (int i = 0; i < BottlecapDefaultLocations.Num(); i++)
+    {
+        if (!BottlecapIsDefaultLocationTaken[i])
+        {
+            ReturnLocations.Add(BottlecapDefaultLocations[i]);
+            BottlecapIsDefaultLocationTaken[i] = true;
+        }
+
+        // Do we have enough?
+        if (ReturnLocations.Num() >= Amount)
+        {
+            break;
+        }
+    }
+
+    // Trim excess
+    ReturnLocations.SetNum(Amount);
+
+    return ReturnLocations;
+}
+
+FVector2D UDraftingUI::GetWidgetCenterInCanvas(UWidget* Widget) const
+{
+    if (!Widget || !MainCanvas)
+    {
+        return FVector2D::ZeroVector;
+    }
+
+    const FGeometry WidgetGeometry = Widget->GetCachedGeometry();
+    const FGeometry CanvasGeometry = MainCanvas->GetCachedGeometry();
+
+    // Widget local center -> absolute
+    const FVector2D WidgetCenterLocal = WidgetGeometry.GetLocalSize() * 0.5f;
+
+    const FVector2D WidgetCenterAbsolute = WidgetGeometry.LocalToAbsolute(WidgetCenterLocal);
+
+    // Absolute -> Canvas local
+    return CanvasGeometry.AbsoluteToLocal(WidgetCenterAbsolute);
+}
+
+FVector2D UDraftingUI::GetWidgetCenterInViewport(UWidget* Widget) const
+{
+    //FGeometry CachedGeometry = Widget->GetCachedGeometry();
+    //// Get absolute center.
+    //FVector2D AbsoluteCenter = CachedGeometry.GetLocalSize() * 0.5f;
+    //AbsoluteCenter = CachedGeometry.LocalToAbsolute(AbsoluteCenter);
+    //// Get absolute center relative to viewport.
+    //FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(this);
+    //FVector2D ViewportCenter = ViewportGeometry.AbsoluteToLocal(AbsoluteCenter);
+
+    //return ViewportCenter;
+    if (!Widget)
+    {
+        return FVector2D::ZeroVector;
+    }
+
+    const FGeometry& Geometry = Widget->GetTickSpaceGeometry();
+
+    const FVector2D LocalCenter =
+        Geometry.GetLocalSize() * 0.5f;
+
+    const FVector2D AbsoluteCenter =
+        Geometry.LocalToAbsolute(LocalCenter);
+
+    FVector2D PixelPosition;
+    FVector2D ViewportPosition;
+
+    USlateBlueprintLibrary::AbsoluteToViewport(
+        this,
+        AbsoluteCenter,
+        PixelPosition,
+        ViewportPosition);
+
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("%s | Size=%s | Absolute=%s | Viewport=%s"),
+        *Widget->GetName(),
+        *Geometry.GetLocalSize().ToString(),
+        *AbsoluteCenter.ToString(),
+        *ViewportPosition.ToString());
+
+    return ViewportPosition;
+}
+
+FVector2D UDraftingUI::GetViewportPositionInCanvas(FVector2D ViewportPosition) const
+{
+    if (!MainCanvas)
+    {
+        return FVector2D::ZeroVector;
+    }
+
+    const FGeometry CanvasGeometry = MainCanvas->GetCachedGeometry();
+
+    const FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(this);
+
+    // Viewport -> absolute
+    const FVector2D AbsolutePosition = ViewportGeometry.LocalToAbsolute(ViewportPosition);
+
+    // Absolute -> Canvas local
+    return CanvasGeometry.AbsoluteToLocal(AbsolutePosition);
 }
 

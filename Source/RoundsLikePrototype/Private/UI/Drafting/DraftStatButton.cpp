@@ -17,11 +17,22 @@ void UDraftStatButton::NativeConstruct()
     }
 }
 
+int32 UDraftStatButton::GetWidgetID_Implementation()
+{
+    return WidgetID;
+}
+
+void UDraftStatButton::SetWidgetID_Implementation(int32 NewID)
+{
+    WidgetID = NewID;
+}
+
 void UDraftStatButton::ClickButton_Implementation()
 {
     if (!bIsAllocated)
     {
         bool bResult = TryAllocation();
+        bIsAllocated = bResult;
 
         if (bResult)
         {
@@ -35,6 +46,7 @@ void UDraftStatButton::ClickButton_Implementation()
     else
     {
         bool bResult = TryDeallocation();
+        bIsAllocated = !bResult;
 
         if (bResult)
         {
@@ -76,7 +88,7 @@ bool UDraftStatButton::TryAllocation()
                     return false;
                 }
 
-                FPSGameState->EconomyComponent->AllocateBottlecaps(Cost, Locations);
+                FPSGameState->EconomyComponent->AllocateBottlecaps(Cost, WidgetID, Locations);
                 return true;
             }
             else
@@ -95,27 +107,8 @@ bool UDraftStatButton::TryDeallocation()
         AFPSGameState* FPSGameState = World->GetGameState<AFPSGameState>();
         if (FPSGameState)
         {
-            //TArray<FVector2D> Locations;
-            //for (int i = 0; i < Cost; i++)
-            //{
-            //    // Get target destinations for bottlecaps to slide to.
-            //    FGeometry CachedGeometry = StatButton->GetCachedGeometry();
-            //    FVector2D LocalLocalCenter = CachedGeometry.GetLocalSize() * 0.5f;
-            //    FVector2D AbsoluteScreenPosition = CachedGeometry.GetAccumulatedRenderTransform().TransformPoint(LocalLocalCenter);
-
-            //    FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(StatButton);
-            //    FVector2D ViewportPosition = USlateBlueprintLibrary::AbsoluteToLocal(ViewportGeometry, AbsoluteScreenPosition);
-
-            //    Locations.Add(ViewportPosition);
-            //}
-
-            //if (Locations.Num() != Cost)
-            //{
-            //    return false;
-            //}
-
-            //FPSGameState->EconomyComponent->DeallocateBottlecaps();
-            //return true;
+            FPSGameState->EconomyComponent->DeallocateBottlecaps(WidgetID);
+            return true;
         }
     }
     return false;

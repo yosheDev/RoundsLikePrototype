@@ -11,6 +11,7 @@ class UTextBlock;
 class UButton;
 class UHorizontalBox;
 class UImage;
+class UCanvasPanel;
 
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UDraftingUI : public UUserWidget
@@ -20,6 +21,9 @@ class ROUNDSLIKEPROTOTYPE_API UDraftingUI : public UUserWidget
 public:
 
 	UPROPERTY(meta = (BindWidget))
+	UCanvasPanel* MainCanvas;
+
+	UPROPERTY(meta = (BindWidget))
 	UButton* SelectDraftButton;
 
 	UPROPERTY(meta = (BindWidget))
@@ -27,6 +31,9 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UHorizontalBox* AbilityCards;
+
+	UPROPERTY(meta = (BindWidget))
+	UHorizontalBox* StatButtons;
 
 	// <BottlecapSprite, bIsBottlecapAllocated>
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
@@ -43,6 +50,13 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UImage* Bottlecap3;
+
+	// On construction, populates with locations of bottlecaps. Used to return them to place when deallocating.
+	UPROPERTY()
+	TArray<FVector2D> BottlecapDefaultLocations;
+
+	UPROPERTY()
+	TArray<bool> BottlecapIsDefaultLocationTaken;
 
 	#pragma region Bottlecap Translation
 
@@ -76,7 +90,10 @@ public:
 	void RefreshAbilityCards();
 
 	UFUNCTION()
-	void TranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocSS);
+	void TranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocSS, bool bIsDeallocating);
+
+	UFUNCTION()
+	const TArray<FVector2D> GetBottlecapReturnLocations(uint8 Amount);
 
 protected:
 
@@ -89,4 +106,21 @@ private:
 
 	UFUNCTION()
 	void UpdateBottlecapLocation(UImage* Bottlecap, uint8 BottlecapID);
+
+	// Assigned Widget IDs to the stat buttons. Cards get ID's in their refresh function.
+	UFUNCTION()
+	void AssignStatWidgetIDs();
+
+	UFUNCTION()
+	FVector2D GetWidgetCenterInCanvas(UWidget* Widget) const;
+
+	UFUNCTION()
+	FVector2D GetWidgetCenterInViewport(UWidget* Widget) const;
+
+	UFUNCTION()
+	FVector2D GetViewportPositionInCanvas(FVector2D ViewportPosition) const;
+
+	bool bBottlecapDefaultLocationsInitialized = false;
+
+	void InitializeBottlecapDefaultLocations();
 };

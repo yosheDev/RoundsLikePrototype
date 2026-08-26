@@ -6,6 +6,7 @@
 #include "Components/Image.h"
 #include "BottlecapAllocations.generated.h"
 
+/* This can/should be deleted, it is not used anymore. */
 USTRUCT(BlueprintType)
 struct FBottlecapAllocations
 {

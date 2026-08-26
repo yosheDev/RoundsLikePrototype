@@ -25,11 +25,21 @@ void UAbilityCard::NativeConstruct()
     AbilityDesc->SetText(AbilityDataAsset->Description);
 }
 
+int32 UAbilityCard::GetWidgetID_Implementation()
+{
+    return WidgetID;
+}
+
+void UAbilityCard::SetWidgetID_Implementation(int32 NewID)
+{
+    WidgetID = NewID;
+}
+
 void UAbilityCard::SelectAbility()
 {
-    if (!bAlreadySelected)
+    if (!bIsAllocated)
     {
-        bAlreadySelected = true;
+        bIsAllocated = true;
 
         if (UWorld* World = GetWorld())
         {
@@ -60,7 +70,7 @@ void UAbilityCard::SelectAbility()
                         return;
                     }
 
-                    FPSGameState->EconomyComponent->AllocateBottlecaps(Cost, Locations);
+                    FPSGameState->EconomyComponent->AllocateBottlecaps(Cost, WidgetID, Locations);
                 }
                 else
                 {
@@ -74,10 +84,29 @@ void UAbilityCard::SelectAbility()
         // TO DO: Do not apply this on click. Only apply selected cards when advancing past drafting screen.
         GiveAbilityToPlayer();
     }
+    else
+    {
+        bIsAllocated = false;
+
+        if (UWorld* World = GetWorld())
+        {
+            AFPSGameState* FPSGameState = World->GetGameState<AFPSGameState>();
+            if (FPSGameState)
+            {
+                FPSGameState->EconomyComponent->DeallocateBottlecaps(WidgetID);
+            }
+        }
+    }
 }
 
 void UAbilityCard::GiveAbilityToPlayer()
 {
+    if (!AbilityDataAsset)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Ability Card had no AbilityDataAsset!"));
+        return;
+    }
+
     AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>();
 
     if (!GS)

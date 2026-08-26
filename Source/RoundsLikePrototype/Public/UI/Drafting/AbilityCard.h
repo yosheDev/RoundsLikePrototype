@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Abilities/AbilityDefinition.h"
 #include "GameplayTagContainer.h"
+#include "UI/Drafting/AllocationWidgetIDInterface.h"
 #include "AbilityCard.generated.h"
 
 class UTextBlock;
@@ -13,9 +14,17 @@ class UButton;
 class UImage;
 
 UCLASS()
-class ROUNDSLIKEPROTOTYPE_API UAbilityCard : public UUserWidget
+class ROUNDSLIKEPROTOTYPE_API UAbilityCard : public UUserWidget, public IAllocationWidgetIDInterface
 {
 	GENERATED_BODY()
+
+public:
+
+	virtual int32 GetWidgetID_Implementation() override;
+
+	virtual void SetWidgetID_Implementation(int32 NewID) override;
+
+	int32 WidgetID = -1;
 
 protected:
 
@@ -50,7 +59,7 @@ protected:
 private:
 
 	UPROPERTY()
-	bool bAlreadySelected = false;
+	bool bIsAllocated = false;
 
 	UFUNCTION()
 	void SelectAbility();

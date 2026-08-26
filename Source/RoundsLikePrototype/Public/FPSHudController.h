@@ -37,9 +37,11 @@ public:
     UPlayerHUD* GetHUDWidget();
 
     UFUNCTION()
+    void BeginTranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocationSS, bool bIsDeallocating);
 
-    void BeginTranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocationSS);
-
+    UFUNCTION()
+    const TArray<FVector2D> GetBottlecapReturnLocations(uint8 Amount);
+    
 protected:
 
     UPROPERTY(EditDefaultsOnly)

@@ -68,7 +68,10 @@ void AFPSHudController::SetDisplayHUD(bool bShouldDisplay)
 
 void AFPSHudController::UpdateHealthHUD(float CurrentHealth, float MaxHealth)
 {
-    HUDWidget->UpdateHealthBar(CurrentHealth, MaxHealth);
+    if (HUDWidget)
+    {
+        HUDWidget->UpdateHealthBar(CurrentHealth, MaxHealth);
+    }
 }
 
 UPlayerHUD* AFPSHudController::GetHUDWidget()
@@ -83,7 +86,12 @@ UPlayerHUD* AFPSHudController::GetHUDWidget()
     }
 }
 
-void AFPSHudController::BeginTranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocationSS)
+void AFPSHudController::BeginTranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocationSS, bool bIsDeallocating)
 {
-    DraftingWidget->TranslateBottlecap(BottlecapID, TargetLocationSS);
+    DraftingWidget->TranslateBottlecap(BottlecapID, TargetLocationSS, bIsDeallocating);
+}
+
+const TArray<FVector2D> AFPSHudController::GetBottlecapReturnLocations(uint8 Amount)
+{
+    return DraftingWidget->GetBottlecapReturnLocations(Amount);
 }

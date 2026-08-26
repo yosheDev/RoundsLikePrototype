@@ -4,14 +4,23 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "UI/Drafting/AllocationWidgetIDInterface.h"
 #include "DraftStatButton.generated.h"
 
 class UButton;
 
 UCLASS()
-class ROUNDSLIKEPROTOTYPE_API UDraftStatButton : public UUserWidget
+class ROUNDSLIKEPROTOTYPE_API UDraftStatButton : public UUserWidget, public IAllocationWidgetIDInterface
 {
 	GENERATED_BODY()
+
+public:
+
+	virtual int32 GetWidgetID_Implementation() override;
+
+	virtual void SetWidgetID_Implementation(int32 NewID) override;
+
+	int32 WidgetID = -1;
 
 public:
 

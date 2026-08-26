@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Components/BottlecapAllocationData.h"
 #include "MatchEconomyComponent.generated.h"
 
 
@@ -48,19 +49,19 @@ public:
 	bool CanAllocateBottlecaps(uint8 Amount);
 
 	UFUNCTION()
-	void AllocateBottlecaps(uint8 Amount, const TArray<FVector2D>& AllocationLocations);
+	void AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FVector2D>& AllocationLocations);
 
 	UFUNCTION(Server, Reliable)
-	void Server_AllocateBottlecaps(uint8 Amount, const TArray<FVector2D>& AllocationLocations);
+	void Server_AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FVector2D>& AllocationLocations);
 
 	UFUNCTION()
-	void DeallocateBottlecaps(const TArray<uint8>& DeallocateIndices);
+	void DeallocateBottlecaps(int32 WidgetID);
 
 	UFUNCTION(Server, Reliable)
-	void Server_DeallocateBottlecaps(const TArray<uint8>& DeallocateIndices);
+	void Server_DeallocateBottlecaps(int32 WidgetID);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_UpdateBottlecapHUD(uint8 BottlecapID, FVector2D AllocationLocation);
+	void Multicast_UpdateBottlecapHUD(uint8 BottlecapID, FVector2D AllocationLocation, bool bIsDeallocating = false);
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentAbilityOffers, BlueprintReadOnly)
 	TArray<FPrimaryAssetId> CurrentAbilityOffers;
@@ -84,6 +85,12 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	uint8 UpgradeMovementSpeed = 0;
 	#pragma endregion
+	
+protected:
+
+	// Used for lookups with WidgetID when deallocating.
+	UPROPERTY()
+	TMap<int32, FBottlecapAllocationData> AllocationData;
 
 private:
 

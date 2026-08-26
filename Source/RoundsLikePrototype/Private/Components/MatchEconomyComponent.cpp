@@ -2,6 +2,7 @@
 
 
 #include "Components/MatchEconomyComponent.h"
+#include "Components/BottlecapAllocationData.h"
 #include "FPSHudController.h"
 #include "FPSPlayerController.h"
 #include "Net/UnrealNetwork.h"
@@ -92,23 +93,25 @@ bool UMatchEconomyComponent::CanAllocateBottlecaps(uint8 Amount)
     }
 }
 
-void UMatchEconomyComponent::Server_AllocateBottlecaps_Implementation(uint8 Amount, const TArray<FVector2D>& AllocationLocations)
+void UMatchEconomyComponent::Server_AllocateBottlecaps_Implementation(uint8 Amount, int32 WidgetID, const TArray<FVector2D>& AllocationLocations)
 {
-    AllocateBottlecaps(Amount, AllocationLocations);
+    AllocateBottlecaps(Amount, WidgetID, AllocationLocations);
 }
 
-void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, const TArray<FVector2D>& AllocationLocations)
+void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FVector2D>& AllocationLocations)
 {
     // Clients call the Server RPC.
     if (!(GetOwner()->HasAuthority()))
     {
-        Server_AllocateBottlecaps(Amount, AllocationLocations);
+        Server_AllocateBottlecaps(Amount, WidgetID, AllocationLocations);
+        return;
     }
 
     // Allocation Variables
     uint8 AvailableBottlecapsAmount = 0;
     TArray<uint8> ReturnAvailableBottlecapIndices = AvailableBottlecapIndices;
-    TArray<uint8> IndicesToAllocate;
+    TArray<int32> IndicesToAllocate;
+
 
     // Allocate from available indices.
     for (int32 i = 0; i < Amount; i++)
@@ -121,6 +124,10 @@ void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, const TArray<FVect
         }
     }
 
+    // Create new allocation data. (WidgetID tied with the indices it has allocated to it.)
+    FBottlecapAllocationData NewAllocationData = FBottlecapAllocationData(WidgetID, IndicesToAllocate);
+    AllocationData.Add(NewAllocationData.WidgetID, NewAllocationData);
+
     for (int32 i = 0; i < IndicesToAllocate.Num(); i++)
     {
         BottlecapAllocations[IndicesToAllocate[i]] = true;
@@ -131,13 +138,20 @@ void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, const TArray<FVect
     }
 }
 
-void UMatchEconomyComponent::Server_DeallocateBottlecaps_Implementation(const TArray<uint8>& DeallocateIndices)
+void UMatchEconomyComponent::Server_DeallocateBottlecaps_Implementation(int32 WidgetID)
 {
-    DeallocateBottlecaps(DeallocateIndices);
+    DeallocateBottlecaps(WidgetID);
 }
 
-void UMatchEconomyComponent::DeallocateBottlecaps(const TArray<uint8>& DeallocateIndices)
+void UMatchEconomyComponent::DeallocateBottlecaps(int32 WidgetID)
 {
+    // Clients call the Server RPC.
+    if (!(GetOwner()->HasAuthority()))
+    {
+        Server_DeallocateBottlecaps(WidgetID);
+        return;
+    }
+
     // Get HUD Reference
     if (!PC)
     {
@@ -146,17 +160,46 @@ void UMatchEconomyComponent::DeallocateBottlecaps(const TArray<uint8>& Deallocat
     }
     AFPSHudController* HUD = PC->GetHUD<AFPSHudController>();
 
-    for (int32 i = 0; i < BottlecapAllocations.Num(); i++)
-    {
-        BottlecapAllocations[i] = false;
-        AvailableBottlecapIndices.Add(i);
-        AvailableBottlecaps++;
-    }
+    TArray<FVector2D> ReturnLocations;
 
-    // Update DraftingUI TArray<uint8> DeallocateIndices
+    // Get deallocation indices by WidgetID.
+    if (FBottlecapAllocationData* DataPtr = AllocationData.Find(WidgetID))
+    {
+        FBottlecapAllocationData Data = *DataPtr;
+
+        if (HUD)
+        {
+            ReturnLocations = HUD->GetBottlecapReturnLocations((uint8)(Data.AllocatedIndices).Num());
+        }
+
+        for (int32 i = 0; i < Data.AllocatedIndices.Num(); i++)
+        {
+            // Deallocate the indices.
+            BottlecapAllocations[Data.AllocatedIndices[i]] = false;
+            AvailableBottlecapIndices.Add(Data.AllocatedIndices[i]);
+            AvailableBottlecaps++;
+
+            // Update DraftingUI NOTE NEED TO MAKE FUNCTION TO GET LOCATION TO GO TO
+            
+            Multicast_UpdateBottlecapHUD(Data.AllocatedIndices[i], ReturnLocations[i], true);
+
+            
+        }
+
+        // Remove entry from TMap AllocationData
+        int32 RemovedAmount = AllocationData.Remove(Data.WidgetID);
+
+        
+    }
+    else
+    {
+        // Key does not exist.
+        UE_LOG(LogTemp, Error, TEXT("ERROR: Tried to deallocate bottlecaps using a WidgetID that is not a key in AllocationData."));
+        return;
+    }
 }
 
-void UMatchEconomyComponent::Multicast_UpdateBottlecapHUD_Implementation(uint8 BottlecapID, FVector2D AllocationLocation)
+void UMatchEconomyComponent::Multicast_UpdateBottlecapHUD_Implementation(uint8 BottlecapID, FVector2D AllocationLocation, bool bIsDeallocating = false)
 {
     // UDraftingUI only needs to know which bottlecap is moving and where. Does not need to know anything else.
     
@@ -170,7 +213,7 @@ void UMatchEconomyComponent::Multicast_UpdateBottlecapHUD_Implementation(uint8 B
 
     if (HUD)
     {
-        HUD->BeginTranslateBottlecap(BottlecapID, AllocationLocation);
+        HUD->BeginTranslateBottlecap(BottlecapID, AllocationLocation, bIsDeallocating);
     }
 }
 
