@@ -13,9 +13,8 @@
 #include "Net/UnrealNetwork.h"
 #include "FPSPlayerState.generated.h"
 
-/**
- * 
- */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnAllocationSucceeded, int32);
+
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API AFPSPlayerState : public APlayerState
 {
@@ -78,6 +77,20 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_AddAccruedAbility(FGameplayTag AbilityTag);
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestAllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations);
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestDeallocateBottlecaps(int32 WidgetID);
+
+	UFUNCTION(Client, Reliable)
+	void Client_AllocationSucceeded(int32 WidgetID);
+
+	UFUNCTION(Client, Reliable)
+	void Client_AllocationFailed(int32 WidgetID);
+
+	FOnAllocationSucceeded OnAllocationSucceeded;
 
 protected:
 

@@ -2,6 +2,7 @@
 
 
 #include "FPSPlayerState.h"
+#include "FPSGameState.h"
 #include "Components/FPSAbilitySystemComponent.h"
 #include "Engine/DataTable.h"
 #include "GameplayEffectTypes.h"
@@ -352,3 +353,45 @@ void AFPSPlayerState::Server_AddAccruedAbility_Implementation(FGameplayTag Abili
 {
 	AccruedAbilities.AddUnique(AbilityTag);
 }
+
+#pragma region Drafting UI Allocation Interfacing
+void AFPSPlayerState::Server_RequestAllocateBottlecaps_Implementation(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations)
+{
+	AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>();
+
+	if (!GS || !GS->EconomyComponent){ return; }
+
+	// Validate that this player state is the loser.
+	if (GS->CurrentLoserState != this)
+	{
+		return;
+	}
+
+	GS->EconomyComponent->RequestAllocateBottlecaps(Amount, WidgetID, AllocationLocations, this);
+}
+
+void AFPSPlayerState::Server_RequestDeallocateBottlecaps_Implementation(int32 WidgetID)
+{
+	AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>();
+
+	if (!GS || !GS->EconomyComponent){ return; }
+
+	// Validate that this player state is the loser.
+	if (GS->CurrentLoserState != this)
+	{
+		return;
+	}
+
+	GS->EconomyComponent->RequestDeallocateBottlecaps(WidgetID);
+}
+
+void AFPSPlayerState::Client_AllocationSucceeded_Implementation(int32 WidgetID)
+{
+	OnAllocationSucceeded.Broadcast(WidgetID);
+}
+
+void AFPSPlayerState::Client_AllocationFailed_Implementation(int32 WidgetID)
+{
+	//OnAllocationSucceeded.Broadcast(WidgetID);
+}
+#pragma endregion

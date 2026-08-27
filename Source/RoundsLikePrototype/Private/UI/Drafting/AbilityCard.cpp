@@ -3,8 +3,8 @@
 
 #include "UI/Drafting/AbilityCard.h"
 #include "GameplayTagContainer.h"
-#include "FPSGameState.h"
 #include "FPSPlayerState.h"
+#include "FPSGameState.h"
 #include "UI/Drafting/BottlecapReturnLocation.h"
 #include "Abilities/AbilityDefinition.h"
 #include "Components/TextBlock.h"
@@ -24,6 +24,14 @@ void UAbilityCard::NativeConstruct()
 
     AbilityName->SetText(AbilityDataAsset->Name);
     AbilityDesc->SetText(AbilityDataAsset->Description);
+
+    // Bind AllocationSucceeded Delegate
+    if (AFPSPlayerState* PS = GetOwningPlayer()->GetPlayerState<AFPSPlayerState>())
+    {
+        PS->OnAllocationSucceeded.AddUObject(
+            this,
+            &UAbilityCard::HandleAllocationSucceeded);
+    }
 }
 
 int32 UAbilityCard::GetWidgetID_Implementation()
@@ -40,66 +48,61 @@ void UAbilityCard::SelectAbility()
 {
     if (!bIsAllocated)
     {
-        bIsAllocated = true;
-
-        if (UWorld* World = GetWorld())
-        {
-            AFPSGameState* FPSGameState = World->GetGameState<AFPSGameState>();
-            if (FPSGameState)
-            {
-                if (FPSGameState->EconomyComponent->CanAllocateBottlecaps(Cost))
-                {
-                    TArray<FBottlecapReturnLocation> Locations;
-                    for (int i = 0; i < Cost; i++)
-                    {
-                        // TO DO: Have widgets specifically for bottlecap locations instead of using select ability button. That way not the same spot for them all.
-                        // Dynamically reposition at construction based on cost.
-
-                        // Get target destinations for bottlecaps to slide to.
-                        FGeometry CachedGeometry = SelectAbilityButton->GetCachedGeometry();
-                        FVector2D LocalLocalCenter = CachedGeometry.GetLocalSize() * 0.5f;
-                        FVector2D AbsoluteScreenPosition = CachedGeometry.GetAccumulatedRenderTransform().TransformPoint(LocalLocalCenter);
-
-                        FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(SelectAbilityButton);
-                        FVector2D ViewportPosition = USlateBlueprintLibrary::AbsoluteToLocal(ViewportGeometry, AbsoluteScreenPosition);
-
-                        FBottlecapReturnLocation NewReturnLocation;
-                        NewReturnLocation.SlotIndex = -1;
-                        NewReturnLocation.Location = ViewportPosition;
-                        Locations.Add(NewReturnLocation);
-                    }
-
-                    if (Locations.Num() != Cost)
-                    {
-                        return;
-                    }
-
-                    FPSGameState->EconomyComponent->AllocateBottlecaps(Cost, WidgetID, Locations);
-                }
-                else
-                {
-                    // Nuh uh sfx here
-                    return;
-                }
-            }
-        }
-
-
-        // TO DO: Do not apply this on click. Only apply selected cards when advancing past drafting screen.
-        GiveAbilityToPlayer();
+        TryAllocation();
+        //bIsAllocated only set to true if OnAllocationSucceeded delegate returns.
     }
     else
     {
-        bIsAllocated = false;
+        TryDeallocation();
+        bIsAllocated = false; // Deallocation always succeeds, so set to false.
+    }
+}
 
-        if (UWorld* World = GetWorld())
-        {
-            AFPSGameState* FPSGameState = World->GetGameState<AFPSGameState>();
-            if (FPSGameState)
-            {
-                FPSGameState->EconomyComponent->DeallocateBottlecaps(WidgetID);
-            }
-        }
+void UAbilityCard::TryAllocation()
+{
+    TArray<FBottlecapReturnLocation> Locations;
+    for (int i = 0; i < Cost; i++)
+    {
+        // Get target destinations for bottlecaps to slide to.
+        FGeometry CachedGeometry = SelectAbilityButton->GetCachedGeometry();
+        FVector2D LocalLocalCenter = CachedGeometry.GetLocalSize() * 0.5f;
+        FVector2D AbsoluteScreenPosition = CachedGeometry.GetAccumulatedRenderTransform().TransformPoint(LocalLocalCenter);
+
+        FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(SelectAbilityButton);
+        FVector2D ViewportPosition = USlateBlueprintLibrary::AbsoluteToLocal(ViewportGeometry, AbsoluteScreenPosition);
+
+        FBottlecapReturnLocation NewReturnLocation;
+        NewReturnLocation.SlotIndex = -1;
+        NewReturnLocation.Location = ViewportPosition;
+        Locations.Add(NewReturnLocation);
+    }
+
+    AFPSPlayerState* PS = GetOwningPlayer()->GetPlayerState<AFPSPlayerState>();
+    if (PS)
+    {
+        PS->Server_RequestAllocateBottlecaps(Cost, WidgetID, Locations);
+    }
+    // TO DO: Do not apply this on click. Only apply selected cards when advancing past drafting screen.
+    GiveAbilityToPlayer();
+}
+
+void UAbilityCard::HandleAllocationSucceeded(int32 InWidgetID)
+{
+    if (InWidgetID != WidgetID)
+    {
+        return;
+    }
+
+    bIsAllocated = true;
+}
+
+void UAbilityCard::TryDeallocation()
+{
+    AFPSPlayerState* PS = GetOwningPlayer()->GetPlayerState<AFPSPlayerState>();
+
+    if (PS)
+    {
+        PS->Server_RequestDeallocateBottlecaps(WidgetID);
     }
 }
 

@@ -16,6 +16,14 @@ void UDraftStatButton::NativeConstruct()
     {
         StatButton->OnClicked.AddDynamic(this, &UDraftStatButton::ClickButton);
     }
+
+    // Bind AllocationSucceeded Delegate
+    if (AFPSPlayerState* PS = GetOwningPlayer()->GetPlayerState<AFPSPlayerState>())
+    {
+        PS->OnAllocationSucceeded.AddUObject(
+            this,
+            &UDraftStatButton::HandleAllocationSucceeded);
+    }
 }
 
 int32 UDraftStatButton::GetWidgetID_Implementation()
@@ -32,88 +40,61 @@ void UDraftStatButton::ClickButton_Implementation()
 {
     if (!bIsAllocated)
     {
-        bool bResult = TryAllocation();
-        bIsAllocated = bResult;
-
-        if (bResult)
-        {
-            // Yes-siree SFX
-        }
-        else
-        {
-            // Nuh-uh SFX
-        }
+        TryAllocation();
+        //bIsAllocated only set to true if OnAllocationSucceeded delegate returns.
     }
     else
     {
-        bool bResult = TryDeallocation();
-        bIsAllocated = !bResult;
-
-        if (bResult)
-        {
-            // Yes-siree SFX
-        }
-        else
-        {
-            // Nuh-uh SFX
-        }
+        TryDeallocation();
+        bIsAllocated = false; // Deallocation always succeeds, so set to false.
     }
 }
 
-bool UDraftStatButton::TryAllocation()
+void UDraftStatButton::TryAllocation()
 {
-    if (UWorld* World = GetWorld())
+    #pragma region Request Allocation
+    TArray<FBottlecapReturnLocation> Locations;
+    for (int i = 0; i < Cost; i++)
     {
-        AFPSGameState* FPSGameState = World->GetGameState<AFPSGameState>();
-        if (FPSGameState)
-        {
-            if (FPSGameState->EconomyComponent->CanAllocateBottlecaps(Cost))
-            {
-                TArray<FBottlecapReturnLocation> Locations;
-                for (int i = 0; i < Cost; i++)
-                {
-                    // Get target destinations for bottlecaps to slide to.
-                    FGeometry CachedGeometry = StatButton->GetCachedGeometry();
-                    FVector2D LocalLocalCenter = CachedGeometry.GetLocalSize() * 0.5f;
-                    FVector2D AbsoluteScreenPosition = CachedGeometry.GetAccumulatedRenderTransform().TransformPoint(LocalLocalCenter);
+        // Get target destinations for bottlecaps to slide to.
+        FGeometry CachedGeometry = StatButton->GetCachedGeometry();
+        FVector2D LocalLocalCenter = CachedGeometry.GetLocalSize() * 0.5f;
+        FVector2D AbsoluteScreenPosition = CachedGeometry.GetAccumulatedRenderTransform().TransformPoint(LocalLocalCenter);
 
-                    FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(StatButton);
-                    FVector2D ViewportPosition = USlateBlueprintLibrary::AbsoluteToLocal(ViewportGeometry, AbsoluteScreenPosition);
+        FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(StatButton);
+        FVector2D ViewportPosition = USlateBlueprintLibrary::AbsoluteToLocal(ViewportGeometry, AbsoluteScreenPosition);
 
-                    FBottlecapReturnLocation NewReturnLocation;
-                    NewReturnLocation.SlotIndex = -1;
-                    NewReturnLocation.Location = ViewportPosition;
-                    Locations.Add(NewReturnLocation);
-                }
-
-                if (Locations.Num() != Cost)
-                {
-                    return false;
-                }
-
-                FPSGameState->EconomyComponent->AllocateBottlecaps(Cost, WidgetID, Locations);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
+        FBottlecapReturnLocation NewReturnLocation;
+        NewReturnLocation.SlotIndex = -1;
+        NewReturnLocation.Location = ViewportPosition;
+        Locations.Add(NewReturnLocation);
     }
-    return false;
+
+    AFPSPlayerState* PS = GetOwningPlayer()->GetPlayerState<AFPSPlayerState>();
+    if (PS)
+    {
+        PS->Server_RequestAllocateBottlecaps(Cost, WidgetID, Locations);
+    }
+    #pragma endregion
 }
 
-bool UDraftStatButton::TryDeallocation()
+void UDraftStatButton::HandleAllocationSucceeded(int32 InWidgetID)
 {
-    if (UWorld* World = GetWorld())
+    if (InWidgetID != WidgetID)
     {
-        AFPSGameState* FPSGameState = World->GetGameState<AFPSGameState>();
-        if (FPSGameState)
-        {
-            FPSGameState->EconomyComponent->DeallocateBottlecaps(WidgetID);
-            return true;
-        }
+        return;
     }
-    return false;
+
+    bIsAllocated = true;
+}
+
+void UDraftStatButton::TryDeallocation()
+{
+    AFPSPlayerState* PS = GetOwningPlayer()->GetPlayerState<AFPSPlayerState>();
+
+    if (PS)
+    {
+        PS->Server_RequestDeallocateBottlecaps(WidgetID);
+    }
 }
 

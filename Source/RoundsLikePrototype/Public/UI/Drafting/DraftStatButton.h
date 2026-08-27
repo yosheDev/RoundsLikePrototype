@@ -38,13 +38,15 @@ private:
 
 	bool bIsAllocated = false;
 
+	void HandleAllocationSucceeded(int32 InWidgetID);
+
 	// This should never not be 1, but building it this way anyways in case I change mind.
 	UPROPERTY(EditAnywhere)
 	uint8 Cost = 1;
 
 	UFUNCTION()
-	bool TryAllocation();
+	void TryAllocation();
 
 	UFUNCTION()
-	bool TryDeallocation();
+	void TryDeallocation();
 };

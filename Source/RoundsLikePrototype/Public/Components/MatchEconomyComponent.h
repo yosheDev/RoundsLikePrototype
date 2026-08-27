@@ -50,16 +50,10 @@ public:
 	bool CanAllocateBottlecaps(uint8 Amount);
 
 	UFUNCTION()
-	void AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations);
-
-	UFUNCTION(Server, Reliable)
-	void Server_AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations);
+	void RequestAllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations, AFPSPlayerState* RequestingPlayer);
 
 	UFUNCTION()
-	void DeallocateBottlecaps(int32 WidgetID);
-
-	UFUNCTION(Server, Reliable)
-	void Server_DeallocateBottlecaps(int32 WidgetID);
+	void RequestDeallocateBottlecaps(int32 WidgetID);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_UpdateBottlecapHUD(uint8 BottlecapID, FBottlecapReturnLocation AllocationLocation, bool bIsDeallocating = false);

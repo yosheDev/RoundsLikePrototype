@@ -94,20 +94,30 @@ bool UMatchEconomyComponent::CanAllocateBottlecaps(uint8 Amount)
     }
 }
 
-void UMatchEconomyComponent::Server_AllocateBottlecaps_Implementation(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations)
+void UMatchEconomyComponent::RequestAllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations, AFPSPlayerState* RequestingPlayer)
 {
-    AllocateBottlecaps(Amount, WidgetID, AllocationLocations);
-}
+    if (!GetOwner()->HasAuthority()){ return; }
 
-void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations)
-{
-    // Clients call the Server RPC.
-    if (!(GetOwner()->HasAuthority()))
+    // Cannot Allocate?
+    if (!CanAllocateBottlecaps(Amount))
     {
-        Server_AllocateBottlecaps(Amount, WidgetID, AllocationLocations);
+        // Tell requesting player it failed. NOTE: probably dont need this and can remove. Remove later if stuff works fine, just have the return only.
+        if (RequestingPlayer)
+        {
+            RequestingPlayer->Client_AllocationFailed(WidgetID);
+        }
+
         return;
     }
 
+    // Tell client that the allocation has succeeded (so they can update their local bIsAllocated.)
+    if (RequestingPlayer)
+    {
+        RequestingPlayer->Client_AllocationSucceeded(WidgetID);
+    }
+
+    // Allocate
+    
     // Allocation Variables
     uint8 AvailableBottlecapsAmount = 0;
     TArray<uint8> ReturnAvailableBottlecapIndices = AvailableBottlecapIndices;
@@ -117,10 +127,10 @@ void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, int32 WidgetID, co
     // Allocate from available indices.
     for (int32 i = 0; i < Amount; i++)
     {
-        UE_LOG(LogTemp, Log, TEXT("i in Amount Loop: [%d]"), i);
+        //UE_LOG(LogTemp, Log, TEXT("i in Amount Loop: [%d]"), i);
         if (AvailableBottlecapIndices.IsValidIndex(i))
         {
-            UE_LOG(LogTemp, Log, TEXT("Available Indices: [%d]"), AvailableBottlecapIndices[i]);
+            //UE_LOG(LogTemp, Log, TEXT("Available Indices: [%d]"), AvailableBottlecapIndices[i]);
             IndicesToAllocate.Add(AvailableBottlecapIndices[i]);
         }
     }
@@ -142,19 +152,9 @@ void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, int32 WidgetID, co
     }
 }
 
-void UMatchEconomyComponent::Server_DeallocateBottlecaps_Implementation(int32 WidgetID)
+void UMatchEconomyComponent::RequestDeallocateBottlecaps(int32 WidgetID)
 {
-    DeallocateBottlecaps(WidgetID);
-}
-
-void UMatchEconomyComponent::DeallocateBottlecaps(int32 WidgetID)
-{
-    // Clients call the Server RPC.
-    if (!(GetOwner()->HasAuthority()))
-    {
-        Server_DeallocateBottlecaps(WidgetID);
-        return;
-    }
+    if (!(GetOwner()->HasAuthority())){ return; }
 
     // Get HUD Reference
     if (!PC)
@@ -191,9 +191,7 @@ void UMatchEconomyComponent::DeallocateBottlecaps(int32 WidgetID)
         }
 
         // Remove entry from TMap AllocationData
-        int32 RemovedAmount = AllocationData.Remove(Data.WidgetID);
-
-        
+        int32 RemovedAmount = AllocationData.Remove(Data.WidgetID); 
     }
     else
     {

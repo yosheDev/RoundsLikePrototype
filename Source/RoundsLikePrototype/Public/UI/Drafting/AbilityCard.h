@@ -64,6 +64,14 @@ private:
 	UFUNCTION()
 	void SelectAbility();
 
+	void HandleAllocationSucceeded(int32 InWidgetID);
+
 	UPROPERTY(EditAnywhere)
 	uint8 Cost = 2;
+
+	UFUNCTION()
+	void TryAllocation();
+
+	UFUNCTION()
+	void TryDeallocation();
 };
