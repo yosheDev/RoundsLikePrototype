@@ -2,6 +2,7 @@
 
 
 #include "UI/Drafting/DraftStatButton.h"
+#include "UI/Drafting/BottlecapReturnLocation.h"
 #include "Components/Button.h"
 #include "FPSGameState.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -68,7 +69,7 @@ bool UDraftStatButton::TryAllocation()
         {
             if (FPSGameState->EconomyComponent->CanAllocateBottlecaps(Cost))
             {
-                TArray<FVector2D> Locations;
+                TArray<FBottlecapReturnLocation> Locations;
                 for (int i = 0; i < Cost; i++)
                 {
                     // Get target destinations for bottlecaps to slide to.
@@ -79,8 +80,10 @@ bool UDraftStatButton::TryAllocation()
                     FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(StatButton);
                     FVector2D ViewportPosition = USlateBlueprintLibrary::AbsoluteToLocal(ViewportGeometry, AbsoluteScreenPosition);
 
-                    UE_LOG(LogTemp, Log, TEXT("Adding to Locations: [%s]"), *ViewportPosition.ToString());
-                    Locations.Add(ViewportPosition);
+                    FBottlecapReturnLocation NewReturnLocation;
+                    NewReturnLocation.SlotIndex = -1;
+                    NewReturnLocation.Location = ViewportPosition;
+                    Locations.Add(NewReturnLocation);
                 }
 
                 if (Locations.Num() != Cost)

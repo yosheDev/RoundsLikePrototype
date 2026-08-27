@@ -3,6 +3,7 @@
 
 #include "FPSHudController.h"
 #include "UI/Drafting/DraftingUI.h"
+#include "UI/Drafting/BottlecapReturnLocation.h"
 #include "UI/HUD/PlayerHUD.h"
 
 // This is causing an exception violation.
@@ -86,12 +87,13 @@ UPlayerHUD* AFPSHudController::GetHUDWidget()
     }
 }
 
-void AFPSHudController::BeginTranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocationSS, bool bIsDeallocating)
+void AFPSHudController::BeginTranslateBottlecap(uint8 BottlecapID, FBottlecapReturnLocation ReturnLocationSS, bool bIsDeallocating)
 {
-    DraftingWidget->TranslateBottlecap(BottlecapID, TargetLocationSS, bIsDeallocating);
+    UE_LOG(LogTemp, Error, TEXT("HUD BeginTranslateBottlecap %d"), BottlecapID);
+    DraftingWidget->TranslateBottlecap(BottlecapID, ReturnLocationSS, bIsDeallocating);
 }
 
-const TArray<FVector2D> AFPSHudController::GetBottlecapReturnLocations(uint8 Amount)
+const TArray<FBottlecapReturnLocation> AFPSHudController::GetBottlecapReturnLocations(uint8 Amount)
 {
     return DraftingWidget->GetBottlecapReturnLocations(Amount);
 }

@@ -12,6 +12,7 @@ class UButton;
 class UHorizontalBox;
 class UImage;
 class UCanvasPanel;
+struct FBottlecapReturnLocation;
 
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API UDraftingUI : public UUserWidget
@@ -35,6 +36,18 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UHorizontalBox* StatButtons;
 
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* BottlecapSlot1Debug;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* BottlecapSlot2Debug;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* BottlecapSlot3Debug;
+
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 	// <BottlecapSprite, bIsBottlecapAllocated>
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
 	TMap<UImage*, bool> Bottlecaps;
@@ -55,8 +68,13 @@ public:
 	UPROPERTY()
 	TArray<FVector2D> BottlecapDefaultLocations;
 
+	// Bottlecap Slots 1-3 and if they are currently taken up right now.
 	UPROPERTY()
 	TArray<bool> BottlecapIsDefaultLocationTaken;
+
+	// Which bottlecap slot a bottlecap is currently occupying.
+	UPROPERTY()
+	TArray<int32> BottlecapCurrentDefaultSlots;
 
 	#pragma region Bottlecap Translation
 
@@ -90,10 +108,10 @@ public:
 	void RefreshAbilityCards();
 
 	UFUNCTION()
-	void TranslateBottlecap(uint8 BottlecapID, FVector2D TargetLocSS, bool bIsDeallocating);
+	void TranslateBottlecap(uint8 BottlecapID, FBottlecapReturnLocation TargetLocSS, bool bIsDeallocating);
 
 	UFUNCTION()
-	const TArray<FVector2D> GetBottlecapReturnLocations(uint8 Amount);
+	const TArray<FBottlecapReturnLocation> GetBottlecapReturnLocations(uint8 Amount);
 
 protected:
 

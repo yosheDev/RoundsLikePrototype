@@ -3,6 +3,7 @@
 
 #include "Components/MatchEconomyComponent.h"
 #include "Components/BottlecapAllocationData.h"
+#include "UI/Drafting/BottlecapReturnLocation.h"
 #include "FPSHudController.h"
 #include "FPSPlayerController.h"
 #include "Net/UnrealNetwork.h"
@@ -93,12 +94,12 @@ bool UMatchEconomyComponent::CanAllocateBottlecaps(uint8 Amount)
     }
 }
 
-void UMatchEconomyComponent::Server_AllocateBottlecaps_Implementation(uint8 Amount, int32 WidgetID, const TArray<FVector2D>& AllocationLocations)
+void UMatchEconomyComponent::Server_AllocateBottlecaps_Implementation(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations)
 {
     AllocateBottlecaps(Amount, WidgetID, AllocationLocations);
 }
 
-void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FVector2D>& AllocationLocations)
+void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations)
 {
     // Clients call the Server RPC.
     if (!(GetOwner()->HasAuthority()))
@@ -160,7 +161,7 @@ void UMatchEconomyComponent::DeallocateBottlecaps(int32 WidgetID)
     }
     AFPSHudController* HUD = PC->GetHUD<AFPSHudController>();
 
-    TArray<FVector2D> ReturnLocations;
+    TArray<FBottlecapReturnLocation> ReturnLocations;
 
     // Get deallocation indices by WidgetID.
     if (FBottlecapAllocationData* DataPtr = AllocationData.Find(WidgetID))
@@ -199,7 +200,7 @@ void UMatchEconomyComponent::DeallocateBottlecaps(int32 WidgetID)
     }
 }
 
-void UMatchEconomyComponent::Multicast_UpdateBottlecapHUD_Implementation(uint8 BottlecapID, FVector2D AllocationLocation, bool bIsDeallocating = false)
+void UMatchEconomyComponent::Multicast_UpdateBottlecapHUD_Implementation(uint8 BottlecapID, FBottlecapReturnLocation AllocationLocation, bool bIsDeallocating = false)
 {
     // UDraftingUI only needs to know which bottlecap is moving and where. Does not need to know anything else.
     
@@ -214,6 +215,7 @@ void UMatchEconomyComponent::Multicast_UpdateBottlecapHUD_Implementation(uint8 B
     if (HUD)
     {
         HUD->BeginTranslateBottlecap(BottlecapID, AllocationLocation, bIsDeallocating);
+        UE_LOG(LogTemp, Error, TEXT("Component BeginTranslateBottlecap %d"), BottlecapID);
     }
 }
 

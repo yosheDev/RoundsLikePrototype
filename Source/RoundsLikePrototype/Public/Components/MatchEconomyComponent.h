@@ -7,6 +7,7 @@
 #include "Components/BottlecapAllocationData.h"
 #include "MatchEconomyComponent.generated.h"
 
+struct FBottlecapReturnLocation;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ROUNDSLIKEPROTOTYPE_API UMatchEconomyComponent : public UActorComponent
@@ -49,10 +50,10 @@ public:
 	bool CanAllocateBottlecaps(uint8 Amount);
 
 	UFUNCTION()
-	void AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FVector2D>& AllocationLocations);
+	void AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations);
 
 	UFUNCTION(Server, Reliable)
-	void Server_AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FVector2D>& AllocationLocations);
+	void Server_AllocateBottlecaps(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations);
 
 	UFUNCTION()
 	void DeallocateBottlecaps(int32 WidgetID);
@@ -61,7 +62,7 @@ public:
 	void Server_DeallocateBottlecaps(int32 WidgetID);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_UpdateBottlecapHUD(uint8 BottlecapID, FVector2D AllocationLocation, bool bIsDeallocating = false);
+	void Multicast_UpdateBottlecapHUD(uint8 BottlecapID, FBottlecapReturnLocation AllocationLocation, bool bIsDeallocating = false);
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentAbilityOffers, BlueprintReadOnly)
 	TArray<FPrimaryAssetId> CurrentAbilityOffers;

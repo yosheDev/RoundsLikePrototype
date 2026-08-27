@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "FPSGameState.h"
 #include "FPSPlayerState.h"
+#include "UI/Drafting/BottlecapReturnLocation.h"
 #include "Abilities/AbilityDefinition.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
@@ -48,7 +49,7 @@ void UAbilityCard::SelectAbility()
             {
                 if (FPSGameState->EconomyComponent->CanAllocateBottlecaps(Cost))
                 {
-                    TArray<FVector2D> Locations;
+                    TArray<FBottlecapReturnLocation> Locations;
                     for (int i = 0; i < Cost; i++)
                     {
                         // TO DO: Have widgets specifically for bottlecap locations instead of using select ability button. That way not the same spot for them all.
@@ -62,7 +63,10 @@ void UAbilityCard::SelectAbility()
                         FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(SelectAbilityButton);
                         FVector2D ViewportPosition = USlateBlueprintLibrary::AbsoluteToLocal(ViewportGeometry, AbsoluteScreenPosition);
 
-                        Locations.Add(ViewportPosition);
+                        FBottlecapReturnLocation NewReturnLocation;
+                        NewReturnLocation.SlotIndex = -1;
+                        NewReturnLocation.Location = ViewportPosition;
+                        Locations.Add(NewReturnLocation);
                     }
 
                     if (Locations.Num() != Cost)
