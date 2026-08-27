@@ -129,13 +129,16 @@ void UMatchEconomyComponent::AllocateBottlecaps(uint8 Amount, int32 WidgetID, co
     FBottlecapAllocationData NewAllocationData = FBottlecapAllocationData(WidgetID, IndicesToAllocate);
     AllocationData.Add(NewAllocationData.WidgetID, NewAllocationData);
 
+    // Add offset to allocation locations based on Amount
+    const TArray<FBottlecapReturnLocation>& AdjustedAllocationLocations = ApplyOffsetsByCost(Amount, AllocationLocations);
+
     for (int32 i = 0; i < IndicesToAllocate.Num(); i++)
     {
         BottlecapAllocations[IndicesToAllocate[i]] = true;
         AvailableBottlecapIndices.Remove(IndicesToAllocate[i]);
         AvailableBottlecaps--;
-
-        Multicast_UpdateBottlecapHUD(IndicesToAllocate[i], AllocationLocations[i]);
+        
+        Multicast_UpdateBottlecapHUD(IndicesToAllocate[i], AdjustedAllocationLocations[i]);
     }
 }
 
@@ -217,6 +220,50 @@ void UMatchEconomyComponent::Multicast_UpdateBottlecapHUD_Implementation(uint8 B
         HUD->BeginTranslateBottlecap(BottlecapID, AllocationLocation, bIsDeallocating);
         UE_LOG(LogTemp, Error, TEXT("Component BeginTranslateBottlecap %d"), BottlecapID);
     }
+}
+
+TArray<FBottlecapReturnLocation> UMatchEconomyComponent::ApplyOffsetsByCost(uint8 Amount, TArray<FBottlecapReturnLocation> InArray)
+{
+    TArray<FBottlecapReturnLocation> ReturnOffsets = InArray;
+
+    if (Amount <= 1)
+    {
+        return ReturnOffsets;
+    }
+
+    if (Amount == 2)
+    {
+        FBottlecapReturnLocation NewLocation;
+        NewLocation.SlotIndex = ReturnOffsets[0].SlotIndex;
+        NewLocation.Location = ReturnOffsets[0].Location + FVector2D(25.0f, 50.0f);
+        ReturnOffsets[0] = NewLocation;
+
+        NewLocation.SlotIndex = ReturnOffsets[1].SlotIndex;
+        NewLocation.Location = ReturnOffsets[1].Location + FVector2D(-25.0f, -50.0f);
+        ReturnOffsets[1] = NewLocation;
+
+        return ReturnOffsets;
+    }
+
+    if (Amount == 3)
+    {
+        FBottlecapReturnLocation NewLocation;
+        NewLocation.SlotIndex = ReturnOffsets[0].SlotIndex;
+        NewLocation.Location = ReturnOffsets[0].Location + FVector2D(5.0f, 35.0f);
+        ReturnOffsets[0] = NewLocation;
+
+        NewLocation.SlotIndex = ReturnOffsets[1].SlotIndex;
+        NewLocation.Location = ReturnOffsets[1].Location + FVector2D(-35.0f, -35.0f);
+        ReturnOffsets[1] = NewLocation;
+
+        NewLocation.SlotIndex = ReturnOffsets[2].SlotIndex;
+        NewLocation.Location = ReturnOffsets[2].Location + FVector2D(35.0f, -35.0f);
+        ReturnOffsets[2] = NewLocation;
+
+        return ReturnOffsets;
+    }
+
+    return ReturnOffsets;
 }
 
 APlayerController* UMatchEconomyComponent::GetPlayerController()

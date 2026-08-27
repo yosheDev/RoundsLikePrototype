@@ -26,21 +26,11 @@ void UDraftingUI::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    //ForceLayoutPrepass();
-
     #pragma region Initialize Bottlecap Data
     Bottlecaps.Empty();
-    Bottlecaps.Add(Bottlecap1, false);
-    //BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap1));
-    //BottlecapIsDefaultLocationTaken.Add(true);
-
-    Bottlecaps.Add(Bottlecap2, false); 
-    //BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap2));
-    //BottlecapIsDefaultLocationTaken.Add(true);
-
-    Bottlecaps.Add(Bottlecap3, false);
-    //BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap3));
-    //BottlecapIsDefaultLocationTaken.Add(true);
+    Bottlecaps.Add(Bottlecap1);
+    Bottlecaps.Add(Bottlecap2); 
+    Bottlecaps.Add(Bottlecap3);
 
     FTimerHandle BottlecapInitializationTimer;
 
@@ -51,8 +41,8 @@ void UDraftingUI::NativeConstruct()
         0.1f,
         false
     );
-    #pragma endregion
 
+    // Initialize Bottlecap Arrays
     for (int i = 0; i < Bottlecaps.Num(); i++)
     {
         BottlecapCurrentDefaultSlots.Add(i);
@@ -62,6 +52,7 @@ void UDraftingUI::NativeConstruct()
         BottlecapTimerElapsedTimes.Add(0.0f);
         BottlecapTranslationTimers.Add(FTimerHandle());
     }
+    #pragma endregion
 
     // Ensure the button pointer is valid before binding
     if (SelectDraftButton)
@@ -75,52 +66,12 @@ void UDraftingUI::NativeConstruct()
 
 void UDraftingUI::InitializeBottlecapDefaultLocations()
 {
-    if (!Bottlecap1 || !Bottlecap2 || !Bottlecap3)
-    {
-        return;
-    }
+    if (!Bottlecap1 || !Bottlecap2 || !Bottlecap3){ return; }
 
     BottlecapDefaultLocations.Empty();
-    BottlecapIsDefaultLocationTaken.Empty();
-
-    BottlecapDefaultLocations.Add(
-        GetWidgetCenterInViewport(Bottlecap1)
-    );
-
-    BottlecapIsDefaultLocationTaken.Add(true);
-
-    BottlecapDefaultLocations.Add(
-        GetWidgetCenterInViewport(Bottlecap2)
-    );
-
-    BottlecapIsDefaultLocationTaken.Add(true);
-
-    BottlecapDefaultLocations.Add(
-        GetWidgetCenterInViewport(Bottlecap3)
-    );
-
-    BottlecapIsDefaultLocationTaken.Add(true);
-
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Bottlecap slot 0: %s"),
-        *BottlecapDefaultLocations[0].ToString()
-    );
-
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Bottlecap slot 1: %s"),
-        *BottlecapDefaultLocations[1].ToString()
-    );
-
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Bottlecap slot 2: %s"),
-        *BottlecapDefaultLocations[2].ToString()
-    );
+    BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap1));
+    BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap2));
+    BottlecapDefaultLocations.Add(GetWidgetCenterInViewport(Bottlecap3));
 }
 
 void UDraftingUI::RefreshAbilityCards()
@@ -195,64 +146,20 @@ void UDraftingUI::TranslateBottlecap(uint8 BottlecapID, FBottlecapReturnLocation
 {
     if (bIsDeallocating)
     {
-
         // Return bottlecap to slot TargetLocSS.SlotIndex
-        BottlecapIsDefaultLocationTaken[TargetLocSS.SlotIndex] = true;
         BottlecapCurrentDefaultSlots[BottlecapID] = TargetLocSS.SlotIndex;
     }
     else
     {
         // Free up the bottlecap slot bottlecap was taking up.
-        const int32 CurrentSlot = BottlecapCurrentDefaultSlots[BottlecapID];
-
-        if (CurrentSlot != -1)
+        if (BottlecapCurrentDefaultSlots[BottlecapID] != -1)
         {
-            BottlecapIsDefaultLocationTaken[CurrentSlot] = false;
             BottlecapCurrentDefaultSlots[BottlecapID] = -1;
         }
     }
 
-    //// Get base layout geometry (ignores current render transforms)
-    //TArray<UImage*> BottlecapImages;
-    //Bottlecaps.GetKeys(BottlecapImages);
-
-    //FGeometry LayoutGeometry = BottlecapImages[BottlecapID]->GetCachedGeometry();
-
-    //// Get viewport pos
-    //FVector2D CurrentPixelPos;
-    //FVector2D CurrentViewportPos;
-    //USlateBlueprintLibrary::LocalToViewport(this, LayoutGeometry, FVector2D::ZeroVector, CurrentPixelPos, CurrentViewportPos);
-
-    //// Get start and end points for translation.
-    //BottlecapStartLocations[BottlecapID] = BottlecapImages[BottlecapID]->GetRenderTransform().Translation;
-    //BottlecapEndLocations[BottlecapID] = TargetLocSS - CurrentViewportPos;
-    //
-    //// Calculate distance for bottlecap translation.
-    //float Distance = FVector2D::Distance(BottlecapStartLocations[BottlecapID], BottlecapEndLocations[BottlecapID]);
-    //BottlecapTranslationDurations[BottlecapID] = FMath::Max(Distance / FMath::Max(.01f, BottlecapTranslationSpeed), 0.01f);
-
-    //BottlecapTimerElapsedTimes[BottlecapID] = 0.0f;
-
-    //// Bind input parameters for timer via FTimerDelegate.
-    //FTimerDelegate TimerDelegate;
-    //TimerDelegate.BindUObject(
-    //    this,
-    //    &UDraftingUI::UpdateBottlecapLocation,
-    //    BottlecapImages[BottlecapID],
-    //    BottlecapID
-    //);
-
-    //// Begin Timer
-    //GetWorld()->GetTimerManager().SetTimer(
-    //    BottlecapTranslationTimers[BottlecapID],
-    //    TimerDelegate,
-    //    .01f,
-    //    true
-    //);
-
-    TArray<UImage*> BottlecapImages;
-    Bottlecaps.GetKeys(BottlecapImages);
-
+    // Get Bottlecap to Translate
+    TArray<UImage*> BottlecapImages = Bottlecaps.Array();
     if (!BottlecapImages.IsValidIndex(BottlecapID))
     {
         UE_LOG(LogTemp, Error, TEXT("TranslateBottlecap: Invalid BottlecapID %d"), BottlecapID);
@@ -260,12 +167,9 @@ void UDraftingUI::TranslateBottlecap(uint8 BottlecapID, FBottlecapReturnLocation
     }
 
     UImage* Bottlecap = BottlecapImages[BottlecapID];
+    if (!Bottlecap){ return; }
 
-    if (!Bottlecap)
-    {
-        return;
-    }
-
+    // Get Viewport Location in Local Space, Start and End Location of Translation
     const FGeometry ViewportGeometry = UWidgetLayoutLibrary::GetViewportWidgetGeometry(this);
     const FVector2D TargetAbsolute = ViewportGeometry.LocalToAbsolute(TargetLocSS.Location);
 
@@ -284,12 +188,11 @@ void UDraftingUI::TranslateBottlecap(uint8 BottlecapID, FBottlecapReturnLocation
     BottlecapStartLocations[BottlecapID] = StartTranslation;
     BottlecapEndLocations[BottlecapID] = EndTranslation;
 
+    // Calculate Translation Speed and Begin Translation
     const float Distance = FVector2D::Distance(StartTranslation, EndTranslation);
-
     const float Speed = FMath::Max(BottlecapTranslationSpeed, 0.01f);
 
     BottlecapTranslationDurations[BottlecapID] = FMath::Max(Distance / Speed, 0.01f);
-
     BottlecapTimerElapsedTimes[BottlecapID] = 0.0f;
 
     FTimerDelegate TimerDelegate;
@@ -350,13 +253,12 @@ const TArray<FBottlecapReturnLocation> UDraftingUI::GetBottlecapReturnLocations(
     // If return location has bottlecap allocated, add to array.
     for (int i = 0; i < BottlecapDefaultLocations.Num(); i++)
     {
-        if (!BottlecapIsDefaultLocationTaken[i])
+        if (!BottlecapCurrentDefaultSlots.Contains(i))
         {
             FBottlecapReturnLocation NewReturnLocation;
             NewReturnLocation.SlotIndex = i;
             NewReturnLocation.Location = BottlecapDefaultLocations[i];
             ReturnLocations.Add(NewReturnLocation);
-            BottlecapIsDefaultLocationTaken[i] = true;
         }
 
         // Do we have enough?
@@ -366,12 +268,10 @@ const TArray<FBottlecapReturnLocation> UDraftingUI::GetBottlecapReturnLocations(
         }
     }
 
-    // Trim excess
-    //ReturnLocations.SetNum(Amount);
-
     return ReturnLocations;
 }
 
+#pragma region Utility
 FVector2D UDraftingUI::GetWidgetCenterInCanvas(UWidget* Widget) const
 {
     if (!Widget || !MainCanvas)
@@ -453,14 +353,5 @@ FVector2D UDraftingUI::GetViewportPositionInCanvas(FVector2D ViewportPosition) c
     // Absolute -> Canvas local
     return CanvasGeometry.AbsoluteToLocal(AbsolutePosition);
 }
-
-void UDraftingUI::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-{
-    if (BottlecapIsDefaultLocationTaken.Num() >= 3)
-    {
-        BottlecapSlot1Debug->SetText(FText::FromString(BottlecapIsDefaultLocationTaken[0] ? TEXT("true") : TEXT("false")));
-        BottlecapSlot2Debug->SetText(FText::FromString(BottlecapIsDefaultLocationTaken[1] ? TEXT("true") : TEXT("false")));
-        BottlecapSlot3Debug->SetText(FText::FromString(BottlecapIsDefaultLocationTaken[2] ? TEXT("true") : TEXT("false")));
-    }
-}
+#pragma endregion
 

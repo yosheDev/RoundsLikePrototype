@@ -65,5 +65,5 @@ private:
 	void SelectAbility();
 
 	UPROPERTY(EditAnywhere)
-	uint8 Cost = 1;
+	uint8 Cost = 2;
 };

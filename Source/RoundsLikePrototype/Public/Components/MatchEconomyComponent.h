@@ -100,4 +100,7 @@ private:
 
 	UFUNCTION()
 	APlayerController* GetPlayerController();
+
+	UFUNCTION()
+	TArray<FBottlecapReturnLocation> ApplyOffsetsByCost(uint8 Amount, TArray<FBottlecapReturnLocation> InArray);
 };
