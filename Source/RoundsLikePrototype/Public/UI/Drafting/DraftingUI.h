@@ -49,7 +49,7 @@ public:
 
 	// Set of the Bottlecap Images. Upon construct, index aligns with slot.
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
-	TSet<TObjectPtr<UImage>> Bottlecaps;	
+	TSet<TObjectPtr<UImage>> Bottlecaps{};
 
 	// On construction, populates with locations of bottlecaps. Used to return them to place when deallocating.
 	UPROPERTY()
@@ -97,6 +97,9 @@ public:
 	UFUNCTION()
 	const TArray<FBottlecapReturnLocation> GetBottlecapReturnLocations(uint8 Amount);
 
+	UFUNCTION()
+	void SetWidgetSelected(UUserWidget* InWidget, bool bIsSelected);
+
 protected:
 
 	virtual void NativeConstruct() override;
@@ -104,7 +107,12 @@ protected:
 	UFUNCTION()
 	void FinishDraftClick();
 
+	UFUNCTION()
+	void GrantAbilities();
+
 private:
+
+	TSet<TObjectPtr<UUserWidget>> SelectedWidgets;
 
 	UFUNCTION()
 	void InitializeBottlecapDefaultLocations();

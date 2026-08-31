@@ -4,9 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Abilities/AbilityDefinition.h"
+#include "GameplayTagContainer.h"
 #include "UI/Drafting/AllocationWidgetIDInterface.h"
 #include "DraftStatButton.generated.h"
 
+class UDraftingUI;
 class UButton;
 
 UCLASS()
@@ -22,17 +25,25 @@ public:
 
 	int32 WidgetID = -1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UAbilityDefinition> AbilityDataAsset;
+
 public:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> StatButton;
 	
+	UFUNCTION()
+	void ApplyStatBuffToPlayer();
+
 protected:
 
 	virtual void NativeConstruct() override;
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void ClickButton();
+
+	TObjectPtr<UDraftingUI> DraftingUI;
 
 private:
 

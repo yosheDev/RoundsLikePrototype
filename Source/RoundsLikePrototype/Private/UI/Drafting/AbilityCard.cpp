@@ -6,6 +6,7 @@
 #include "FPSPlayerState.h"
 #include "FPSGameState.h"
 #include "UI/Drafting/BottlecapReturnLocation.h"
+#include "UI/Drafting/DraftingUI.h"
 #include "Abilities/AbilityDefinition.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
@@ -16,6 +17,12 @@
 void UAbilityCard::NativeConstruct()
 {
     Super::NativeConstruct();
+
+    UUserWidget* ParentWidget = GetTypedOuter<UUserWidget>();
+    if (ParentWidget)
+    {
+        DraftingUI = Cast<UDraftingUI>(ParentWidget);
+    }
 
     if (SelectAbilityButton)
     {
@@ -82,8 +89,6 @@ void UAbilityCard::TryAllocation()
     {
         PS->Server_RequestAllocateBottlecaps(Cost, WidgetID, Locations);
     }
-    // TO DO: Do not apply this on click. Only apply selected cards when advancing past drafting screen.
-    GiveAbilityToPlayer();
 }
 
 void UAbilityCard::HandleAllocationSucceeded(int32 InWidgetID)
@@ -94,6 +99,11 @@ void UAbilityCard::HandleAllocationSucceeded(int32 InWidgetID)
     }
 
     bIsAllocated = true;
+
+    if (DraftingUI)
+    {
+        DraftingUI->SetWidgetSelected(Cast<UUserWidget>(this), true);
+    }
 }
 
 void UAbilityCard::TryDeallocation()
@@ -103,6 +113,11 @@ void UAbilityCard::TryDeallocation()
     if (PS)
     {
         PS->Server_RequestDeallocateBottlecaps(WidgetID);
+    }
+
+    if (DraftingUI)
+    {
+        DraftingUI->SetWidgetSelected(Cast<UUserWidget>(this), false);
     }
 }
 

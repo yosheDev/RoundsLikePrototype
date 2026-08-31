@@ -9,6 +9,7 @@
 #include "UI/Drafting/AllocationWidgetIDInterface.h"
 #include "AbilityCard.generated.h"
 
+class UDraftingUI;
 class UTextBlock;
 class UButton;
 class UImage;
@@ -20,6 +21,8 @@ class ROUNDSLIKEPROTOTYPE_API UAbilityCard : public UUserWidget, public IAllocat
 
 public:
 
+	void GiveAbilityToPlayer();
+
 	virtual int32 GetWidgetID_Implementation() override;
 
 	virtual void SetWidgetID_Implementation(int32 NewID) override;
@@ -30,12 +33,7 @@ protected:
 
 	virtual void NativeConstruct() override;
 
-	//UFUNCTION()
-	//void HandleMyButtonClick();
-
-private:
-
-	void GiveAbilityToPlayer();
+	TObjectPtr<UDraftingUI> DraftingUI;
 
 public:
 

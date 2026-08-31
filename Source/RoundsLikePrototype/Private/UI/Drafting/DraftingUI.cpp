@@ -238,12 +238,46 @@ void UDraftingUI::UpdateBottlecapLocation(UImage* Bottlecap, uint8 BottlecapID)
     }
 }
 
+void UDraftingUI::SetWidgetSelected(UUserWidget* InWidget, bool bIsSelected)
+{
+    if (bIsSelected)
+    {
+        SelectedWidgets.Add(InWidget);
+    }
+    else
+    {
+        SelectedWidgets.Remove(InWidget);
+    }
+}
+
 void UDraftingUI::FinishDraftClick()
 {
+    GrantAbilities();
+
     if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
     {
         PC->Server_FinishedDraft();
     } 
+}
+
+void UDraftingUI::GrantAbilities()
+{
+    for (UUserWidget* Widget : SelectedWidgets)
+    {
+        UAbilityCard* Card = Cast<UAbilityCard>(Widget);
+        if (Card)
+        {
+            Card->GiveAbilityToPlayer();
+        }
+        else
+        {
+            UDraftStatButton* StatButton = Cast<UDraftStatButton>(Widget);
+            if (StatButton)
+            {
+                StatButton->ApplyStatBuffToPlayer();
+            }
+        }
+    }
 }
 
 const TArray<FBottlecapReturnLocation> UDraftingUI::GetBottlecapReturnLocations(uint8 Amount)
