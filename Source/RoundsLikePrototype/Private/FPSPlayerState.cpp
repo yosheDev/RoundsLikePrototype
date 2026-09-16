@@ -3,6 +3,7 @@
 
 #include "FPSPlayerState.h"
 #include "FPSGameState.h"
+#include "FPSHudController.h"
 #include "Components/FPSAbilitySystemComponent.h"
 #include "Engine/DataTable.h"
 #include "GameplayEffectTypes.h"
@@ -25,7 +26,7 @@ AFPSPlayerState::AFPSPlayerState()
 	FPSAbilitySystemComponent->SetIsReplicated(true);
 	FPSAbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
-	UE_LOG(LogTemp, Warning,
+	/*UE_LOG(LogTemp, Warning,
 		TEXT("MYTEST PlayerState ASC: %s"),
 		*GetNameSafe(FPSAbilitySystemComponent));
 
@@ -35,7 +36,7 @@ AFPSPlayerState::AFPSPlayerState()
 
 	UE_LOG(LogTemp, Warning,
 		TEXT("MYTEST PlayerState Gunplay Speed: %f"),
-		GunplayAttributeSet->GetBulletSpeed());
+		GunplayAttributeSet->GetBulletSpeed());*/
 }
 
 void AFPSPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -163,6 +164,7 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 						if (AttributeData)
 						{
 							// Ignore these transient values, they will just Init to base value (multipliers apply in gameplay effects.)
+							// NOTE health would need to be max health value... not just init to the default 100.
 							if (AttributeName == TEXT("Health"))
 							{
 								continue;
@@ -243,14 +245,22 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 	}
 
 	UE_LOG(LogTemp, Warning,
-		TEXT("=== TRAVEL: RestoreAttributesAfterTravel === MaxSpeed Saved: %f"),
-		SavedMovementAttributesMap.FindRef(TEXT("MaxSpeed")));
+		TEXT("SERVER RESTORE | Health: %f | MaxHealth: %f"),
+		VitalityAttributeSet->GetHealth(),
+		VitalityAttributeSet->GetMaxHealth());
+
+	ReapplyAbilitiesAfterTravel();
+
+	VitalityAttributeSet->SetHealth(VitalityAttributeSet->GetMaxHealth());
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("SERVER AFTER REAPPLY | Health: %f | MaxHealth: %f"),
+		VitalityAttributeSet->GetHealth(),
+		VitalityAttributeSet->GetMaxHealth());
 
 	SavedVitalityAttributesMap.Empty();
 	SavedMovementAttributesMap.Empty();
 	SavedGunplayAttributesMap.Empty();
-
-	ReapplyAbilitiesAfterTravel();
 }
 
 void AFPSPlayerState::ReapplyAbilitiesAfterTravel()
@@ -334,9 +344,9 @@ void AFPSPlayerState::PostInitializeComponents()
 	}
 	
 
-	UE_LOG(LogTemp, Warning,
+	/*UE_LOG(LogTemp, Warning,
 		TEXT("MYTEST PlayerState BulletSpeed after init: %f"),
-		GunplayAttributeSet->GetBulletSpeed());
+		GunplayAttributeSet->GetBulletSpeed());*/
 }
 
 void AFPSPlayerState::EndPlay(EEndPlayReason::Type EndPlayReason)

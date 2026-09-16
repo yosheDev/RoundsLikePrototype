@@ -10,6 +10,7 @@ UVitalityAttributeSet::UVitalityAttributeSet()
 {
 	InitHealth(100.0f);
 	InitMaxHealth(100.0f);
+	UE_LOG(LogTemp, Log, TEXT("VitalitySet Constructor! Health and MaxHealth init to 100."));
 }
 
 void UVitalityAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

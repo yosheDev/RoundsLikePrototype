@@ -264,6 +264,15 @@ void UDraftingUI::GrantAbilities()
 {
     for (UUserWidget* Widget : SelectedWidgets)
     {
+        #pragma region Debug Widget
+        if (!Widget)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("GrantAbilities: Widget is NULL"));
+            continue;
+        }
+
+        UE_LOG(LogTemp, Log, TEXT("GrantAbilities: Processing widget: %s"), *Widget->GetName());
+        #pragma endregion
         UAbilityCard* Card = Cast<UAbilityCard>(Widget);
         if (Card)
         {
@@ -274,6 +283,7 @@ void UDraftingUI::GrantAbilities()
             UDraftStatButton* StatButton = Cast<UDraftStatButton>(Widget);
             if (StatButton)
             {
+                UE_LOG(LogTemp, Log, TEXT("GrantAbilities: Widget %s IS a StatButton - calling ApplyStatBuffToPlayer()"), *Widget->GetName());
                 StatButton->ApplyStatBuffToPlayer();
             }
         }

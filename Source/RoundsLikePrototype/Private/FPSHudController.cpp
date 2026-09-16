@@ -47,7 +47,7 @@ void AFPSHudController::RefreshAbilitySelection()
     }
 }
 
-void AFPSHudController::SetDisplayHUD(bool bShouldDisplay)
+void AFPSHudController::CreateHUDWidget()
 {
     if (!HUDWidget)
     {
@@ -56,6 +56,7 @@ void AFPSHudController::SetDisplayHUD(bool bShouldDisplay)
         if (IsValid(HUDWidget))
         {
             HUDWidget->AddToViewport();
+            SetDisplayHUD(false);
         }
         else
         {
@@ -63,15 +64,25 @@ void AFPSHudController::SetDisplayHUD(bool bShouldDisplay)
             return;
         }
     }
+}
 
+void AFPSHudController::SetDisplayHUD(bool bShouldDisplay)
+{
+    CreateHUDWidget(); // Only creates if HUDWidget is nullptr.
     HUDWidget->SetVisibility(bShouldDisplay ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 }
 
 void AFPSHudController::UpdateHealthHUD(float CurrentHealth, float MaxHealth)
 {
+    if (!HUDWidget)
+    {
+        CreateHUDWidget();
+    }
+
     if (HUDWidget)
     {
         HUDWidget->UpdateHealthBar(CurrentHealth, MaxHealth);
+        UE_LOG(LogTemp, Log, TEXT("HUD: Update HealthHud. CurrentHealth: [%f] | MaxHealth: [%f]"), CurrentHealth, MaxHealth);
     }
 }
 

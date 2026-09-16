@@ -27,6 +27,10 @@ public:
     UFUNCTION()
     void RefreshAbilitySelection();
 
+    // If HUDWidget does not exist, create it and add it to viewport. Makes invisible by default.
+    UFUNCTION()
+    void CreateHUDWidget();
+
     UFUNCTION()
     void SetDisplayHUD(bool bShouldDisplay);
 

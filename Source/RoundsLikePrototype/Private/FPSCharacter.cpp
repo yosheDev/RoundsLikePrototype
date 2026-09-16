@@ -563,6 +563,14 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 // Multicast RPC called from server when server knows damage is taken. Used for predictions.
 void AFPSCharacter::MulticastDamageTaken_Implementation(float Damage)
 {
+	UE_LOG(LogTemp, Warning,
+		TEXT("[%s] MULTICAST | PredictedHealth: %f | AttributeHealth: %f | MaxHealth: %f | Damage: %f"),
+		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
+		PredictedHealth,
+		VitalityAttributes->GetHealth(),
+		VitalityAttributes->GetMaxHealth(),
+		Damage);
+
 	if (GetLocalRole() != ROLE_Authority)
 	{
 		// World-Space Health Widget
@@ -599,8 +607,30 @@ void AFPSCharacter::InitializeMovementFromAttributes()
 
 void AFPSCharacter::InitializeVitalityFromAttributes()
 {
+	UE_LOG(LogTemp, Warning,
+		TEXT("=== TRAVEL: InitializeVitalityFromAttributes === MaxHealth: %f"),
+		VitalityAttributes->GetMaxHealth());
+
 	// Body size
 	SetActorScale3D(FVector(VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize()));
+	
+	// Local player HUD widget.
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (AFPSHudController* HUD = Cast<AFPSHudController>(PC->GetHUD()))
+		{
+			// NOTE: Server will never be able to get access to clients HUD.
+			HUD->UpdateHealthHUD(VitalityAttributes->GetMaxHealth(), VitalityAttributes->GetMaxHealth());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("=== TRAVEL: InitializeVitalityFromAttributes === PLAYER HUD NOT FOUND"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("=== TRAVEL: InitializeVitalityFromAttributes === PLAYER CONTROLLER NOT FOUND"));
+	}
 }
 
 #pragma region On Attribute Changed Delegate Functions
@@ -609,6 +639,7 @@ void AFPSCharacter::BindAttributeSetDelegates()
 {
 	// Bind Vitality Health changing with OnHealthChanged(). This is authoritative and only happens when server replicates.
 	FPSAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UVitalityAttributeSet::GetHealthAttribute()).AddUObject(this, &AFPSCharacter::OnHealthChanged);
+	FPSAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UVitalityAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &AFPSCharacter::OnMaxHealthChanged);
 
 	// Bind Movement Attribute Changes
 	FPSAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UMovementAttributeSet::GetMaxSpeedAttribute()).AddUObject(this, &AFPSCharacter::OnMaxSpeedChanged);
@@ -640,9 +671,31 @@ void AFPSCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 		}
 	}
 
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("=== HEALTH BAR UPDATE === Current: %f | Max: %f"),
+		NewHealth,
+		VitalityAttributes->GetMaxHealth()
+	);
+
 	if (NewHealth <= 0.0f)
 	{
 		Die();
+	}
+}
+
+void AFPSCharacter::OnMaxHealthChanged(const FOnAttributeChangeData& Data)
+{
+	float OldMaxHealth = Data.OldValue;
+	float NewMaxHealth = Data.NewValue;
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (AFPSHudController* HUD = Cast<AFPSHudController>(PC->GetHUD()))
+		{
+			HUD->UpdateHealthHUD(VitalityAttributes->GetHealth(), NewMaxHealth);
+		}
 	}
 }
 

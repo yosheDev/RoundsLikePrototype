@@ -151,6 +151,7 @@ protected:
 	void InitializeMovementFromAttributes();
 	void InitializeVitalityFromAttributes();
 	void OnHealthChanged(const FOnAttributeChangeData& Data);
+	void OnMaxHealthChanged(const FOnAttributeChangeData& Data);
 	void OnMaxSpeedChanged(const FOnAttributeChangeData& Data);
 
 public:
