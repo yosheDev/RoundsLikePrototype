@@ -142,7 +142,25 @@ void AFPSPlayerState::CopyProperties(APlayerState* PlayerState)
 		SavedMovementAttributesMap.FindRef(TEXT("MaxSpeed")));
 }
 
-void AFPSPlayerState::RestoreAttributesAfterTravel()
+void AFPSPlayerState::RestorePlayerBuildsAfterTravel()
+{
+	// Required for restoring attributes that use data table to define base amounts. Should exclude anything modified heavily by gameplay affects in it.
+	//RestoreSavedAttributesAfterTravel();
+
+	UE_LOG(LogTemp, Warning, TEXT("SERVER RESTORE | Health: %f | MaxHealth: %f"), VitalityAttributeSet->GetHealth(), VitalityAttributeSet->GetMaxHealth());
+
+	ReapplyAbilitiesAfterTravel();
+
+	VitalityAttributeSet->SetHealth(VitalityAttributeSet->GetMaxHealth());
+
+	UE_LOG(LogTemp, Warning, TEXT("SERVER AFTER REAPPLY | Health: %f | MaxHealth: %f"), VitalityAttributeSet->GetHealth(), VitalityAttributeSet->GetMaxHealth());
+
+	SavedVitalityAttributesMap.Empty();
+	SavedMovementAttributesMap.Empty();
+	SavedGunplayAttributesMap.Empty();
+}
+
+void AFPSPlayerState::RestoreSavedAttributesAfterTravel()
 {
 	if (!(!VitalityAttributeSet || SavedVitalityAttributesMap.Num() == 0))
 	{
@@ -164,8 +182,11 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 						if (AttributeData)
 						{
 							// Ignore these transient values, they will just Init to base value (multipliers apply in gameplay effects.)
-							// NOTE health would need to be max health value... not just init to the default 100.
 							if (AttributeName == TEXT("Health"))
+							{
+								continue;
+							}
+							if (AttributeName == TEXT("MaxHealth"))
 							{
 								continue;
 							}
@@ -201,6 +222,11 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 						FGameplayAttributeData* AttributeData = StructProp->ContainerPtrToValuePtr<FGameplayAttributeData>(MovementAttributeSet);
 						if (AttributeData)
 						{
+							if (AttributeName == TEXT("MaxSpeed"))
+							{
+								continue;
+							}
+
 							/** Overwrite the default initialization value with the saved value */
 							float SavedValue = SavedMovementAttributesMap[AttributeName];
 
@@ -212,7 +238,7 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 			}
 		}
 	}
-	
+
 	if (!(!GunplayAttributeSet || SavedGunplayAttributesMap.Num() == 0))
 	{
 		/** Loop through the variables on the new GunplayAttributeSet */
@@ -243,24 +269,6 @@ void AFPSPlayerState::RestoreAttributesAfterTravel()
 			}
 		}
 	}
-
-	UE_LOG(LogTemp, Warning,
-		TEXT("SERVER RESTORE | Health: %f | MaxHealth: %f"),
-		VitalityAttributeSet->GetHealth(),
-		VitalityAttributeSet->GetMaxHealth());
-
-	ReapplyAbilitiesAfterTravel();
-
-	VitalityAttributeSet->SetHealth(VitalityAttributeSet->GetMaxHealth());
-
-	UE_LOG(LogTemp, Warning,
-		TEXT("SERVER AFTER REAPPLY | Health: %f | MaxHealth: %f"),
-		VitalityAttributeSet->GetHealth(),
-		VitalityAttributeSet->GetMaxHealth());
-
-	SavedVitalityAttributesMap.Empty();
-	SavedMovementAttributesMap.Empty();
-	SavedGunplayAttributesMap.Empty();
 }
 
 void AFPSPlayerState::ReapplyAbilitiesAfterTravel()
@@ -323,30 +331,21 @@ void AFPSPlayerState::BeginPlay()
 
 void AFPSPlayerState::PostInitializeComponents()
 {
-	// This will only need to be done when FIRST spawning in? Not needed when doing the copy -> restore process for attribute sets.
 	Super::PostInitializeComponents();
 
-	// Upon loading in ONLY ON THE FIRST ROUND, initialize all attribute sets to be the defaults.
-	if (GetWorld()->GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>()->MatchData.RoundNumber <= 1)
+	// Restore Attributes to their Data Table base values. Any upgrades will be reapplied in RestorePlayerBuildsAfterTravel().
+	if (VitalityAttributeSet && VitalityAttributeDataTable)
 	{
-		if (VitalityAttributeSet && VitalityAttributeDataTable)
-		{
-			VitalityAttributeSet->InitFromMetaDataTable(VitalityAttributeDataTable);
-		}
-		if (MovementAttributeSet && MovementAttributeDataTable)
-		{
-			MovementAttributeSet->InitFromMetaDataTable(MovementAttributeDataTable);
-		}
-		if (GunplayAttributeSet && GunplayAttributeDataTable)
-		{
-			GunplayAttributeSet->InitFromMetaDataTable(GunplayAttributeDataTable);
-		}
+		VitalityAttributeSet->InitFromMetaDataTable(VitalityAttributeDataTable);
 	}
-	
-
-	/*UE_LOG(LogTemp, Warning,
-		TEXT("MYTEST PlayerState BulletSpeed after init: %f"),
-		GunplayAttributeSet->GetBulletSpeed());*/
+	if (MovementAttributeSet && MovementAttributeDataTable)
+	{
+		MovementAttributeSet->InitFromMetaDataTable(MovementAttributeDataTable);
+	}
+	if (GunplayAttributeSet && GunplayAttributeDataTable)
+	{
+		GunplayAttributeSet->InitFromMetaDataTable(GunplayAttributeDataTable);
+	}
 }
 
 void AFPSPlayerState::EndPlay(EEndPlayReason::Type EndPlayReason)

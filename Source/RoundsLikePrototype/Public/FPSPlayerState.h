@@ -67,8 +67,13 @@ public:
 
 	virtual void CopyProperties(APlayerState* PlayerState) override;
 
-	void RestoreAttributesAfterTravel();
+	// Call this to restore player abilities and attributes.
+	void RestorePlayerBuildsAfterTravel();
 
+	// Sets AttributeMaps to have values that were saved from previous travel session.
+	void RestoreSavedAttributesAfterTravel();
+
+	// Reapplied abilities after travel session.
 	void ReapplyAbilitiesAfterTravel();
 
 	virtual void PostInitializeComponents() override;

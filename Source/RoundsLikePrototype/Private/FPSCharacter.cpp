@@ -86,11 +86,18 @@ void AFPSCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 void AFPSCharacter::PossessedBy(AController* NewController)
 {
+	UE_LOG(LogTemp, Warning,
+		TEXT("=== PossessedBy START === Character=%s Controller=%s"),
+		*GetName(),
+		NewController ? *NewController->GetName() : TEXT("NULL"));
+
 	/* PossessedBy() runs when controller possesses this character. Only runs on the server.*/
 	Super::PossessedBy(NewController);
 
 	if (!FPSAbilitySystemComponent)
 	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("PossessedBy: Calling InitializeAbilitySystem"));
 		InitializeAbilitySystem();
 	}
 
@@ -98,6 +105,11 @@ void AFPSCharacter::PossessedBy(AController* NewController)
 	{
 		CreateAndEquipWeapon_Implementation(DefaultWeaponClass);
 	}
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("=== PossessedBy END === Character=%s Controller=%s"),
+		*GetName(),
+		NewController ? *NewController->GetName() : TEXT("NULL"));
 }
 
 #pragma region OnRep Functions
@@ -323,6 +335,7 @@ void AFPSCharacter::InitializeAbilitySystem()
 		Only runs when FPSPlayerState is guarenteed to exist. (Server->PossessedBy() | Client->OnRep_PlayerState()
 		Handles initialization of the FPSAbilitySystemComponent, which is owned by the FPSPlayerState.
 	*/
+
 	AFPSPlayerState* FPSPlayerState = GetPlayerState<AFPSPlayerState>();
 
 	if (FPSPlayerState)
@@ -351,7 +364,6 @@ void AFPSCharacter::InitializeAbilitySystem()
 				break;
 			}
 			#pragma endregion
-			//GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Yellow, FString::Printf(TEXT("%s InitiateAbilitySystem()"), *RoleString));
 
 			// Initialize local actor info for the ASC.
 			FPSAbilitySystemComponent->InitAbilityActorInfo(FPSPlayerState, this);
@@ -362,9 +374,9 @@ void AFPSCharacter::InitializeAbilitySystem()
 			// Restore gameplay attributes (must be called after InitAbilityActorInfo())
 			if (FPSPlayerState->HasAuthority())
 			{
-				FPSPlayerState->RestoreAttributesAfterTravel();
+				FPSPlayerState->RestorePlayerBuildsAfterTravel();
 			}
-			
+
 			// Initialize Attribute Set References
 			VitalityAttributes = FPSAbilitySystemComponent->GetSet<UVitalityAttributeSet>();
 			MovementAttributes = FPSAbilitySystemComponent->GetSet<UMovementAttributeSet>();
@@ -390,6 +402,11 @@ void AFPSCharacter::InitializeAbilitySystem()
 				}
 			}
 		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("IAS FAILED: No PlayerState"));
+		return;
 	}
 }
 
