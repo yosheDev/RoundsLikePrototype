@@ -4,6 +4,7 @@
 #include "Abilities/Weapons/GA_PrimaryFire.h"
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "FPSCharacter.h"
+#include "Components/FPSAbilitySystemComponent.h"
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
 #include "Weapons/AmmoComponent.h"
 
@@ -178,6 +179,24 @@ void UGA_PrimaryFire::FireShot()
     SpawnData.SpawnTransform = SpawnTransform;
 
     Weapon->PrimaryFire(CurrentSpecHandle, CurrentActivationInfo, SpawnData);
+  
+    #pragma region TryActivate BulletJump
+    // TryActivate BulletJump Ability. Ability will handle whether or not activates based on grounded state.
+
+    AFPSCharacter* Character = Cast<AFPSCharacter>(Avatar);
+    if (Character)
+    {
+        UFPSAbilitySystemComponent* FPSAbilitySystemComponent = Cast<UFPSAbilitySystemComponent>(Character->GetAbilitySystemComponent());
+        if (FPSAbilitySystemComponent)
+        {
+            FGameplayTag AbilityTag = FGameplayTag::RequestGameplayTag(FName("GameplayAbility.Movement.BulletJump"));
+            FGameplayTagContainer TagContainer;
+            TagContainer.AddTag(AbilityTag);
+
+            FPSAbilitySystemComponent->TryActivateAbilitiesByTag(TagContainer);
+        }
+    }
+    #pragma endregion
     #pragma endregion
 
     ScheduleNextShot();
