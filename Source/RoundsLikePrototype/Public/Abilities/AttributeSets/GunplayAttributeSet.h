@@ -68,39 +68,50 @@ public:
 #pragma endregion
 
 #pragma region Fire Attributes
+
+	// Type for the bullet spread(0 = Standard, 1 = Burst, 2 = Automatic, 3 = Shotgun Spread, 4 = Charge Cannon?)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData WeaponFireType;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, WeaponFireType);
+
 	// Arc of initial fire velocity
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BulletArc;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletArc);
 
-	// Amount of bullets fired for each shot.
+	// Recoil factor per shot.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData BulletAmount;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletAmount);
-
-	// Type for the bullet spread(shotgun, fan, single, etc.)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData BulletSpreadType;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletSpreadType);
-
-	// Regeneration rate of individual bullets for clip.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData BulletRegen;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletRegen);
-
-	// Fire rate for auto fire.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData AutoFireRate;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, AutoFireRate);
+	FGameplayAttributeData RecoilFactor;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, RecoilFactor);
 
 	// Maximum amount of bullets in each clip.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData ClipCapacity;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, ClipCapacity);
 
-	// Recoil factor per shot.
+	// Amount of bullets fired for each shot.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData RecoilFactor;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, RecoilFactor);
+	FGameplayAttributeData FireShotAmount;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, FireShotAmount);
+
+	// Amount of time projectiles are spawned for each fire (for burst shots).
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData FireBurstAmount;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, FireBurstAmount);
+
+	// Regeneration rate of individual bullets for clip.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletRegen;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletRegen);
+
+	// Fire rate for burst fire.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BurstFireRate;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BurstFireRate);
+
+	// Fire rate for auto fire.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData AutoFireRate;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, AutoFireRate);
 	#pragma endregion
 };

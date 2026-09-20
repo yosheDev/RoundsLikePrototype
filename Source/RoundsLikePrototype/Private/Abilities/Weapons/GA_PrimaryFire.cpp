@@ -6,6 +6,7 @@
 #include "FPSCharacter.h"
 #include "Components/FPSAbilitySystemComponent.h"
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
+#include "Weapons/FireData.h"
 #include "Weapons/AmmoComponent.h"
 
 // Constructor
@@ -93,8 +94,7 @@ void UGA_PrimaryFire::ActivateAbility(
 
         ScheduleNextShot();
 
-        //FString 
-            RoleString = Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+        RoleString = Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
         UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: End of Primary Fire Ability. Weapon is [%s]"), *RoleString, Weapon ? *Weapon->GetName() : TEXT("NULL"));
     }
 
@@ -121,6 +121,27 @@ void UGA_PrimaryFire::ScheduleNextShot()
     UWorld* World = GetWorld();
 
     if (!World)
+    {
+        return;
+    }
+
+    if (!(CurrentActorInfo->AvatarActor.Get()->Implements<UWeaponHolder>()))
+    {
+        return;
+    }
+
+    AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(CurrentActorInfo->AvatarActor.Get());
+    if (Weapon == nullptr || !(Weapon->CanFire()))
+    {
+        return;
+    }
+
+    UAmmoComponent* AmmoComponent = Weapon->GetAmmoComponent();
+    if (!AmmoComponent)
+    {
+        return;
+    }
+    if (!AmmoComponent->HasAmmo())
     {
         return;
     }
@@ -157,8 +178,9 @@ void UGA_PrimaryFire::FireShot()
     AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
     UAmmoComponent* AmmoComponent = Weapon->GetAmmoComponent();
 
-    // Try to consume the ammo needed. 
-    if (!(AmmoComponent->TryConsumeAmmo()))
+    // NOTE need to move this to only fire when actually firing a shot from the weapon.
+    // Do not fire if there is not enough ammo.
+    if (!AmmoComponent->HasAmmo())
     {
         EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
         return;
@@ -178,7 +200,10 @@ void UGA_PrimaryFire::FireShot()
     FProjectileSpawnData SpawnData;
     SpawnData.SpawnTransform = SpawnTransform;
 
-    Weapon->PrimaryFire(CurrentSpecHandle, CurrentActivationInfo, SpawnData);
+    // Create FireData based on attributes and conditions.
+    FFireData FireData = MakeFireData();
+
+    Weapon->PrimaryFire(CurrentSpecHandle, CurrentActivationInfo, SpawnData, FireData);
   
     #pragma region TryActivate BulletJump
     // TryActivate BulletJump Ability. Ability will handle whether or not activates based on grounded state.
@@ -224,4 +249,41 @@ bool UGA_PrimaryFire::CanFire() const
     }
 
     return true;
+}
+
+FFireData UGA_PrimaryFire::MakeFireData()
+{
+    if (AActor* Avatar = CurrentActorInfo->AvatarActor.Get())
+    {
+        if (!Avatar->Implements<UWeaponHolder>())
+        {
+            return FFireData();
+        }
+
+        AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
+        if (Weapon == nullptr)
+        {
+            return FFireData();
+        }
+
+        UAmmoComponent* AmmoComponent = Weapon->GetAmmoComponent();
+        if (!AmmoComponent)
+        {
+            return FFireData();
+        }
+
+        Attributes = GetAbilitySystemComponentFromActorInfo()->GetSet<UGunplayAttributeSet>();
+
+        FFireData FireData;
+        FireData.WeaponFireType = static_cast<EWeaponFireType>(Attributes->GetWeaponFireType());
+        FireData.FireBurstAmount = FMath::Min(AmmoComponent->GetCurrentAmmo(), Attributes->GetFireBurstAmount());
+        FireData.FireBurstInterval = Attributes->GetBurstFireRate();
+        FireData.FireBulletAmount = FMath::Min(AmmoComponent->GetCurrentAmmo(), Attributes->GetFireShotAmount());
+        FireData.FireSpreadXAngle = 0.0f;
+        FireData.FireSpreadZAngle = 0.0f;
+
+        return FireData;
+    }
+
+    return FFireData();
 }

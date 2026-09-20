@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Weapons/IWeapon.h"
+#include "Weapons/FireData.h"
 #include "ProjectileWeapon.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPrimaryFireDelegate);
@@ -60,7 +61,8 @@ public:
 	virtual void PrimaryFire(
 		const FGameplayAbilitySpecHandle& AbilityHandle, 
 		const FGameplayAbilityActivationInfo& ActivationInfo, 
-		const FProjectileSpawnData& SpawnData);
+		const FProjectileSpawnData& SpawnData,
+		const FFireData& FireData);
 
 protected:
 	

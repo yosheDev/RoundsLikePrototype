@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
+#include "Weapons/FireData.h"
 #include "GA_PrimaryFire.generated.h"
 
 UCLASS()
@@ -53,4 +54,6 @@ private:
     float GetFireInterval() const;
 
     bool CanFire() const;
+
+    FFireData MakeFireData();
 };

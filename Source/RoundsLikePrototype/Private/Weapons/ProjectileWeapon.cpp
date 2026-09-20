@@ -7,7 +7,9 @@
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
 #include "Weapons/AmmoComponent.h"
 #include "AbilitySystemInterface.h"
-#include "AbilitySystemComponent.h"   
+#include "AbilitySystemComponent.h"
+#include "Enums/WeaponFireType.h"
+#include "Weapons/FireData.h"
 #include "Components/FPSAbilitySystemComponent.h"
 
 AProjectileWeapon::AProjectileWeapon()
@@ -41,8 +43,10 @@ void AProjectileWeapon::BeginPlay()
 void AProjectileWeapon::PrimaryFire(
 	const FGameplayAbilitySpecHandle& AbilityHandle, 
 	const FGameplayAbilityActivationInfo& ActivationInfo, 
-	const FProjectileSpawnData& SpawnData)
+	const FProjectileSpawnData& SpawnData,
+	const FFireData& FireData)
 {
+	// TO DO: Make this function aware of spread, burst, and shot amounts and then call SpawnProjectile accordingly.
 
 	SpawnProjectile(AbilityHandle, ActivationInfo, SpawnData);
 }
@@ -90,6 +94,8 @@ void AProjectileWeapon::SpawnProjectile(
 			Context.AddInstigator(GetInstigator(), Projectile);
 			Context.AddSourceObject(Projectile);
 			Projectile->GameplayEffectSpec = ASC->MakeOutgoingSpec(ProjectileGameplayEffect, 1, Context);
+
+			AmmoComponent->TryConsumeAmmo();
 		}
 	}
 	#pragma endregion
