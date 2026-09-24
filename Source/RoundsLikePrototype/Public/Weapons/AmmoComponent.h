@@ -22,22 +22,31 @@ class ROUNDSLIKEPROTOTYPE_API UAmmoComponent : public UActorComponent
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this component's properties
-	UAmmoComponent();
 
-	bool HasAmmo() const;
+	UAmmoComponent();
 
 	// Branches into predicted or authoratative.
 	bool TryConsumeAmmo();
 
+	UFUNCTION(BlueprintCallable)
+	void SetClipCapacity(int32 Amount);
+
+	// Is current ammo greater than 0?
+	UFUNCTION(BlueprintCallable)
+	bool HasAmmo() const;
+
+	// Sets CurrentAmmo or ClientPredictedAmmo to be equal to amount.
+	void SetAmmo(int32 Amount);
+
 	UFUNCTION(BlueprintPure)
 	int32 GetCurrentAmmo() const { return CurrentAmmo; }
+
 
 	UFUNCTION(BlueprintPure)
 	int32 GetMaxAmmo() const { return MaxAmmo; }
 
 protected:
-	// Called when the game starts
+	
 	virtual void BeginPlay() override;
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -48,13 +57,12 @@ protected:
 
 	void ScheduleNextAmmoReturn();
 
-	float GetServerTime() const;
-
 	void AddAmmoReturn(float ReturnTime);
 
 	bool TryConsumeAmmo_Predicted();
 	bool TryConsumeAmmo_Authoratative();
 
+	float GetServerTime() const;
 private:
 
 	void UpdateLocalAmmoUI();

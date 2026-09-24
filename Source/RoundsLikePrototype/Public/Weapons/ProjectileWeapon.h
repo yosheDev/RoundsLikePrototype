@@ -7,6 +7,9 @@
 #include "GameFramework/Actor.h"
 #include "Weapons/IWeapon.h"
 #include "Weapons/FireData.h"
+#include "Weapons/Projectiles/ProjectileSpawnData.h"
+#include "GameplayAbilitySpecHandle.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "ProjectileWeapon.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPrimaryFireDelegate);
@@ -38,6 +41,8 @@ protected:
 	UPROPERTY()
 	bool bTriggerringPrimary = false;
 
+	FRandomStream WeaponStream;
+
 public:	
 	
 	AProjectileWeapon();
@@ -61,8 +66,11 @@ public:
 	virtual void PrimaryFire(
 		const FGameplayAbilitySpecHandle& AbilityHandle, 
 		const FGameplayAbilityActivationInfo& ActivationInfo, 
-		const FProjectileSpawnData& SpawnData,
+		FProjectileSpawnData& SpawnData,
 		const FFireData& FireData);
+
+	// Call this after ASC is initialized with correct data. Syncs Attributes with any restored or modified GunplayAttributes data.
+	void SyncGunplayAttributes();
 
 protected:
 	
@@ -74,6 +82,23 @@ protected:
 		const FGameplayAbilitySpecHandle& AbilityHandle, 
 		const FGameplayAbilityActivationInfo& ActivationInfo, 
 		const FProjectileSpawnData& SpawnData);
+
+	#pragma region Burst Logic
+	// Tracks how many burst steps we have fired so far
+	int32 CurrentBurstCount = 0;
+
+	// Handle to clear or manage the burst timer safely
+	FTimerHandle BurstTimerHandle;
+
+	// Cached copies needed for the timer loop
+	FGameplayAbilitySpecHandle CachedAbilityHandle;
+	FGameplayAbilityActivationInfo CachedActivationInfo;
+	FProjectileSpawnData CachedSpawnData;
+	FFireData CachedFireData;
+
+	// The internal function that the timer will call repeatedly
+	void ExecuteBurstShot();
+	#pragma endregion
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")

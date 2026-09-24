@@ -8,6 +8,7 @@
 #include "UI/HUD/HealthBar.h"
 #include "ShooterWeapon.h"//
 #include "Weapons/FirstPerson/FirstPersonWeapon.h"
+#include "Weapons/AmmoComponent.h"
 #include "Weapons/IWeaponHolder.h"
 #pragma endregion
 
@@ -130,6 +131,12 @@ void AFPSCharacter::OnRep_CurrentWeapon()
 		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
 		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));
 
+	// Sync GunplayAttributes
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SyncGunplayAttributes();
+	}
+
 	// Server does this in CreateAndEquipWeapon instead of here.
 	SpawnFirstPersonWeapon();
 }
@@ -196,8 +203,19 @@ void AFPSCharacter::JumpEnd()
 #pragma region Weapon Input Handling
 void AFPSCharacter::PrimaryFire()
 {
+	if (!FPSAbilitySystemComponent)
+	{
+		return;
+	}
 
-	// only route inputs if the character is not dead
+	// Cannot activate if PrimaryFire is already active.
+	FGameplayAbilitySpec* Spec = FPSAbilitySystemComponent->FindAbilitySpecFromHandle(PrimaryFireAbilityHandle);
+	if (Spec && Spec->IsActive())
+	{
+		return;
+	}
+
+	// Character must be alive to activate
 	if (!bIsDead)
 	{
 		//FPSAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Movement.Jump"))));
@@ -216,6 +234,12 @@ void AFPSCharacter::PrimaryFireTriggered()
 
 void AFPSCharacter::PrimaryFireCompleted()
 {
+	// Burst fire will not end until ability itself ends. Forces player to fire out all of the bullets.
+	if (static_cast<EWeaponFireType>(GunplayAttributes->GetWeaponFireType()) == EWeaponFireType::Burst)
+	{
+		return;
+	}
+
 	FPSAbilitySystemComponent->CancelAbilityHandle(PrimaryFireAbilityHandle);
 }
 
@@ -243,6 +267,12 @@ void AFPSCharacter::CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileW
 	Weapon->SetInstigator(this);
 	CurrentWeapon = Weapon;
 	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ThirdPersonWeaponSocket);
+	
+	// Initialize Ammo
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SyncGunplayAttributes();
+	}
 
 	ForceNetUpdate();
 	CurrentWeapon->ForceNetUpdate();
@@ -381,6 +411,12 @@ void AFPSCharacter::InitializeAbilitySystem()
 			VitalityAttributes = FPSAbilitySystemComponent->GetSet<UVitalityAttributeSet>();
 			MovementAttributes = FPSAbilitySystemComponent->GetSet<UMovementAttributeSet>();
 			GunplayAttributes = FPSAbilitySystemComponent->GetSet<UGunplayAttributeSet>();
+			
+			// Sync GunplayAttributes
+			if (CurrentWeapon)
+			{
+				CurrentWeapon->SyncGunplayAttributes();
+			}
 
 			// Initialize Predicted Health
 			PredictedHealth = VitalityAttributes->GetHealth();

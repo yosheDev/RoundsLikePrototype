@@ -30,6 +30,14 @@ void UGA_PrimaryFire::ActivateAbility(
 {
     Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
     
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("FireLog: [%s] ACTIVATE PrimaryFire | AbilityActive=%s"),
+        ActorInfo->AvatarActor.Get()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
+        IsActive() ? TEXT("TRUE") : TEXT("FALSE")
+    );
+
     // Is there an avatar actor?
     if (AActor* Avatar = ActorInfo->AvatarActor.Get())
     {
@@ -113,6 +121,17 @@ void UGA_PrimaryFire::EndAbility(
         World->GetTimerManager().ClearTimer(FireTimerHandle);
     }
 
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("FireLog: [%s] END PrimaryFire | Cancelled=%s"),
+        ActorInfo && ActorInfo->AvatarActor.IsValid() &&
+        ActorInfo->AvatarActor.Get()->HasAuthority()
+        ? TEXT("SERVER")
+        : TEXT("CLIENT"),
+        bWasCancelled ? TEXT("TRUE") : TEXT("FALSE")
+    );
+
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
@@ -156,7 +175,6 @@ void UGA_PrimaryFire::ScheduleNextShot()
 
 void UGA_PrimaryFire::FireShot()
 {
-    UE_LOG(LogTemp, Log, TEXT("FireLog: FireShot()"));
     if (!CanFire())
     {
         EndAbility(
@@ -178,10 +196,25 @@ void UGA_PrimaryFire::FireShot()
     AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
     UAmmoComponent* AmmoComponent = Weapon->GetAmmoComponent();
 
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("FireLog: [%s] FireShot() | CurrentAmmo=%d | ClientPredictedAmmo=%d"),
+        CurrentActorInfo->AvatarActor.Get()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
+        AmmoComponent ? AmmoComponent->CurrentAmmo : -1,
+        AmmoComponent ? AmmoComponent->ClientPredictedAmmo : -1);
+
     // NOTE need to move this to only fire when actually firing a shot from the weapon.
     // Do not fire if there is not enough ammo.
     if (!AmmoComponent->HasAmmo())
     {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("FireLog: [%s] NO AMMO -> ENDING PRIMARY FIRE"),
+            Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT")
+        );
+
         EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
         return;
     }

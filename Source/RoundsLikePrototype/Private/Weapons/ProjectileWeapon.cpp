@@ -5,6 +5,7 @@
 #include "Weapons/Projectiles/BulletProjectile.h"
 #include "Weapons/Projectiles/ProjectileUtilities.h"
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
+#include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "Weapons/AmmoComponent.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
@@ -23,6 +24,24 @@ AProjectileWeapon::AProjectileWeapon()
 	AmmoComponent = CreateDefaultSubobject<UAmmoComponent>(TEXT("AmmoComponent"));
 }
 
+void AProjectileWeapon::SyncGunplayAttributes()
+{
+	if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetOwner()))
+	{
+		UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent();
+
+		if (ASC)
+		{
+			const UGunplayAttributeSet* GunplayAttributes = ASC->GetSet<UGunplayAttributeSet>();
+
+			if (GunplayAttributes)
+			{
+				AmmoComponent->SetClipCapacity(FMath::RoundToInt(GunplayAttributes->GetClipCapacity()));
+			}
+		}
+	}
+}
+
 USkeletalMeshComponent* AProjectileWeapon::GetMesh()
 {
 	return Mesh;
@@ -38,17 +57,100 @@ void AProjectileWeapon::BeginPlay()
 	Super::BeginPlay();
 
 	Mesh->SetOwnerNoSee(true);
+
+	WeaponStream.Initialize(0);
 }
 
 void AProjectileWeapon::PrimaryFire(
 	const FGameplayAbilitySpecHandle& AbilityHandle, 
 	const FGameplayAbilityActivationInfo& ActivationInfo, 
-	const FProjectileSpawnData& SpawnData,
+	FProjectileSpawnData& SpawnData,
 	const FFireData& FireData)
 {
-	// TO DO: Make this function aware of spread, burst, and shot amounts and then call SpawnProjectile accordingly.
+	// Clear any active burst if the player manages to fire again mid-burst
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BurstTimerHandle);
+		UE_LOG(LogTemp, Log, TEXT("Burst Fire Timer Cancelled by PrimaryFire() called."));
+	}
+	CurrentBurstCount = 0;
 
-	SpawnProjectile(AbilityHandle, ActivationInfo, SpawnData);
+	// Cache variables so burst timer loop can access them
+	CachedAbilityHandle = AbilityHandle;
+	CachedActivationInfo = ActivationInfo;
+	CachedSpawnData = SpawnData;
+	CachedFireData = FireData;
+	
+	// Fire initial burst shot.
+	ExecuteBurstShot();
+
+	// Schedule remaining burst shots.
+	if (CachedFireData.FireBurstAmount > 1 && GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			BurstTimerHandle,
+			this,
+			&AProjectileWeapon::ExecuteBurstShot,
+			CachedFireData.FireBurstInterval,
+			true
+		);
+	}
+}
+
+void AProjectileWeapon::ExecuteBurstShot()
+{
+	FString RoleString = GetInstigator()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+	UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: ExecuteBurstShot() for Weapon [%s]"), *RoleString, IsValid(GetInstigator()) ? *GetInstigator()->GetName() : TEXT("NULL"));
+	UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: Burst: [%d] Bullets: [%d]"), *RoleString, CachedFireData.FireBurstAmount, CachedFireData.FireBulletAmount);
+	if (!GetWorld()) return;
+
+	// Cancel timer if bursts are done already.
+	if (CurrentBurstCount >= CachedFireData.FireBurstAmount)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BurstTimerHandle);
+		UE_LOG(LogTemp, Log, TEXT("Burst Fire Timer Cancelled by Burst being completed."));
+		return;
+	}
+
+
+	FRotator ForwardRotation = CachedSpawnData.SpawnTransform.Rotator();
+
+	for (int i = 0; i < CachedFireData.FireBulletAmount; ++i)
+	{
+		// Reset Rotation var to base forward rotation
+		FRotator ModifiedRotation = ForwardRotation;
+
+		#pragma region Get Bullet Angle
+		if (CachedFireData.FireSpreadXAngle > 0.0f || CachedFireData.FireSpreadZAngle > 0.0f)
+		{
+			// Pick a random angle around the unit circle
+			float RandomAngle = WeaponStream.FRandRange(0.0f, 2.0f * PI);
+
+			// Distribute uniformly across the radius
+			float RandomRadius = FMath::Sqrt(WeaponStream.FRand());
+
+			// Calculate elliptical offsets (X-Angle maps to Yaw, Z-Angle maps to Pitch)
+			float YawOffset = RandomRadius * CachedFireData.FireSpreadXAngle * FMath::Cos(RandomAngle);
+			float PitchOffset = RandomRadius * CachedFireData.FireSpreadZAngle * FMath::Sin(RandomAngle);
+
+			ModifiedRotation.Yaw += YawOffset;
+			ModifiedRotation.Pitch += PitchOffset;
+		}
+
+		FProjectileSpawnData NewSpawnData = CachedSpawnData;
+		NewSpawnData.SpawnTransform.SetRotation(ModifiedRotation.Quaternion());
+		#pragma endregion
+
+		SpawnProjectile(CachedAbilityHandle, CachedActivationInfo, NewSpawnData);
+	}
+
+	CurrentBurstCount++;
+
+	if (CurrentBurstCount >= CachedFireData.FireBurstAmount)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BurstTimerHandle);
+		UE_LOG(LogTemp, Log, TEXT("Burst Fire Timer Cancelled by Burst being completed."));
+	}
 }
 
 void AProjectileWeapon::SpawnProjectile(

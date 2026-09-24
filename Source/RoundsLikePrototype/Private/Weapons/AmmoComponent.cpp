@@ -55,11 +55,7 @@ void UAmmoComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-    if (GetOwner()->HasAuthority())
-    {
-        CurrentAmmo = MaxAmmo;
-    }
-    ClientPredictedAmmo = MaxAmmo;
+    SetAmmo(MaxAmmo);
 }
 
 bool UAmmoComponent::TryConsumeAmmo()
@@ -176,7 +172,12 @@ float UAmmoComponent::GetServerTime() const
 
 bool UAmmoComponent::HasAmmo() const
 {
-    return CurrentAmmo > 0;
+    if (GetOwner()->HasAuthority())
+    {
+        return CurrentAmmo > 0;
+    }
+
+    return ClientPredictedAmmo > 0;
 }
 
 void UAmmoComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -219,4 +220,22 @@ void UAmmoComponent::UpdateLocalAmmoUI()
             }
         }
     }
+}
+
+void UAmmoComponent::SetClipCapacity(int32 Amount)
+{
+    MaxAmmo = Amount;
+    CurrentAmmo = Amount;
+    ClientPredictedAmmo = Amount;
+
+    UpdateLocalAmmoUI();
+}
+
+void UAmmoComponent::SetAmmo(int32 Amount)
+{
+    if (GetOwner()->HasAuthority())
+    {
+        CurrentAmmo = FMath::Min(Amount, MaxAmmo);
+    }
+    ClientPredictedAmmo = FMath::Min(Amount, MaxAmmo);
 }
