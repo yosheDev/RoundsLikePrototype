@@ -87,6 +87,8 @@ void AProjectileWeapon::PrimaryFire(
 	// Schedule remaining burst shots.
 	if (CachedFireData.FireBurstAmount > 1 && GetWorld())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("FireLog: BEFORE SetTimer | Interval=%f | BurstAmount=%d"), CachedFireData.FireBurstInterval, CachedFireData.FireBurstAmount);
+
 		GetWorld()->GetTimerManager().SetTimer(
 			BurstTimerHandle,
 			this,
@@ -94,11 +96,15 @@ void AProjectileWeapon::PrimaryFire(
 			CachedFireData.FireBurstInterval,
 			true
 		);
+
+		UE_LOG(LogTemp, Warning, TEXT("FireLog: AFTER SetTimer | Active=%s | Remaining=%f"), GetWorld()->GetTimerManager().IsTimerActive(BurstTimerHandle) ? TEXT("TRUE") : TEXT("FALSE"), GetWorld()->GetTimerManager().GetTimerRemaining(BurstTimerHandle));
 	}
 }
 
 void AProjectileWeapon::ExecuteBurstShot()
 {
+	if (!GetWorld()){ return; }
+
 	FString RoleString = GetInstigator()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 	UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: ExecuteBurstShot() for Weapon [%s]"), *RoleString, IsValid(GetInstigator()) ? *GetInstigator()->GetName() : TEXT("NULL"));
 	UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: Burst: [%d] Bullets: [%d]"), *RoleString, CachedFireData.FireBurstAmount, CachedFireData.FireBulletAmount);
@@ -108,7 +114,6 @@ void AProjectileWeapon::ExecuteBurstShot()
 	if (CurrentBurstCount >= CachedFireData.FireBurstAmount)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(BurstTimerHandle);
-		UE_LOG(LogTemp, Log, TEXT("Burst Fire Timer Cancelled by Burst being completed."));
 		return;
 	}
 
@@ -145,10 +150,14 @@ void AProjectileWeapon::ExecuteBurstShot()
 	}
 
 	CurrentBurstCount++;
+	UE_LOG(LogTemp, Warning, TEXT("FireLog: Burst progress %d / %d"), CurrentBurstCount, CachedFireData.FireBurstAmount);
 
 	if (CurrentBurstCount >= CachedFireData.FireBurstAmount)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(BurstTimerHandle);
+
+		// Inform ability that BurstFire has completed.
+		OnBurstComplete.Broadcast();
 		UE_LOG(LogTemp, Log, TEXT("Burst Fire Timer Cancelled by Burst being completed."));
 	}
 }

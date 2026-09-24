@@ -13,6 +13,7 @@
 #include "ProjectileWeapon.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPrimaryFireDelegate);
+DECLARE_MULTICAST_DELEGATE(FOnBurstComplete);
 
 UCLASS()
 class ROUNDSLIKEPROTOTYPE_API AProjectileWeapon : public AActor, public IWeapon
@@ -103,4 +104,6 @@ protected:
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnPrimaryFireDelegate OnPrimaryFire;
+
+	FOnBurstComplete OnBurstComplete;
 };

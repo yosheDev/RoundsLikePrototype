@@ -30,6 +30,12 @@ private:
 
     const UGunplayAttributeSet* Attributes;
 
+    // Keeps track of when ability wants to end after a burst.
+    bool bStopAfterBurst = false;
+
+    // Helps prevent scheduling conflicts.
+    bool bBurstComplete = false;
+
 protected:
 
     virtual void ActivateAbility(
@@ -56,4 +62,10 @@ private:
     bool CanFire() const;
 
     FFireData MakeFireData();
+
+public:
+
+    void StopFiring();
+
+    void OnBurstComplete();
 };

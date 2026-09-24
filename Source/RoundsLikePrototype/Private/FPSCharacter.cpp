@@ -10,6 +10,7 @@
 #include "Weapons/FirstPerson/FirstPersonWeapon.h"
 #include "Weapons/AmmoComponent.h"
 #include "Weapons/IWeaponHolder.h"
+#include "Abilities/Weapons/GA_PrimaryFire.h"
 #pragma endregion
 
 #pragma region Unreal Includes
@@ -234,13 +235,17 @@ void AFPSCharacter::PrimaryFireTriggered()
 
 void AFPSCharacter::PrimaryFireCompleted()
 {
-	// Burst fire will not end until ability itself ends. Forces player to fire out all of the bullets.
-	if (static_cast<EWeaponFireType>(GunplayAttributes->GetWeaponFireType()) == EWeaponFireType::Burst)
-	{
-		return;
-	}
+	if (!FPSAbilitySystemComponent){ return; }
 
-	FPSAbilitySystemComponent->CancelAbilityHandle(PrimaryFireAbilityHandle);
+	FGameplayAbilitySpec* Spec = FPSAbilitySystemComponent->FindAbilitySpecFromHandle(PrimaryFireAbilityHandle);
+
+	if (!Spec || !Spec->IsActive()){ return; }
+
+	UGA_PrimaryFire* PrimaryFireAbility = Cast<UGA_PrimaryFire>(Spec->GetPrimaryInstance());
+
+	if (!PrimaryFireAbility){ return; }
+
+	PrimaryFireAbility->StopFiring();
 }
 
 #pragma endregion

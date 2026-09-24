@@ -74,6 +74,10 @@ void UGA_PrimaryFire::ActivateAbility(
         GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("%s Ammo: %d"), *RoleString, AmmoComponent->CurrentAmmo));
         #pragma endregion
 
+        Weapon->OnBurstComplete.AddUObject(this, &UGA_PrimaryFire::OnBurstComplete);
+        bStopAfterBurst = false;
+        bBurstComplete = false;
+
         // This allows users to shoot fast while spam clicking, but not faster than bare minimum .1f.
         double CurrentTime = GetWorld()->GetTimeSeconds();
         if (CurrentTime < (LastFireTime + .1f))
@@ -100,7 +104,11 @@ void UGA_PrimaryFire::ActivateAbility(
 
         FireShot();
 
-        ScheduleNextShot();
+        const EWeaponFireType FireType = static_cast<EWeaponFireType>(Attributes->GetWeaponFireType());
+        if (FireType != EWeaponFireType::Burst)
+        {
+            ScheduleNextShot();
+        }
 
         RoleString = Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
         UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: End of Primary Fire Ability. Weapon is [%s]"), *RoleString, Weapon ? *Weapon->GetName() : TEXT("NULL"));
@@ -116,6 +124,22 @@ void UGA_PrimaryFire::EndAbility(
     bool bReplicateEndAbility, 
     bool bWasCancelled)
 {
+    #pragma region Unbind Delegates
+    if (CurrentActorInfo)
+    {
+        if (AActor* Avatar = CurrentActorInfo->AvatarActor.Get())
+        {
+            if (Avatar->Implements<UWeaponHolder>())
+            {
+                if (AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar))
+                {
+                    Weapon->OnBurstComplete.RemoveAll(this);
+                }
+            }
+        }
+    }
+    #pragma endregion
+
     if (UWorld* World = GetWorld())
     {
         World->GetTimerManager().ClearTimer(FireTimerHandle);
@@ -162,6 +186,14 @@ void UGA_PrimaryFire::ScheduleNextShot()
     }
     if (!AmmoComponent->HasAmmo())
     {
+        EndAbility(
+            CurrentSpecHandle,
+            CurrentActorInfo,
+            CurrentActivationInfo,
+            true,
+            false
+        );
+
         return;
     }
 
@@ -222,6 +254,8 @@ void UGA_PrimaryFire::FireShot()
     LastFireTime = GetWorld()->GetTimeSeconds();
     NextFireTime = LastFireTime + GetFireInterval();
 
+    bBurstComplete = false;
+
     #pragma region Activate Primary Fire
     APlayerController* PC = CurrentActorInfo->PlayerController.Get();
     FVector AimLocation = PC->PlayerCameraManager->GetCameraLocation();
@@ -237,7 +271,7 @@ void UGA_PrimaryFire::FireShot()
     FFireData FireData = MakeFireData();
 
     Weapon->PrimaryFire(CurrentSpecHandle, CurrentActivationInfo, SpawnData, FireData);
-  
+
     #pragma region TryActivate BulletJump
     // TryActivate BulletJump Ability. Ability will handle whether or not activates based on grounded state.
 
@@ -256,6 +290,68 @@ void UGA_PrimaryFire::FireShot()
     }
     #pragma endregion
     #pragma endregion
+
+    #pragma region Schedule Next Shot (if not a burst weapon)
+    const EWeaponFireType FireType = static_cast<EWeaponFireType>(Attributes->GetWeaponFireType());
+
+    if (FireType != EWeaponFireType::Burst)
+    {
+        ScheduleNextShot();
+    }
+    #pragma endregion
+}
+
+void UGA_PrimaryFire::StopFiring()
+{
+    const EWeaponFireType FireType = static_cast<EWeaponFireType>(Attributes->GetWeaponFireType());
+
+    if (FireType == EWeaponFireType::Burst)
+    {
+        if (bBurstComplete)
+        {
+            // The current burst has already finished,
+            // so releasing fire means we're done.
+            EndAbility(
+                CurrentSpecHandle,
+                CurrentActorInfo,
+                CurrentActivationInfo,
+                true,
+                false
+            );
+        }
+        else
+        {
+            // Current burst is still running.
+            // Let it finish, then OnBurstComplete() will end us.
+            bStopAfterBurst = true;
+        }
+        return;
+    }
+
+    EndAbility(
+        CurrentSpecHandle,
+        CurrentActorInfo,
+        CurrentActivationInfo,
+        true,
+        false
+    );
+}
+
+void UGA_PrimaryFire::OnBurstComplete()
+{
+    UE_LOG(LogTemp, Warning, TEXT("FireLog: OnBurstComplete | StopAfterBurst=%s"), bStopAfterBurst ? TEXT("TRUE") : TEXT("FALSE"));
+    if (bStopAfterBurst)
+    {
+        EndAbility(
+            CurrentSpecHandle,
+            CurrentActorInfo,
+            CurrentActivationInfo,
+            true,
+            false
+        );
+
+        return;
+    }
 
     ScheduleNextShot();
 }
