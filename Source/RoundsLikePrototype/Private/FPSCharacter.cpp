@@ -277,6 +277,7 @@ void AFPSCharacter::CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileW
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->SyncGunplayAttributes();
+		SyncAttributes();
 	}
 
 	ForceNetUpdate();
@@ -421,6 +422,7 @@ void AFPSCharacter::InitializeAbilitySystem()
 			if (CurrentWeapon)
 			{
 				CurrentWeapon->SyncGunplayAttributes();
+				SyncAttributes();
 			}
 
 			// Initialize Predicted Health
@@ -616,7 +618,40 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 	}
 }
 
+void AFPSCharacter::SyncAttributes()
+{
+	// TO DO: Update this to match Attribute associated with max bullet jumps. Eventaullly, strip out the need for a MaxBulletJumps member of this class.
+	BulletJumps = MaxBulletJumps;
+}
 #pragma endregion
+
+#pragma region Abilities
+
+#pragma region Bullet Jump
+void AFPSCharacter::ConsumeBulletJump()
+{
+	BulletJumps = FMath::Max(0, BulletJumps - 1);
+}
+
+void AFPSCharacter::RefreshBulletJumps(int32 Amount)
+{
+	BulletJumps = FMath::Min(MaxBulletJumps, BulletJumps + Amount);
+}
+
+int32 AFPSCharacter::GetBulletJumpsRemaining()
+{
+	return BulletJumps;
+}
+#pragma endregion
+
+#pragma endregion
+
+void AFPSCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	BulletJumps = MaxBulletJumps;
+}
 
 // Multicast RPC called from server when server knows damage is taken. Used for predictions.
 void AFPSCharacter::MulticastDamageTaken_Implementation(float Damage)

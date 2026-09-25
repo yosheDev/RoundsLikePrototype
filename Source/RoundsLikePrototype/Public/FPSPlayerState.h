@@ -28,10 +28,15 @@ public:
 	TArray<FGameplayTag> AccruedAbilities;
 
 	/*   Do this when you need the definition from the AccruedAbility
-	
+
 	UAbilityDefinition* Definition = AbilityDefinitions::Find(AccruedAbilities[i].AbilityTag); (or instead of tag use the ID)
 
 	*/
+
+	// Returns FGameplayTagContainer of all granted abilities.
+	UFUNCTION()
+	FGameplayTagContainer GetOwnedAbilityTags();
+
 
 	UPROPERTY()
 	TObjectPtr<UVitalityAttributeSet> VitalityAttributeSet;

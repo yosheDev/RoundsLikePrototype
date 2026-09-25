@@ -365,17 +365,18 @@ void AFPSGameMode::GenerateAbilityChoices()
 
 	if (!AbilityPool) { return; }
 
-	FPSGameState->EconomyComponent->CurrentAbilityOffers = AbilityPool->GetAbilityOffers();
+	FAbilityPoolContext Context;
 
-	UE_LOG(LogTemp, Warning,
-		TEXT("Generated %d ability offers on SERVER"),
-		FPSGameState->EconomyComponent->CurrentAbilityOffers.Num());
+	Context.OwnedAbilities = FPSGameState->CurrentLoserState->GetOwnedAbilityTags();
+	Context.OfferCount = 5;
+
+	FPSGameState->EconomyComponent->CurrentAbilityOffers = AbilityPool->GetAbilityOffers(Context);
+
+	UE_LOG(LogTemp, Warning, TEXT("Generated %d ability offers on SERVER"), FPSGameState->EconomyComponent->CurrentAbilityOffers.Num());
 
 	for (const FPrimaryAssetId& ID : FPSGameState->EconomyComponent->CurrentAbilityOffers)
 	{
-		UE_LOG(LogTemp, Warning,
-			TEXT("  Offer: %s"),
-			*ID.ToString());
+		UE_LOG(LogTemp, Warning, TEXT("  Offer: %s"), *ID.ToString());
 	}
 }
 

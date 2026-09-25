@@ -85,6 +85,24 @@ private:
 	// SpecHandles for caching commonly used abilities to avoid constant lookup. Makes activating them O(1)
 	FGameplayAbilitySpecHandle JumpAbilityHandle;
 	FGameplayAbilitySpecHandle PrimaryFireAbilityHandle;
+
+#pragma region Bullet Jump
+private:
+	int32 MaxBulletJumps = 1;
+public:
+
+	UPROPERTY(BlueprintReadWrite, Category = "GAS|Abilities")
+	int32 BulletJumps = 0;
+
+	// Decrements bullet jump.
+	UFUNCTION()
+	void ConsumeBulletJump();
+
+	// Refreshes x amount of bullet jumps.
+	void RefreshBulletJumps(int32 Amount);
+
+	int32 GetBulletJumpsRemaining();
+#pragma endregion
 #pragma endregion
 
 #pragma region Weapons
@@ -148,11 +166,15 @@ protected:
 	float PredictedHealth;
 
 protected:
+	// Update any local variables to be updated if need be for start of match here.
+	void SyncAttributes();
+
 	void InitializeMovementFromAttributes();
 	void InitializeVitalityFromAttributes();
 	void OnHealthChanged(const FOnAttributeChangeData& Data);
 	void OnMaxHealthChanged(const FOnAttributeChangeData& Data);
 	void OnMaxSpeedChanged(const FOnAttributeChangeData& Data);
+	
 
 public:
 
@@ -175,6 +197,8 @@ protected:
 public:
 
 	AFPSCharacter();
+
+	virtual void Landed(const FHitResult& Hit) override;
 
 protected:
 

@@ -363,6 +363,26 @@ void AFPSPlayerState::Server_AddAccruedAbility_Implementation(FGameplayTag Abili
 	AccruedAbilities.AddUnique(AbilityTag);
 }
 
+FGameplayTagContainer AFPSPlayerState::GetOwnedAbilityTags()
+{
+	FGameplayTagContainer AllAbilityTags;
+
+	if (FPSAbilitySystemComponent)
+	{
+		const TArray<FGameplayAbilitySpec>& AbilitySpecs = FPSAbilitySystemComponent->GetActivatableAbilities();
+
+		for (const FGameplayAbilitySpec& Spec : AbilitySpecs)
+		{
+			if (Spec.Ability)
+			{
+				AllAbilityTags.AppendTags(Spec.Ability->GetAssetTags());
+			}
+		}
+	}
+
+	return AllAbilityTags;
+}
+
 #pragma region Drafting UI Allocation Interfacing
 void AFPSPlayerState::Server_RequestAllocateBottlecaps_Implementation(uint8 Amount, int32 WidgetID, const TArray<FBottlecapReturnLocation>& AllocationLocations)
 {

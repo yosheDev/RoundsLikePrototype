@@ -27,8 +27,13 @@ void UGA_BulletJump::ActivateAbility(
         return;
     }
 
-    ExecuteBulletJump();
-
+    AFPSCharacter* Character = Cast<AFPSCharacter>(CurrentActorInfo->AvatarActor.Get());
+    if (Character->GetBulletJumpsRemaining() > 0)
+    {
+        ExecuteBulletJump();
+        Character->ConsumeBulletJump();
+    }
+    
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
@@ -46,7 +51,8 @@ void UGA_BulletJump::EndAbility(
 
 void UGA_BulletJump::ExecuteBulletJump_Implementation()
 {
-    // Use . instead of -> because ActorInfo is now a reference
+    // Overridden in Blueprint
+
     AFPSCharacter* Character = Cast<AFPSCharacter>(CurrentActorInfo->AvatarActor.Get());
 
     if (!Character)
