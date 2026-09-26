@@ -64,4 +64,6 @@ protected:
 	FPrimaryAssetId RandomAbilityOfRarity(EAbilityRarity Rarity, const TArray<FPrimaryAssetId>& EligibleAbilities) const;
 
 	FPrimaryAssetId SelectFallbackAbility(const TArray<FPrimaryAssetId>& EligibleAbilities) const;
+
+	void OnAbilityDefinitionsLoaded();
 };

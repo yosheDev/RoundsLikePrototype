@@ -6,12 +6,37 @@
 #include "Engine/AssetManager.h"
 #include "Engine/StreamableManager.h"
 #include "UObject/PrimaryAssetId.h"
+#include "Algo/Unique.h"
 
 void UAbilityPoolSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
 
     RefreshAbilityDefinitions();
+
+    if (AbilityIDs.Num() > 0)
+    {
+        UAssetManager::Get().LoadPrimaryAssets(
+            AbilityIDs,
+            {},
+            FStreamableDelegate::CreateUObject(
+                this,
+                &UAbilityPoolSubsystem::OnAbilityDefinitionsLoaded
+            )
+        );
+    }
+}
+
+void UAbilityPoolSubsystem::OnAbilityDefinitionsLoaded()
+{
+    UE_LOG(LogTemp, Warning, TEXT("Ability Pool: All AbilityDefinitions loaded."));
+
+    for (const FPrimaryAssetId& AbilityID : AbilityIDs)
+    {
+        const UAbilityDefinition* Definition = UAssetManager::Get().GetPrimaryAssetObject<UAbilityDefinition>(AbilityID);
+
+        UE_LOG(LogTemp, Warning, TEXT("Ability Pool: Loaded [%s] -> %s"), *AbilityID.ToString(), Definition ? *Definition->GetName() : TEXT("NULL"));
+    }
 }
 
 void UAbilityPoolSubsystem::RefreshAbilityDefinitions()
@@ -24,6 +49,35 @@ void UAbilityPoolSubsystem::RefreshAbilityDefinitions()
         FPrimaryAssetType(TEXT("AbilityDefinition")),
         AbilityIDs
     );
+
+    // Ensure AbilityDefinition assets have been scanned.
+    AssetManager.ScanPathsForPrimaryAssets(
+        FPrimaryAssetType(TEXT("AbilityDefinition")),
+        { TEXT("/Game/Abilities/Data") },
+        UAbilityDefinition::StaticClass(),
+        false,
+        false,
+        true
+    );
+
+    AssetManager.GetPrimaryAssetIdList(
+        FPrimaryAssetType(TEXT("AbilityDefinition")),
+        AbilityIDs
+    );
+
+    AbilityIDs.SetNum(Algo::Unique(AbilityIDs));
+
+    UE_LOG(LogTemp, Warning, TEXT("Ability Pool: Found %d AbilityDefinitions"), AbilityIDs.Num());
+
+    for (const FPrimaryAssetId& AbilityID : AbilityIDs)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("Ability Pool: Found [%s]"),
+            *AbilityID.ToString()
+        );
+    }
 }
 
 TArray<FPrimaryAssetId> UAbilityPoolSubsystem::GetAbilityOffers(const FAbilityPoolContext& Context)
@@ -80,6 +134,13 @@ TArray<FPrimaryAssetId> UAbilityPoolSubsystem::GetAbilityOffers(const FAbilityPo
 
 TArray<FPrimaryAssetId> UAbilityPoolSubsystem::GetEligibleSkills(const FAbilityPoolContext& Context)
 {
+    UE_LOG(LogTemp, Warning, TEXT("Ability Pool: Player owned abilities:"));
+
+    for (const FGameplayTag& OwnedTag : Context.OwnedAbilities)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("  Owned: [%s]"), *OwnedTag.ToString());
+    }
+
     TArray<FPrimaryAssetId> EligibleSkills;
 
     for (const FPrimaryAssetId& AbilityID : AbilityIDs)

@@ -370,6 +370,11 @@ void AFPSGameMode::GenerateAbilityChoices()
 	Context.OwnedAbilities = FPSGameState->CurrentLoserState->GetOwnedAbilityTags();
 	Context.OfferCount = 5;
 
+	for (const FGameplayTag& AbilityTag : FPSGameState->CurrentLoserState->AccruedAbilities)
+	{
+		Context.OwnedAbilities.AddTag(AbilityTag);
+	}
+
 	FPSGameState->EconomyComponent->CurrentAbilityOffers = AbilityPool->GetAbilityOffers(Context);
 
 	UE_LOG(LogTemp, Warning, TEXT("Generated %d ability offers on SERVER"), FPSGameState->EconomyComponent->CurrentAbilityOffers.Num());
