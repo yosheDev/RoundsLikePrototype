@@ -29,9 +29,6 @@ void UAbilityCard::NativeConstruct()
         SelectAbilityButton->OnClicked.AddDynamic(this, &UAbilityCard::SelectAbility);
     }
 
-    AbilityName->SetText(AbilityDataAsset->Name);
-    AbilityDesc->SetText(AbilityDataAsset->Description);
-
     // Bind AllocationSucceeded Delegate
     if (AFPSPlayerState* PS = GetOwningPlayer()->GetPlayerState<AFPSPlayerState>())
     {
@@ -49,6 +46,14 @@ int32 UAbilityCard::GetWidgetID_Implementation()
 void UAbilityCard::SetWidgetID_Implementation(int32 NewID)
 {
     WidgetID = NewID;
+}
+
+void UAbilityCard::InitializeCard(UAbilityDefinition* NewDataAsset)
+{
+    AbilityDataAsset = NewDataAsset;
+
+    AbilityName->SetText(AbilityDataAsset->Name);
+    AbilityDesc->SetText(AbilityDataAsset->Description);
 }
 
 void UAbilityCard::SelectAbility()

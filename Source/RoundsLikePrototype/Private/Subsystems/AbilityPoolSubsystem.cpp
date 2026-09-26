@@ -36,24 +36,28 @@ TArray<FPrimaryAssetId> UAbilityPoolSubsystem::GetAbilityOffers(const FAbilityPo
     
     for (int32 i = 0; i < 5; ++i)
     {
-        if (EligibleAbilities.Num() == 0){ break; }
+        FPrimaryAssetId Selected = FPrimaryAssetId();
 
-        // Determine which rarities can currently produce an ability.
-        const TArray<EAbilityRarity> AvailableRarities = GetAvailableRarities(EligibleAbilities);
-        UE_LOG(LogTemp, Error, TEXT("Ability Pool: Available rarities are:"));
-        for (EAbilityRarity Rarity : AvailableRarities)
+        if (EligibleAbilities.Num() > 0)
         {
-            UE_LOG(LogTemp, Error, TEXT("Ability Pool: Available rarity: [%s]"), *UEnum::GetValueAsString(Rarity));
+            // Determine which rarities can currently produce an ability.
+            const TArray<EAbilityRarity> AvailableRarities = GetAvailableRarities(EligibleAbilities);
+            UE_LOG(LogTemp, Error, TEXT("Ability Pool: Available rarities are:"));
+            for (EAbilityRarity Rarity : AvailableRarities)
+            {
+                UE_LOG(LogTemp, Error, TEXT("Ability Pool: Available rarity: [%s]"), *UEnum::GetValueAsString(Rarity));
+            }
+
+            // Determine which rarity the skill selected will belong to.
+            EAbilityRarity Rarity = RollAbilityRarity(AvailableRarities);
+            UE_LOG(LogTemp, Error, TEXT("Ability Pool: Rarity to select from: [%s]"), *UEnum::GetValueAsString(Rarity));
+
+            // Determing the skill that will be offered.
+            Selected = RandomAbilityOfRarity(Rarity, EligibleAbilities);
+            UE_LOG(LogTemp, Error, TEXT("Ability Pool: Skill selected is: [%s]"), *Selected.ToString());
         }
 
-        // Determine which rarity the skill selected will belong to.
-        EAbilityRarity Rarity = RollAbilityRarity(AvailableRarities);
-        UE_LOG(LogTemp, Error, TEXT("Ability Pool: Rarity to select from: [%s]"), *UEnum::GetValueAsString(Rarity));
-
-        // Determing the skill that will be offered.
-        FPrimaryAssetId Selected = RandomAbilityOfRarity(Rarity, EligibleAbilities);
-        UE_LOG(LogTemp, Error, TEXT("Ability Pool: Skill selected is: [%s]"), *Selected.ToString());
-
+        // Select fallback abilities if previous methods fail.
         if (!Selected.IsValid())
         {
             Selected = SelectFallbackAbility(EligibleAbilities);

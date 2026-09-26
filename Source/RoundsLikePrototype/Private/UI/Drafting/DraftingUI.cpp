@@ -103,7 +103,7 @@ void UDraftingUI::RefreshAbilityCards()
                     break;
                 }
 
-                Card->AbilityDataAsset = Definitions[CardIndex];
+                Card->InitializeCard(Definitions[CardIndex]);
 
                 // Assign Widget ID safely using the Unreal Engine Execute system
                 if (Card && Card->GetClass()->ImplementsInterface(UAllocationWidgetIDInterface::StaticClass()))

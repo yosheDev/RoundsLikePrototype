@@ -21,6 +21,9 @@ class ROUNDSLIKEPROTOTYPE_API UAbilityCard : public UUserWidget, public IAllocat
 
 public:
 
+	// Initializes card display to match the AbilityDataAsset assigned.
+	void InitializeCard(UAbilityDefinition* NewDataAsset);
+
 	void GiveAbilityToPlayer();
 
 	virtual int32 GetWidgetID_Implementation() override;
@@ -37,7 +40,7 @@ protected:
 
 public:
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"))
 	TObjectPtr<UAbilityDefinition> AbilityDataAsset;
 
 protected:
