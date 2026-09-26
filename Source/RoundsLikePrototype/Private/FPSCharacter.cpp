@@ -132,11 +132,7 @@ void AFPSCharacter::OnRep_CurrentWeapon()
 		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
 		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));
 
-	// Sync GunplayAttributes
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->SyncGunplayAttributes();
-	}
+	SyncGunplayAttributes();
 
 	// Server does this in CreateAndEquipWeapon instead of here.
 	SpawnFirstPersonWeapon();
@@ -311,6 +307,14 @@ AProjectileWeapon* AFPSCharacter::GetEquippedWeapon_Implementation() const
 }
 #pragma endregion
 
+void AFPSCharacter::SyncGunplayAttributes()
+{
+	// Sync GunplayAttributes
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SyncGunplayAttributes();
+	}
+}
 #pragma endregion
 
 #pragma region RandomCrapToCleanUp
@@ -418,12 +422,7 @@ void AFPSCharacter::InitializeAbilitySystem()
 			MovementAttributes = FPSAbilitySystemComponent->GetSet<UMovementAttributeSet>();
 			GunplayAttributes = FPSAbilitySystemComponent->GetSet<UGunplayAttributeSet>();
 			
-			// Sync GunplayAttributes
-			if (CurrentWeapon)
-			{
-				CurrentWeapon->SyncGunplayAttributes();
-				SyncAttributes();
-			}
+			SyncGunplayAttributes();
 
 			// Initialize Predicted Health
 			PredictedHealth = VitalityAttributes->GetHealth();

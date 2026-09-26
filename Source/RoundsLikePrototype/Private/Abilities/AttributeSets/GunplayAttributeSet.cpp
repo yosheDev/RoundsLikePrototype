@@ -18,18 +18,20 @@ void UGunplayAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(UGunplayAttributeSet, BulletJumpFactor);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSpeed);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSize);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletArc);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletGravity);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletCritChance);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletLifestealAmount);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletType);
 
 	DOREPLIFETIME(UGunplayAttributeSet, WeaponFireType);
-	DOREPLIFETIME(UGunplayAttributeSet, BulletArc);
+	DOREPLIFETIME(UGunplayAttributeSet, ClipCapacity);
+	DOREPLIFETIME(UGunplayAttributeSet, AutoFireRate);
 	DOREPLIFETIME(UGunplayAttributeSet, FireShotAmount);
 	DOREPLIFETIME(UGunplayAttributeSet, FireBurstAmount);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletRegen);
 	DOREPLIFETIME(UGunplayAttributeSet, BurstFireRate);
-	DOREPLIFETIME(UGunplayAttributeSet, AutoFireRate);
-	DOREPLIFETIME(UGunplayAttributeSet, ClipCapacity);
+	DOREPLIFETIME(UGunplayAttributeSet, FireSpreadXAngle);
+	DOREPLIFETIME(UGunplayAttributeSet, FireSpreadZAngle);
 	DOREPLIFETIME(UGunplayAttributeSet, RecoilFactor);
 }

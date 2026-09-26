@@ -3,6 +3,7 @@
 
 #include "FPSPlayerState.h"
 #include "FPSGameState.h"
+#include "FPSCharacter.h"
 #include "FPSHudController.h"
 #include "Components/FPSAbilitySystemComponent.h"
 #include "Engine/DataTable.h"
@@ -281,46 +282,101 @@ void AFPSPlayerState::ReapplyAbilitiesAfterTravel()
 	// Force a scan of all AbilityDefinitions. Done since this is called immediately after travel, when AssetManager is not guarenteed to have scanned yet.
 	AbilityDefinitions::Scan();
 
+	// Get all ability IDs
+	TArray<FPrimaryAssetId> AbilityIDs;
 	for (const FGameplayTag& AbilityTag : AccruedAbilities)
 	{
-		AbilityDefinitions::Find(AbilityTag, [this, AbilityTag](UAbilityDefinition* Definition)
+		if (!AbilityTag.IsValid())
 		{
-			if (!Definition)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("ReapplyAbilitiesAfterTravel: Failed to find UAbilityDefinition for tag %s! Skipping."), *AbilityTag.ToString());
-				return;
-			}
+			continue;
+		}
 
-			// Grant all abilities provided by the Ability Definition.
-			for (const TSubclassOf<UGameplayAbility>& AbilityClass : Definition->GASAbilities)
+		AbilityIDs.Add(FPrimaryAssetId(FPrimaryAssetType(TEXT("AbilityDefinition")),AbilityTag.GetTagName()));
+	}
+	if (AbilityIDs.Num() == 0){ return; }
+
+	TWeakObjectPtr<AFPSPlayerState> WeakThis(this);
+
+	AbilityDefinitions::Load(
+		AbilityIDs,
+		[WeakThis](const TArray<UAbilityDefinition*>& Definitions)
+		{
+			const FGameplayTag WeaponTypeTag = FGameplayTag::RequestGameplayTag(TEXT("GameplayAbility.Weapon.WeaponType"));
+
+			AFPSPlayerState* PlayerState = WeakThis.Get();
+
+			if (!PlayerState || !PlayerState->FPSAbilitySystemComponent){ return; }
+
+			TArray<UAbilityDefinition*> WeaponTypeDefinitions;	// Must be applied first as they use Override modifiers on Attributes.
+			TArray<UAbilityDefinition*> OtherDefinitions;		// Application order is arbitrary.
+
+			for (UAbilityDefinition* Definition : Definitions)
 			{
-				if (AbilityClass)
+				if (!Definition){ continue; }
+
+				if (Definition->AbilityTag.MatchesTag(WeaponTypeTag))
 				{
-					FGameplayAbilitySpec Spec(AbilityClass, 1, -1, this);
-					FPSAbilitySystemComponent->GiveAbility(Spec);
+					WeaponTypeDefinitions.Add(Definition);
+				}
+				else
+				{
+					OtherDefinitions.Add(Definition);
 				}
 			}
 
-			// Apply all effects provided by the Ability Definition.
-			for (const TSubclassOf<UGameplayEffect>& EffectClass : Definition->GASEffects)
+			// Weapon type abilities establish the baseline first.
+			for (UAbilityDefinition* Definition : WeaponTypeDefinitions)
 			{
-				UE_LOG(LogTemp, Log, TEXT("TRAVEL - Reapplying effect: [%s]"), *GetNameSafe(EffectClass));
-
-				if (EffectClass)
-				{
-					FGameplayEffectContextHandle EffectContext = FPSAbilitySystemComponent->MakeEffectContext();
-
-					EffectContext.AddSourceObject(this);
-
-					FGameplayEffectSpecHandle NewSpecHandle = FPSAbilitySystemComponent->MakeOutgoingSpec(EffectClass, 1, EffectContext);
-
-					if (NewSpecHandle.IsValid())
-					{
-						FPSAbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*NewSpecHandle.Data.Get());
-					}
-				}
+				PlayerState->ApplyAbilityDefinition(Definition);
 			}
-		});
+
+			// All other abilities modify the baseline afterward.
+			for (UAbilityDefinition* Definition : OtherDefinitions)
+			{
+				PlayerState->ApplyAbilityDefinition(Definition);
+			}
+
+			// Reinit attributes for pawn?
+			AFPSCharacter* Character = Cast<AFPSCharacter>(PlayerState->GetPawn());
+
+			if (Character)
+			{
+				Character->SyncGunplayAttributes();
+			}
+		}
+	);
+}
+
+void AFPSPlayerState::ApplyAbilityDefinition(UAbilityDefinition* Definition)
+{
+	// Grant all abilities provided by the Ability Definition.
+	for (const TSubclassOf<UGameplayAbility>& AbilityClass : Definition->GASAbilities)
+	{
+		if (AbilityClass)
+		{
+			FGameplayAbilitySpec Spec(AbilityClass, 1, -1, this);
+			FPSAbilitySystemComponent->GiveAbility(Spec);
+		}
+	}
+
+	// Apply all effects provided by the Ability Definition.
+	for (const TSubclassOf<UGameplayEffect>& EffectClass : Definition->GASEffects)
+	{
+		UE_LOG(LogTemp, Log, TEXT("TRAVEL - Reapplying effect: [%s]"), *GetNameSafe(EffectClass));
+
+		if (EffectClass)
+		{
+			FGameplayEffectContextHandle EffectContext = FPSAbilitySystemComponent->MakeEffectContext();
+
+			EffectContext.AddSourceObject(this);
+
+			FGameplayEffectSpecHandle NewSpecHandle = FPSAbilitySystemComponent->MakeOutgoingSpec(EffectClass, 1, EffectContext);
+
+			if (NewSpecHandle.IsValid())
+			{
+				FPSAbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*NewSpecHandle.Data.Get());
+			}
+		}
 	}
 }
 

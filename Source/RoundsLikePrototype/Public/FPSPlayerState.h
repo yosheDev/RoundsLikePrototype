@@ -9,6 +9,7 @@
 #include "Abilities/AttributeSets/MovementAttributeSet.h"
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "GameplayTagContainer.h"
+#include "Abilities/AbilityDefinition.h"
 #include "Engine/DataTable.h"
 #include "Net/UnrealNetwork.h"
 #include "FPSPlayerState.generated.h"
@@ -80,6 +81,8 @@ public:
 
 	// Reapplied abilities after travel session.
 	void ReapplyAbilitiesAfterTravel();
+
+	void ApplyAbilityDefinition(UAbilityDefinition* Definition);
 
 	virtual void PostInitializeComponents() override;
 

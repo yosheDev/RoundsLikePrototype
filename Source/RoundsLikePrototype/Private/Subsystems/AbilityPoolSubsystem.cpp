@@ -88,8 +88,11 @@ TArray<FPrimaryAssetId> UAbilityPoolSubsystem::GetEligibleSkills(const FAbilityP
 
         if (!Definition){ continue; }
 
+        // If this definition is NOT meant to ever appear in skill selection.
+        if (Definition->bNeverAppearInSelection) { continue; }
+
         // Player already owns this ability and it is limited to only one per player.
-        if (Definition->bOnlyOnePerPlayer && Context.OwnedAbilities.HasTag(Definition->AbilityTag)){ continue; }
+        if (Definition->bOnlyOnePerPlayer && Context.OwnedAbilities.HasTag(Definition->AbilityTag)){ UE_LOG(LogTemp, Error, TEXT("Ability Pool: [%s] is excluded. Set to one per player and player already has it."), *AbilityID.ToString());  continue; }
 
         // Player does not have all required dependencies.
         if (!Context.OwnedAbilities.HasAll(Definition->DependencyAbilities)){ continue; }

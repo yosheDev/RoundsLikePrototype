@@ -126,6 +126,9 @@ public:
 	UFUNCTION()
 	void OnRep_CurrentWeapon();
 
+	UFUNCTION()
+	void SyncGunplayAttributes();
+
 protected:
 
 	/** Name of the first person mesh weapon socket */

@@ -113,8 +113,6 @@ void UGA_PrimaryFire::ActivateAbility(
         RoleString = Avatar->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
         UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: End of Primary Fire Ability. Weapon is [%s]"), *RoleString, Weapon ? *Weapon->GetName() : TEXT("NULL"));
     }
-
-    //EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
 void UGA_PrimaryFire::EndAbility(
@@ -408,8 +406,8 @@ FFireData UGA_PrimaryFire::MakeFireData()
         FireData.FireBurstAmount = FMath::Min(AmmoComponent->GetCurrentAmmo(), Attributes->GetFireBurstAmount());
         FireData.FireBurstInterval = Attributes->GetBurstFireRate();
         FireData.FireBulletAmount = FMath::Min(AmmoComponent->GetCurrentAmmo(), Attributes->GetFireShotAmount());
-        FireData.FireSpreadXAngle = 0.0f;
-        FireData.FireSpreadZAngle = 0.0f;
+        FireData.FireSpreadXAngle = Attributes->GetFireSpreadXAngle();
+        FireData.FireSpreadZAngle = Attributes->GetFireSpreadZAngle();
 
         return FireData;
     }

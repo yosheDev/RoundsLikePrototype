@@ -45,6 +45,11 @@ public:
 	FGameplayAttributeData BulletSize;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletSize);
 
+	// Arc of initial fire velocity
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletArc;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletArc);
+
 	// Arc for the bullet to follow.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BulletGravity;
@@ -74,20 +79,15 @@ public:
 	FGameplayAttributeData WeaponFireType;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, WeaponFireType);
 
-	// Arc of initial fire velocity
+	// Maximum amount of bullets in each clip.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData BulletArc;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletArc);
+	FGameplayAttributeData ClipCapacity;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, ClipCapacity);
 
 	// Recoil factor per shot.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData RecoilFactor;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, RecoilFactor);
-
-	// Maximum amount of bullets in each clip.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData ClipCapacity;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, ClipCapacity);
 
 	// Amount of bullets fired for each shot.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
@@ -98,6 +98,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData FireBurstAmount;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, FireBurstAmount);
+
+	// X Angle variance for fire.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData FireSpreadXAngle;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, FireSpreadXAngle);
+
+	// Z Angle variance for fire.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData FireSpreadZAngle;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, FireSpreadZAngle);
 
 	// Regeneration rate of individual bullets for clip.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)

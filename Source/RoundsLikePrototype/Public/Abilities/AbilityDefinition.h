@@ -57,5 +57,9 @@ public:
     UPROPERTY(EditDefaultsOnly)
     bool bOnlyOnePerPlayer;
 
+    // If true, never appear in the ability selection screen.
+    UPROPERTY(EditDefaultsOnly)
+    bool bNeverAppearInSelection;
+
     virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 };
