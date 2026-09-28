@@ -152,8 +152,6 @@ void AFPSPlayerState::RestorePlayerBuildsAfterTravel()
 
 	ReapplyAbilitiesAfterTravel();
 
-	VitalityAttributeSet->SetHealth(VitalityAttributeSet->GetMaxHealth());
-
 	UE_LOG(LogTemp, Warning, TEXT("SERVER AFTER REAPPLY | Health: %f | MaxHealth: %f"), VitalityAttributeSet->GetHealth(), VitalityAttributeSet->GetMaxHealth());
 
 	SavedVitalityAttributesMap.Empty();
@@ -336,15 +334,24 @@ void AFPSPlayerState::ReapplyAbilitiesAfterTravel()
 				PlayerState->ApplyAbilityDefinition(Definition);
 			}
 
-			// Reinit attributes for pawn?
-			AFPSCharacter* Character = Cast<AFPSCharacter>(PlayerState->GetPawn());
-
-			if (Character)
-			{
-				Character->SyncGunplayAttributes();
-			}
+			// Now that everything is loaded, sync all character data.
+			PlayerState->SyncCharacterData();
 		}
 	);
+}
+
+void AFPSPlayerState::SyncCharacterData()
+{
+	// Try to move this into SyncAttributes when I can.
+
+	VitalityAttributeSet->SetHealth(VitalityAttributeSet->GetMaxHealth());
+
+	AFPSCharacter* Character = Cast<AFPSCharacter>(GetPawn());
+
+	if (Character)
+	{
+		Character->SyncAttributes();
+	}
 }
 
 void AFPSPlayerState::ApplyAbilityDefinition(UAbilityDefinition* Definition)

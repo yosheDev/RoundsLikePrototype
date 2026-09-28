@@ -126,9 +126,6 @@ public:
 	UFUNCTION()
 	void OnRep_CurrentWeapon();
 
-	UFUNCTION()
-	void SyncGunplayAttributes();
-
 protected:
 
 	/** Name of the first person mesh weapon socket */
@@ -168,12 +165,17 @@ protected:
 	UPROPERTY()
 	float PredictedHealth;
 
-protected:
+public:
 	// Update any local variables to be updated if need be for start of match here.
 	void SyncAttributes();
+protected:
+	UFUNCTION()
+	void SyncMovementAttributes();
+	UFUNCTION()
+	void SyncVitalityAttributes();
+	UFUNCTION()
+	void SyncGunplayAttributes();
 
-	void InitializeMovementFromAttributes();
-	void InitializeVitalityFromAttributes();
 	void OnHealthChanged(const FOnAttributeChangeData& Data);
 	void OnMaxHealthChanged(const FOnAttributeChangeData& Data);
 	void OnMaxSpeedChanged(const FOnAttributeChangeData& Data);

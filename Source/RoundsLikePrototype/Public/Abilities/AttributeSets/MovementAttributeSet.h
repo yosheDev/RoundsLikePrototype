@@ -22,7 +22,7 @@ class ROUNDSLIKEPROTOTYPE_API UMovementAttributeSet : public UAttributeSet
 	
 public:
 	// Max movement speed
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_MaxSpeed)
 	FGameplayAttributeData MaxSpeed;
 	ATTRIBUTE_ACCESSORS(UMovementAttributeSet, MaxSpeed);
 
@@ -46,6 +46,11 @@ public:
 	FGameplayAttributeData CrouchedHalfHeight;
 	ATTRIBUTE_ACCESSORS(UMovementAttributeSet, CrouchedHalfHeight);
 
+#pragma region OnRep Functions
+protected:
+	UFUNCTION()
+	void OnRep_MaxSpeed(const FGameplayAttributeData& OldMaxSpeed);
+#pragma endregion
 //WallRunningInit : Initiation of wallrunning. (Workshop the name ? )
 //DashingInit : Initiation of dashing. (Workshop the name ? )
 //BulletJumpInit : Initiation of bullet jumping.

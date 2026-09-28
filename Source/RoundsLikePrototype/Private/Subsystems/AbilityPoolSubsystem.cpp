@@ -138,7 +138,7 @@ TArray<FPrimaryAssetId> UAbilityPoolSubsystem::GetEligibleSkills(const FAbilityP
 
     for (const FGameplayTag& OwnedTag : Context.OwnedAbilities)
     {
-        UE_LOG(LogTemp, Warning, TEXT("  Owned: [%s]"), *OwnedTag.ToString());
+        UE_LOG(LogTemp, Warning, TEXT(" Owned: [%s]"), *OwnedTag.ToString());
     }
 
     TArray<FPrimaryAssetId> EligibleSkills;

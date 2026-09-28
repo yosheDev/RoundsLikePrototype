@@ -82,6 +82,9 @@ public:
 	// Reapplied abilities after travel session.
 	void ReapplyAbilitiesAfterTravel();
 
+	// Makes proper calls after async functions have executed to sync the player character data with restored build data.
+	void SyncCharacterData();
+
 	void ApplyAbilityDefinition(UAbilityDefinition* Definition);
 
 	virtual void PostInitializeComponents() override;

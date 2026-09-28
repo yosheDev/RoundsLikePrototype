@@ -132,8 +132,6 @@ void AFPSCharacter::OnRep_CurrentWeapon()
 		HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
 		CurrentWeapon ? *CurrentWeapon->GetName() : TEXT("NULL"));
 
-	SyncGunplayAttributes();
-
 	// Server does this in CreateAndEquipWeapon instead of here.
 	SpawnFirstPersonWeapon();
 }
@@ -268,16 +266,6 @@ void AFPSCharacter::CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileW
 	Weapon->SetInstigator(this);
 	CurrentWeapon = Weapon;
 	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ThirdPersonWeaponSocket);
-	
-	// Initialize Ammo
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->SyncGunplayAttributes();
-		SyncAttributes();
-	}
-
-	ForceNetUpdate();
-	CurrentWeapon->ForceNetUpdate();
 
 	/** Clients do this on OnRep_CurrentWeapon instead of here. */
 	SpawnFirstPersonWeapon();
@@ -306,15 +294,6 @@ AProjectileWeapon* AFPSCharacter::GetEquippedWeapon_Implementation() const
 	return CurrentWeapon;
 }
 #pragma endregion
-
-void AFPSCharacter::SyncGunplayAttributes()
-{
-	// Sync GunplayAttributes
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->SyncGunplayAttributes();
-	}
-}
 #pragma endregion
 
 #pragma region RandomCrapToCleanUp
@@ -411,25 +390,20 @@ void AFPSCharacter::InitializeAbilitySystem()
 			// Bind OnAbilitySpecRecieved to HandleAbilityGranted().
 			FPSAbilitySystemComponent->OnAbilitySpecRecieved.AddUObject(this, &AFPSCharacter::HandleAbilityGranted);
 
+			// Initialize Attribute Set Pointers
+			VitalityAttributes = FPSAbilitySystemComponent->GetSet<UVitalityAttributeSet>();
+			MovementAttributes = FPSAbilitySystemComponent->GetSet<UMovementAttributeSet>();
+			GunplayAttributes = FPSAbilitySystemComponent->GetSet<UGunplayAttributeSet>();
+			BindAttributeSetDelegates();
+
 			// Restore gameplay attributes (must be called after InitAbilityActorInfo())
 			if (FPSPlayerState->HasAuthority())
 			{
 				FPSPlayerState->RestorePlayerBuildsAfterTravel();
 			}
 
-			// Initialize Attribute Set References
-			VitalityAttributes = FPSAbilitySystemComponent->GetSet<UVitalityAttributeSet>();
-			MovementAttributes = FPSAbilitySystemComponent->GetSet<UMovementAttributeSet>();
-			GunplayAttributes = FPSAbilitySystemComponent->GetSet<UGunplayAttributeSet>();
-			
-			SyncGunplayAttributes();
-
-			// Initialize Predicted Health
-			PredictedHealth = VitalityAttributes->GetHealth();
-
-			BindAttributeSetDelegates();
-			InitializeMovementFromAttributes();
-			InitializeVitalityFromAttributes();
+			// Syncronize current attributes.
+			SyncAttributes();
 
 			// Server grants default abilities to character.
 			if (GetLocalRole() == ROLE_Authority)
@@ -616,12 +590,6 @@ void AFPSCharacter::TryCacheAbilitySpecHandle(const FGameplayAbilitySpec& Spec)
 		//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Cached: %s | Found: %s"), *Spec.Ability->GetName(), CachedSpec ? *CachedSpec->Ability->GetName() : TEXT("NULL")));
 	}
 }
-
-void AFPSCharacter::SyncAttributes()
-{
-	// TO DO: Update this to match Attribute associated with max bullet jumps. Eventaullly, strip out the need for a MaxBulletJumps member of this class.
-	BulletJumps = MaxBulletJumps;
-}
 #pragma endregion
 
 #pragma region Abilities
@@ -684,24 +652,42 @@ void AFPSCharacter::MulticastDamageTaken_Implementation(float Damage)
 	}
 }
 
-void AFPSCharacter::InitializeMovementFromAttributes()
+#pragma region Sync Attributes
+
+/* Attributes are synced upon AbilityDefinitionHelper::Load() completion callback in FPSPlayerState.cpp. */
+void AFPSCharacter::SyncAttributes()
+{
+	SyncMovementAttributes();
+	SyncVitalityAttributes();
+	SyncGunplayAttributes();
+
+
+	// TO DO: Update this to match Attribute associated with max bullet jumps. Eventaullly, strip out the need for a MaxBulletJumps member of this class.
+	BulletJumps = MaxBulletJumps;
+}
+
+void AFPSCharacter::SyncMovementAttributes()
 {
 	UE_LOG(LogTemp, Warning,
-		TEXT("=== TRAVEL: InitializeMovementFromAttributes === MaxSpeed: %f"),
+		TEXT("=== TRAVEL: SyncMovementAttributes === MaxSpeed: %f"),
 		MovementAttributes->GetMaxSpeed());
 
 	GetCharacterMovement()->MaxWalkSpeed = MovementAttributes->GetMaxSpeed();
+	UE_LOG(LogTemp, Log, TEXT("[%s] - [%s]: SpeedTest: SyncMovementAttributes: New speed is [%f]. MovementAttributes is: [%f]"), (HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT")), *GetNameSafe(this), GetCharacterMovement()->MaxWalkSpeed, MovementAttributes->GetMaxSpeed());
 	GetCharacterMovement()->JumpZVelocity = MovementAttributes->GetJumpStrength();
 	JumpMaxCount = MovementAttributes->GetJumpCount();
 	GetCharacterMovement()->GravityScale = MovementAttributes->GetGravityScale();
 	GetCharacterMovement()->CrouchedHalfHeight = MovementAttributes->GetCrouchedHalfHeight();
 }
 
-void AFPSCharacter::InitializeVitalityFromAttributes()
+void AFPSCharacter::SyncVitalityAttributes()
 {
 	UE_LOG(LogTemp, Warning,
-		TEXT("=== TRAVEL: InitializeVitalityFromAttributes === MaxHealth: %f"),
+		TEXT("=== TRAVEL: SyncVitalityAttributes === MaxHealth: %f"),
 		VitalityAttributes->GetMaxHealth());
+
+	// Initialize Predicted Health
+	PredictedHealth = VitalityAttributes->GetHealth();
 
 	// Body size
 	SetActorScale3D(FVector(VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize()));
@@ -716,14 +702,25 @@ void AFPSCharacter::InitializeVitalityFromAttributes()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("=== TRAVEL: InitializeVitalityFromAttributes === PLAYER HUD NOT FOUND"));
+			UE_LOG(LogTemp, Warning, TEXT("=== TRAVEL: SyncVitalityAttributes === PLAYER HUD NOT FOUND"));
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("=== TRAVEL: InitializeVitalityFromAttributes === PLAYER CONTROLLER NOT FOUND"));
+		UE_LOG(LogTemp, Warning, TEXT("=== TRAVEL: SyncVitalityAttributes === PLAYER CONTROLLER NOT FOUND"));
 	}
 }
+
+void AFPSCharacter::SyncGunplayAttributes()
+{
+	// Sync GunplayAttributes
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SyncGunplayAttributes();
+	}
+}
+
+#pragma endregion
 
 #pragma region On Attribute Changed Delegate Functions
 
@@ -802,6 +799,7 @@ void AFPSCharacter::OnMaxSpeedChanged(const FOnAttributeChangeData& Data)
 	float NewSpeed = Data.NewValue;
 
 	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
+	UE_LOG(LogTemp, Log, TEXT("[%s] - [%s]: SpeedTest: OnMaxSpeedChanged: New speed is [%f]"), (HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT")), *GetNameSafe(this), GetCharacterMovement()->MaxWalkSpeed);
 }
 
 #pragma endregion
