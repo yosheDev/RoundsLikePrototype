@@ -31,5 +31,6 @@ public:
 	/** Binds cosmetic events to weapon delegates. */
 	void BindToWeapon(TObjectPtr<class AProjectileWeapon> Weapon);
 
-	void PlayFireWeaponMontage();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void PlayFireWeaponAnimation();
 };

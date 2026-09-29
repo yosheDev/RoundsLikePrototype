@@ -294,6 +294,7 @@ AProjectileWeapon* AFPSCharacter::GetEquippedWeapon_Implementation() const
 	return CurrentWeapon;
 }
 #pragma endregion
+
 #pragma endregion
 
 #pragma region RandomCrapToCleanUp

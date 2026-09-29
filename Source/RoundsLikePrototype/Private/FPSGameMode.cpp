@@ -10,6 +10,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "EngineUtils.h"
 #include "Enums/SpawnSide.h"
+#include "AbilitySystemGlobals.h"
 #include "Spawns/FPSPlayerStart.h"
 
 void AFPSGameMode::BeginPlay()
@@ -18,6 +19,7 @@ void AFPSGameMode::BeginPlay()
 
 	FPSGameState = Cast<AFPSGameState>(GameState);
 
+	UAbilitySystemGlobals::Get().InitGlobalData();
 	bUseSeamlessTravel = true;
 }
 

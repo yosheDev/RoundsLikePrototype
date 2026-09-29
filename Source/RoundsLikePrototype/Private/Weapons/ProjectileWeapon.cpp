@@ -11,6 +11,7 @@
 #include "AbilitySystemComponent.h"
 #include "Enums/WeaponFireType.h"
 #include "Weapons/FireData.h"
+#include "GameplayTagContainer.h"
 #include "Components/FPSAbilitySystemComponent.h"
 
 AProjectileWeapon::AProjectileWeapon()
@@ -207,6 +208,45 @@ void AProjectileWeapon::SpawnProjectile(
 			Projectile->GameplayEffectSpec = ASC->MakeOutgoingSpec(ProjectileGameplayEffect, 1, Context);
 
 			AmmoComponent->TryConsumeAmmo();
+
+			#pragma region Primary Fire Cue for VFX + Animation
+			//FGameplayEffectContextHandle CueContext = ASC->MakeEffectContext();
+			//CueContext.AddInstigator(GetInstigator(), this);
+			//CueContext.AddSourceObject(this);
+
+			//// How to make this play on the first person weapon?
+
+			//// Play PrimaryFire Cue
+			//if (PrimaryFireCueEffectClass)
+			//{
+			//	FGameplayEffectSpecHandle CueSpecHandle = ASC->MakeOutgoingSpec(PrimaryFireCueEffectClass, 1.0f, CueContext);
+			//	if (CueSpecHandle.IsValid())
+			//	{
+			//		UE_LOG(LogTemp, Log, TEXT("Cue Test: Applying GameplayEffectSpec to Self."));
+			//		// GAS automatically predicts this locally and replicates.
+			//		ASC->ApplyGameplayEffectSpecToSelf(*CueSpecHandle.Data.Get());
+			//	}
+			//}
+			#pragma endregion
+
+			#pragma region Gameplay Cue Test
+			const FGameplayTag PrimaryFireCueTag = FGameplayTag::RequestGameplayTag(TEXT("GameplayCue.Weapon.PrimaryFire"));
+			FGameplayCueParameters CueParameters;
+
+			CueParameters.Instigator = GetInstigator();
+			CueParameters.EffectCauser = this;
+			CueParameters.SourceObject = this;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("FIRE CUE TEST | Tag Valid: %s | Tag: %s"),
+				PrimaryFireCueTag.IsValid() ? TEXT("YES") : TEXT("NO"),
+				*PrimaryFireCueTag.ToString());
+
+			ASC->ExecuteGameplayCue(
+				PrimaryFireCueTag,
+				CueParameters
+			);
+			#pragma endregion
 		}
 	}
 	#pragma endregion

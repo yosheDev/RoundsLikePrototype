@@ -25,6 +25,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* Mesh;
 
+	// Gameplay effect which the sole purpose of it is to activate a gameplay cue to trigger primary fire montage and VFX.
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UGameplayEffect> PrimaryFireCueEffectClass;
+
 protected:
 	
 	/** Ammo Component */

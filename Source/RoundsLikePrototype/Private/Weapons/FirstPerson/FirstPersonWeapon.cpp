@@ -28,12 +28,12 @@ void AFirstPersonWeapon::BeginPlay()
 
 void AFirstPersonWeapon::BindToWeapon(TObjectPtr<AProjectileWeapon> Weapon)
 {
-	Weapon->OnPrimaryFire.AddDynamic(this, &AFirstPersonWeapon::PlayFireWeaponMontage);
+	Weapon->OnPrimaryFire.AddDynamic(this, &AFirstPersonWeapon::PlayFireWeaponAnimation);
 }
 
-void AFirstPersonWeapon::PlayFireWeaponMontage()
+void AFirstPersonWeapon::PlayFireWeaponAnimation_Implementation()
 {
-
+	// Play appropriate montage based on what weapon the player has.
 }
 
 
