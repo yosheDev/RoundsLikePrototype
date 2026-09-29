@@ -35,7 +35,7 @@ struct FBulletSpec
 
     // Velocity is multiplied by this when bouncing.
     UPROPERTY()
-    float BulletBounceVelocityRetention = 0.25f;
+    float BulletBounceVelocityRetention = 0.35f;
 
     UPROPERTY()
     FGameplayTagContainer Tags;

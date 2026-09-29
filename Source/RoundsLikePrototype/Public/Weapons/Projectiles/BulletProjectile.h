@@ -30,10 +30,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class USphereComponent> SphereOverlapCollision;
 
-	/** Component that handles projectile velocities of movement. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<class UProjectileMovementComponent> ProjectileMovementComponent;
-
 	/** The primary Visual Effect of the projectile. Acts as the main visual body. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UNiagaraComponent> NiagaraComponent;
@@ -43,14 +39,9 @@ protected:
 public:	
 
 	ABulletProjectile();
-	
-	//virtual void Tick(float DeltaTime) override;
 
-	/** Initializes attributes relevant to local projectile(movement, size, traits) */
+	// Initializes attributes relevant to local projectile(movement, size, traits)
 	void InitializeBulletData(FProjectileSpawnData SpawnData);
-
-	/** Initializes handle for the gameplay effect that will be delivered. */
-	//void InitializeGameplayEffectSpec(FGameplayEffectSpecHandle InEffectSpec);
 
 protected:
 
@@ -60,9 +51,16 @@ protected:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	#pragma region Calculations
 	UFUNCTION()
 	FVector CalculateTrajectoryPosition(float Time) const;
 	FVector CalculateTrajectoryVelocity(float Time) const;
+
+	UFUNCTION()
+	bool MoveProjectileWithCollision(const FVector& PreviousPosition, const FVector& NewPosition);
+
+	UFUNCTION()
+	void DrawDebugTrajectory();
 
 	FVector TrajectoryOrigin;
 	FVector TrajectoryDirection;
@@ -72,16 +70,26 @@ protected:
 	UPROPERTY()
 	float CurrentTrajectorySpeed = 0.0f;
 
+	UPROPERTY()
+	float ProjectileTime = 0.0f;
 
-
-	UFUNCTION()
-	bool MoveProjectileWithCollision(const FVector& PreviousPosition, const FVector& NewPosition);
+	UPROPERTY()
+	FVector PreviousTrajectoryPosition = FVector::ZeroVector;
 
 	UFUNCTION()
 	void BounceProjectile(const FHitResult& Hit);
 
-	UFUNCTION()
-	void DrawDebugTrajectory();
+	// Records if has bounced, as after bouncing trajectory becomes more physics like with no arcs or anything.
+	UPROPERTY()
+	bool bHasBounced = false;
+
+	UPROPERTY()
+	FVector PostBounceVelocity = FVector::ZeroVector;
+
+	UPROPERTY()
+	uint8 BounceCount = 0;
+	#pragma endregion
+
 
 	UFUNCTION()
 	void OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, 
@@ -131,21 +139,4 @@ public:
 	/** Tracks the state, network authority, and prediction status of a specific ability activation. Holds networking and prediction info. */
 	UPROPERTY()
 	FGameplayAbilityActivationInfo SourceActivationInfo;
-
-protected:
-	UPROPERTY()
-	float ProjectileTime = 0.0f;
-
-	UPROPERTY()
-	FVector PreviousTrajectoryPosition = FVector::ZeroVector;
-
-	// Records if has bounced, as after bouncing trajectory becomes more physics like with no arcs or anything.
-	UPROPERTY()
-	bool bHasBounced = false;
-
-	UPROPERTY()
-	FVector PostBounceVelocity = FVector::ZeroVector;
-
-	UPROPERTY()
-	uint8 BounceCount = 0;
 };

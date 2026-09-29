@@ -11,7 +11,16 @@
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
+#include "HAL/IConsoleManager.h"
 #include "Components/FPSAbilitySystemComponent.h"
+
+// CVAR for enabling/disabling trajectory traces.
+static TAutoConsoleVariable<bool> CVarBulletTraces(
+	TEXT("Bullet.Trajectory"),						// Name typed in the console
+	false,											// Default value
+	TEXT("Enables trajectory traces for bullets."), // Help/tooltip text
+	ECVF_Default									// Flags (e.g., ECVF_Cheat for cheat-only)
+);
 
 #pragma region Initialization
 ABulletProjectile::ABulletProjectile()
@@ -37,9 +46,6 @@ ABulletProjectile::ABulletProjectile()
 	SphereOverlapCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereOverlapCollision"));
 	SphereOverlapCollision->SetupAttachment(RootComponent);
 	SphereOverlapCollision->SetGenerateOverlapEvents(true);
-
-	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
-	ProjectileMovementComponent->bAutoActivate = false;
 
 	NiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireEffectComponent"));
 	NiagaraComponent->SetupAttachment(RootComponent);
@@ -80,11 +86,6 @@ void ABulletProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ABulletProjectile, BulletData);
 }
 
-//void ABulletProjectile::Tick(float DeltaTime)
-//{
-//	Super::Tick(DeltaTime);
-//}
-
 void ABulletProjectile::OnRep_BulletData()
 {
 	InitializeBulletData(BulletData);
@@ -101,11 +102,11 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	CurrentTrajectorySpeed = InBulletData.BulletSpec.BulletSpeed;
 	FVector CameraUp = InBulletData.SpawnTransform.GetUnitAxis(EAxis::Z);
 
-	// Construct an arc direction that is perpendicular to the firing direction
-	// while remaining aligned with the player's view "up" direction.
+	// Construct an arc direction that is perpendicular to the firing direction while remaining aligned with the player's view up direction.
 	TrajectoryArcDirection = CameraUp - FVector::DotProduct(CameraUp, TrajectoryDirection) * TrajectoryDirection;
 	TrajectoryArcDirection.Normalize();
 
+	// This affects the arc based on pitch of the player aim.
 	const float Verticality = FMath::Abs(FVector::DotProduct(TrajectoryDirection, FVector::UpVector));
 	TrajectoryArcStrength = FMath::Pow(1.0f - Verticality, 0.5f);
 	TrajectoryArcStrength = FMath::Clamp(TrajectoryArcStrength, 0.0f, 1.0f) * InBulletData.BulletSpec.BulletArcPitchInfluence;
@@ -115,23 +116,10 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	ProjectileTime = 0.0f;
 	PreviousTrajectoryPosition = CalculateTrajectoryPosition(0.0f);
 
-	DrawDebugTrajectory();
-
-	// OG Init Code
-	//ProjectileMovementComponent->bInitialVelocityInLocalSpace = false;
-	//ProjectileMovementComponent->InitialSpeed = 0.0f;
-	//ProjectileMovementComponent->Velocity = GetActorForwardVector() * InBulletData.BulletSpec.BulletSpeed;
-	//ProjectileMovementComponent->InitialSpeed = InBulletData.BulletSpec.BulletSpeed;
-	//ProjectileMovementComponent->MaxSpeed = TNumericLimits<float>::Max();
-	//ProjectileMovementComponent->ProjectileGravityScale = InBulletData.BulletSpec.BulletGravity;
-
-	//ProjectileMovementComponent->bShouldBounce = true;
-	//ProjectileMovementComponent->Bounciness = 0.6f;
-	//ProjectileMovementComponent->Friction = 0.2f;
-	//ProjectileMovementComponent->BounceVelocityStopSimulatingThreshold = 5.f;
-
-	//ProjectileMovementComponent->bAutoActivate = true;
-	//ProjectileMovementComponent->Activate();
+	if (CVarBulletTraces.GetValueOnGameThread())
+	{
+		DrawDebugTrajectory();
+	}
 }
 #pragma endregion
 
@@ -178,64 +166,29 @@ FVector ABulletProjectile::CalculateTrajectoryPosition(float Time) const
 
 	const float Distance = CurrentTrajectorySpeed * Time;
 
-	// ------------------------------------------------------------
 	// Base forward movement
-	// ------------------------------------------------------------
-
-	FVector Position =
-		TrajectoryOrigin
-		+ TrajectoryDirection * Distance;
-
-	// ------------------------------------------------------------
-	// Designed arc
-	//
-	// ONLY exists before the first bounce.
-	// ------------------------------------------------------------
+	FVector Position = TrajectoryOrigin + (TrajectoryDirection * Distance);
 
 	if (!bHasBounced)
 	{
-		const float ArcDistance =
-			FMath::Max(
-				Spec.BulletArcDistance,
-				1.0f);
+		#pragma region Designed Arc
+		const float ArcDistance = FMath::Max(Spec.BulletArcDistance, 1.0f);
+		const float ArcAlpha = FMath::Clamp(Distance / ArcDistance, 0.0f, 1.0f);
+		const float ArcOffset = 4.0f * Spec.BulletArc * TrajectoryArcStrength * ArcAlpha * (1.0f - ArcAlpha);
 
-		const float ArcAlpha =
-			FMath::Clamp(
-				Distance / ArcDistance,
-				0.0f,
-				1.0f);
-
-		const float ArcOffset =
-			4.0f
-			* Spec.BulletArc
-			* TrajectoryArcStrength
-			* ArcAlpha
-			* (1.0f - ArcAlpha);
-
-		Position +=
-			TrajectoryArcDirection * ArcOffset;
+		Position += TrajectoryArcDirection * ArcOffset;
+		#pragma endregion
 	}
 
-	// ------------------------------------------------------------
-	// Distance-based gravity
-	//
-	// Gravity continues after bouncing.
-	// ------------------------------------------------------------
+	// Distance-based gravity (Gravity continues after bouncing.)
 
 	constexpr float GravityReferenceDistance = 1000.0f;
 	constexpr float GravityReferenceDrop = 100.0f;
 
-	const float GravityAlpha =
-		Distance / GravityReferenceDistance;
-
-	const float GravityDrop =
-		GravityReferenceDrop
-		* Spec.BulletGravity
-		* GravityAlpha
-		* GravityAlpha;
+	const float GravityAlpha = Distance / GravityReferenceDistance;
+	const float GravityDrop = GravityReferenceDrop * Spec.BulletGravity * GravityAlpha * GravityAlpha;
 
 	Position += FVector(0.0f, 0.0f, -GravityDrop);
-
 	return Position;
 }
 
@@ -247,80 +200,36 @@ FVector ABulletProjectile::CalculateTrajectoryVelocity(float Time) const
 
 	const float Distance = BulletSpeed * Time;
 
-	// ------------------------------------------------------------
 	// Forward velocity
-	// ------------------------------------------------------------
-
-	const FVector ForwardVelocity =
-		TrajectoryDirection * BulletSpeed;
-
-	// ------------------------------------------------------------
-	// Designed arc velocity
-	//
-	// ONLY exists before the first bounce.
-	// ------------------------------------------------------------
+	const FVector ForwardVelocity = TrajectoryDirection * BulletSpeed;
 
 	FVector ArcVelocity = FVector::ZeroVector;
 
 	if (!bHasBounced)
 	{
-		const float ArcDistance =
-			FMath::Max(
-				Spec.BulletArcDistance,
-				1.0f);
-
-		const float ArcAlpha =
-			FMath::Clamp(
-				Distance / ArcDistance,
-				0.0f,
-				1.0f);
-
+		#pragma region Designed Arc Velocity
+		const float ArcDistance = FMath::Max(Spec.BulletArcDistance, 1.0f);
+		const float ArcAlpha = FMath::Clamp(Distance / ArcDistance, 0.0f, 1.0f);
 		float ArcSlope = 0.0f;
 
+		// Do not consider arc slope past the max arc distance.
 		if (Distance < ArcDistance)
 		{
-			ArcSlope =
-				4.0f
-				* Spec.BulletArc
-				* TrajectoryArcStrength
-				* (1.0f - 2.0f * ArcAlpha)
-				/ ArcDistance;
+			ArcSlope = 4.0f * Spec.BulletArc * TrajectoryArcStrength * (1.0f - 2.0f * ArcAlpha) / ArcDistance;
 		}
 
-		ArcVelocity =
-			TrajectoryArcDirection
-			* ArcSlope
-			* BulletSpeed;
+		ArcVelocity = TrajectoryArcDirection * ArcSlope * BulletSpeed;
+		#pragma endregion
 	}
 
-	// ------------------------------------------------------------
-	// Distance-based gravity velocity
-	//
-	// Gravity continues after bouncing.
-	// ------------------------------------------------------------
-
+	// Distance-based gravity velocity (Gravity continues after bouncing.)
 	constexpr float GravityReferenceDistance = 1000.0f;
 	constexpr float GravityReferenceDrop = 100.0f;
 
-	const float GravitySlope =
-		2.0f
-		* GravityReferenceDrop
-		* Spec.BulletGravity
-		* Distance
-		/ (
-			GravityReferenceDistance
-			* GravityReferenceDistance);
+	const float GravitySlope = 2.0f * GravityReferenceDrop * Spec.BulletGravity * Distance / (GravityReferenceDistance * GravityReferenceDistance);
+	const FVector GravityVelocity = FVector(0.0f, 0.0f, -GravitySlope * BulletSpeed);
 
-	const FVector GravityVelocity =
-		FVector(
-			0.0f,
-			0.0f,
-			-GravitySlope * BulletSpeed);
-
-	return
-		ForwardVelocity
-		+ ArcVelocity
-		+ GravityVelocity;
+	return ForwardVelocity + ArcVelocity + GravityVelocity;
 }
 
 bool ABulletProjectile::MoveProjectileWithCollision(const FVector& StartPosition, const FVector& EndPosition)
@@ -345,10 +254,7 @@ bool ABulletProjectile::MoveProjectileWithCollision(const FVector& StartPosition
 		return false;
 	}
 
-	// ------------------------------------------------------------
-	// Sweep using the actual projectile collision radius.
-	// ------------------------------------------------------------
-
+	// Sweep using params from SphereHitCollision (radius, channels, etc.)
 	const float CollisionRadius = SphereHitCollision->GetScaledSphereRadius();
 
 	const FCollisionShape CollisionShape = FCollisionShape::MakeSphere(CollisionRadius);
@@ -359,49 +265,20 @@ bool ABulletProjectile::MoveProjectileWithCollision(const FVector& StartPosition
 			StartPosition,
 			EndPosition,
 			FQuat::Identity,
-			ECC_GameTraceChannel1,
+			SphereHitCollision->GetCollisionObjectType(),
 			CollisionShape,
 			QueryParams);
 
-	// ------------------------------------------------------------
 	// No collision.
-	// ------------------------------------------------------------
-
 	if (!bHit)
 	{
 		SetActorLocation(EndPosition);
 		return false;
 	}
 
-	// ------------------------------------------------------------
 	// Collision.
-	// ------------------------------------------------------------
-
 	SetActorLocation(Hit.Location);
-
-	// Debug collision point.
-	DrawDebugSphere(
-		GetWorld(),
-		Hit.Location,
-		CollisionRadius,
-		12,
-		FColor::Red,
-		false,
-		2.0f);
-
-	// Debug surface normal.
-	DrawDebugLine(
-		GetWorld(),
-		Hit.Location,
-		Hit.Location + Hit.ImpactNormal * 100.0f,
-		FColor::Blue,
-		false,
-		2.0f,
-		0,
-		2.0f);
-
 	BounceProjectile(Hit);
-
 	return true;
 }
 
