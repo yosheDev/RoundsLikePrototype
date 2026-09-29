@@ -69,19 +69,19 @@ protected:
 	FVector TrajectoryArcDirection;
 	float TrajectoryArcStrength = 1.0f;
 
+	UPROPERTY()
+	float CurrentTrajectorySpeed = 0.0f;
+
+
+
 	UFUNCTION()
-	void MoveProjectileWithCollision(FVector NewPosition);
+	bool MoveProjectileWithCollision(const FVector& PreviousPosition, const FVector& NewPosition);
+
+	UFUNCTION()
+	void BounceProjectile(const FHitResult& Hit);
 
 	UFUNCTION()
 	void DrawDebugTrajectory();
-
-	UFUNCTION()
-	void OnComponentHit(
-		UPrimitiveComponent* HitComponent,
-		AActor* OtherActor, 
-		UPrimitiveComponent* OtherComp, 
-		FVector NormalImpulse, 
-		const FHitResult& Hit);
 
 	UFUNCTION()
 	void OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, 
@@ -137,11 +137,15 @@ protected:
 	float ProjectileTime = 0.0f;
 
 	UPROPERTY()
-	FVector LastFramePosition{};
+	FVector PreviousTrajectoryPosition = FVector::ZeroVector;
+
+	// Records if has bounced, as after bouncing trajectory becomes more physics like with no arcs or anything.
+	UPROPERTY()
+	bool bHasBounced = false;
+
+	UPROPERTY()
+	FVector PostBounceVelocity = FVector::ZeroVector;
 
 	UPROPERTY()
 	uint8 BounceCount = 0;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	uint8 MaxBounces = 1;
 };

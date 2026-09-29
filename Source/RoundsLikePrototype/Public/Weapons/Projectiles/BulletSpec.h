@@ -29,6 +29,14 @@ struct FBulletSpec
     UPROPERTY()
     float BulletArcPitchInfluence = 1.0f;
 
+    // Maximum number of times this projectile can bounce.
+    UPROPERTY()
+    int32 MaxBounces = 1;
+
+    // Velocity is multiplied by this when bouncing.
+    UPROPERTY()
+    float BulletBounceVelocityRetention = 0.25f;
+
     UPROPERTY()
     FGameplayTagContainer Tags;
 };
