@@ -45,10 +45,20 @@ public:
 	FGameplayAttributeData BulletSize;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletSize);
 
-	// Arc of initial fire velocity
+	// Max arc height distance from firing forward.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BulletArc;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletArc);
+
+	// How far bullet travels to return path to match firing forward.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletArcDistance;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletArcDistance);
+
+	// How much influence the designed arc will have on bullet trajectory.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletArcPitchInfluence;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletArcPitchInfluence);
 
 	// Arc for the bullet to follow.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)

@@ -56,7 +56,24 @@ protected:
 
 	virtual void BeginPlay() override;
 
+	virtual void Tick(float DeltaTime) override;
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION()
+	FVector CalculateTrajectoryPosition(float Time) const;
+	FVector CalculateTrajectoryVelocity(float Time) const;
+
+	FVector TrajectoryOrigin;
+	FVector TrajectoryDirection;
+	FVector TrajectoryArcDirection;
+	float TrajectoryArcStrength = 1.0f;
+
+	UFUNCTION()
+	void MoveProjectileWithCollision(FVector NewPosition);
+
+	UFUNCTION()
+	void DrawDebugTrajectory();
 
 	UFUNCTION()
 	void OnComponentHit(
@@ -116,6 +133,12 @@ public:
 	FGameplayAbilityActivationInfo SourceActivationInfo;
 
 protected:
+	UPROPERTY()
+	float ProjectileTime = 0.0f;
+
+	UPROPERTY()
+	FVector LastFramePosition{};
+
 	UPROPERTY()
 	uint8 BounceCount = 0;
 

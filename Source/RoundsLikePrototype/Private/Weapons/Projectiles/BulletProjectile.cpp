@@ -16,7 +16,7 @@
 #pragma region Initialization
 ABulletProjectile::ABulletProjectile()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	// Client-only prediction projectiles do not replicate. Only SERVER projectiles replicate.
 	if (!HasAuthority())
@@ -97,7 +97,25 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	FString RoleString = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 	UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: InitializeBulletData() on [%s]"), *RoleString, *GetName());
 
+	// Store the initial trajectory conditions.
+	TrajectoryOrigin = InBulletData.SpawnTransform.GetLocation();
+	TrajectoryDirection = InBulletData.SpawnTransform.GetUnitAxis(EAxis::X);
+
+	FVector CameraUp = InBulletData.SpawnTransform.GetUnitAxis(EAxis::Z);
+
+	// Construct an arc direction that is perpendicular to the firing direction
+	// while remaining aligned with the player's view "up" direction.
+	TrajectoryArcDirection = CameraUp - FVector::DotProduct(CameraUp, TrajectoryDirection) * TrajectoryDirection;
+	TrajectoryArcDirection.Normalize();
+
+	const float Verticality = FMath::Abs(FVector::DotProduct(TrajectoryDirection, FVector::UpVector));
+	TrajectoryArcStrength = FMath::Pow(1.0f - Verticality, 0.5f);
+	TrajectoryArcStrength = FMath::Clamp(1.0f - Verticality, 0.0f, 1.0f) * InBulletData.BulletSpec.BulletArcPitchInfluence;
+
+	// OG Init Code
 	BulletData = InBulletData;
+	DrawDebugTrajectory();
+
 	ProjectileMovementComponent->bInitialVelocityInLocalSpace = false;
 	ProjectileMovementComponent->InitialSpeed = 0.0f;
 	ProjectileMovementComponent->Velocity = GetActorForwardVector() * InBulletData.BulletSpec.BulletSpeed;
@@ -112,6 +130,145 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 
 	ProjectileMovementComponent->bAutoActivate = true;
 	ProjectileMovementComponent->Activate();
+}
+
+void ABulletProjectile::Tick(float DeltaTime)
+{
+	//const float NewTime = ProjectileTime + DeltaTime;
+
+	//const FVector NewPosition = CalculatePosition(NewTime);
+
+	//MoveProjectileWithCollision(NewPosition);
+
+	//ProjectileTime = NewTime;
+}
+
+FVector ABulletProjectile::CalculateTrajectoryPosition(float Time) const
+{
+	const FBulletSpec& Spec = BulletData.BulletSpec;
+
+	const float Distance = Spec.BulletSpeed * Time;
+
+	const float ArcDistance =
+		FMath::Max(
+			Spec.BulletArcDistance,
+			1.0f
+		);
+
+	const float ArcAlpha = Distance / ArcDistance;
+
+	// Designed spatial arc.
+	const float ArcOffset = 4.0f * Spec.BulletArc * TrajectoryArcStrength * ArcAlpha * (1.0f - ArcAlpha);
+
+	// Physical gravity.
+	const float GravityAcceleration = GetWorld()->GetGravityZ() * Spec.BulletGravity;
+
+	const FVector GravityOffset = 0.5f * FVector(0.0f, 0.0f, GravityAcceleration) * Time * Time;
+
+	return TrajectoryOrigin + TrajectoryDirection * Distance + TrajectoryArcDirection * ArcOffset + GravityOffset;
+}
+
+FVector ABulletProjectile::CalculateTrajectoryVelocity(float Time) const
+{
+	const FBulletSpec& Spec = BulletData.BulletSpec;
+
+	const float BulletSpeed =
+		Spec.BulletSpeed;
+
+	// ------------------------------------------------------------
+	// Forward velocity
+	// ------------------------------------------------------------
+
+	const FVector ForwardVelocity =
+		TrajectoryDirection * BulletSpeed;
+
+	// ------------------------------------------------------------
+	// Designed arc velocity
+	// ------------------------------------------------------------
+
+	const float Distance =
+		BulletSpeed * Time;
+
+	const float ArcDistance =
+		FMath::Max(
+			Spec.BulletArcDistance,
+			1.0f
+		);
+
+	const float ArcAlpha = Distance / ArcDistance;
+
+	// Parabolic arc:
+	//
+	// Position:
+	//   Arc = 4 * BulletArc * Alpha * (1 - Alpha)
+	//
+	// Spatial derivative:
+	//   dArc/dDistance =
+	//   4 * BulletArc * (1 - 2 * Alpha) / ArcDistance
+
+	const float ArcSlope =
+		4.0f
+		* Spec.BulletArc
+		* TrajectoryArcStrength 
+		* (1.0f - 2.0f * ArcAlpha)
+		/ ArcDistance;
+
+	const float ArcVelocityMagnitude =
+		ArcSlope * BulletSpeed;
+
+	const FVector ArcVelocity =
+		TrajectoryArcDirection *
+		ArcVelocityMagnitude;
+
+	// ------------------------------------------------------------
+	// Physical gravity
+	// ------------------------------------------------------------
+
+	const float GravityAcceleration =
+		GetWorld()->GetGravityZ() *
+		Spec.BulletGravity;
+
+	const FVector GravityVelocity =
+		FVector(
+			0.0f,
+			0.0f,
+			GravityAcceleration * Time
+		);
+
+	// ------------------------------------------------------------
+	// Final velocity
+	// ------------------------------------------------------------
+
+	return
+		ForwardVelocity
+		+ ArcVelocity
+		+ GravityVelocity;
+}
+
+void ABulletProjectile::MoveProjectileWithCollision(FVector NewPosition)
+{
+
+
+
+
+
+	/*FHitResult Hit;
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	Params.AddIgnoredActor(GetInstigator());
+
+	GetWorld()->SweepSingleByChannel(
+		Hit,
+		LastFramePosition,
+		NewPosition,
+		FQuat::Identity,
+		ECC_GameTraceChannel1,
+		CollisionShape,
+		Params
+	);*/
+
+	// If hit, handle projectile hit. Otherwise, move the actor location.
 }
 
 //void ABulletProjectile::InitializeGameplayEffectSpec(FGameplayEffectSpecHandle InEffectSpec)
@@ -183,3 +340,53 @@ void ABulletProjectile::ApplyDamage(AActor* Target)
 		TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data);
 	}
 }
+
+#pragma region Helpers
+void ABulletProjectile::DrawDebugTrajectory()
+{
+	const FBulletSpec& Spec = BulletData.BulletSpec;
+
+	const float DebugDistance = Spec.BulletArcDistance * 2.0f;
+
+	const float DebugDuration = DebugDistance / Spec.BulletSpeed;
+
+	const int32 NumSegments = 100;
+
+	FVector PreviousPosition = CalculateTrajectoryPosition(0.0f);
+
+	for (int32 Index = 1; Index <= NumSegments; ++Index)
+	{
+		const float Alpha = static_cast<float>(Index) / static_cast<float>(NumSegments);
+
+		const float Time = DebugDuration * Alpha;
+
+		const FVector CurrentPosition = CalculateTrajectoryPosition(Time);
+
+		DrawDebugLine(
+			GetWorld(),
+			PreviousPosition,
+			CurrentPosition,
+			FColor::Green,
+			false,
+			10.0f,
+			0,
+			2.0f
+		);
+
+		const FVector Velocity = CalculateTrajectoryVelocity(Time);
+
+		DrawDebugLine(
+			GetWorld(),
+			CurrentPosition,
+			CurrentPosition + Velocity.GetSafeNormal() * 100.0f,
+			FColor::Yellow,
+			false,
+			10.0f,
+			0,
+			1.0f
+		);
+
+		PreviousPosition = CurrentPosition;
+	}
+}
+#pragma endregion

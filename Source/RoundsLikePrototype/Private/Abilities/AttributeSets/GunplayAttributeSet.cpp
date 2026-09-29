@@ -6,10 +6,7 @@
 
 UGunplayAttributeSet::UGunplayAttributeSet()
 {
-	//InitBulletGravity(1.0f);
-	//InitBulletSpeed(4000.0f);
-	//InitBulletImpactDamage(25.0f);
-	//InitAutoFireRate(5.0f); // Bullets
+	// Values init from data table.
 }
 
 void UGunplayAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -19,6 +16,8 @@ void UGunplayAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSpeed);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSize);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletArc);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletArcDistance);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletArcPitchInfluence);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletGravity);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletCritChance);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletLifestealAmount);
