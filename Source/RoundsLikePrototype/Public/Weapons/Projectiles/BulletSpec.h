@@ -11,15 +11,20 @@ struct FBulletSpec
 {
     GENERATED_BODY()
 
+    // Multiplier for bullets size.
     UPROPERTY()
-    float BulletSpeed = 1200.f;
+    float BulletSize = 1.0f;
+
+    // Rate at which bullet travels its path.
+    UPROPERTY()
+    float BulletSpeed = 1200.0f;
 
     // Maximum displacement from the initial fire angle forward.
     UPROPERTY()
     float BulletArc = 100.0f;
 
     UPROPERTY()
-    float BulletGravity = 1.f;
+    float BulletGravity = 1.0f;
 
     // Distance at which the designed arc returns to initial fire angle forward.
     UPROPERTY()

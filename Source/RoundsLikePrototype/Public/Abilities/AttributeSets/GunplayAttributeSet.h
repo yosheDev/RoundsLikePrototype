@@ -35,15 +35,15 @@ public:
 	FGameplayAttributeData BulletJumpFactor;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletJumpFactor);
 
-	// Velocity that bullets travel at.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-	FGameplayAttributeData BulletSpeed;
-	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletSpeed);
-
 	// Size of the bullet.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BulletSize;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletSize);
+
+	// Velocity that bullets travel at.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletSpeed;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletSpeed);
 
 	// Max arc height distance from firing forward.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)

@@ -96,6 +96,13 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	FString RoleString = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 	UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: InitializeBulletData() on [%s]"), *RoleString, *GetName());
 
+	BulletData = InBulletData;
+
+	// Set bullet size.
+	SetActorScale3D(GetActorScale3D() * InBulletData.BulletSpec.BulletSize);
+	NiagaraComponent->SetFloatParameter(FName(TEXT("ActorScale")), GetActorScale3D().X);
+
+	#pragma region Initialize Trajectory
 	// Store the initial trajectory conditions.
 	TrajectoryOrigin = InBulletData.SpawnTransform.GetLocation();
 	TrajectoryDirection = InBulletData.SpawnTransform.GetUnitAxis(EAxis::X);
@@ -111,8 +118,6 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	TrajectoryArcStrength = FMath::Pow(1.0f - Verticality, 0.5f);
 	TrajectoryArcStrength = FMath::Clamp(TrajectoryArcStrength, 0.0f, 1.0f) * InBulletData.BulletSpec.BulletArcPitchInfluence;
 
-	BulletData = InBulletData;
-
 	ProjectileTime = 0.0f;
 	PreviousTrajectoryPosition = CalculateTrajectoryPosition(0.0f);
 
@@ -120,6 +125,7 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	{
 		DrawDebugTrajectory();
 	}
+	#pragma endregion
 }
 #pragma endregion
 

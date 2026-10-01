@@ -38,6 +38,9 @@ public:
 	UHorizontalBox* StatButtons;
 
 	UPROPERTY(meta = (BindWidget))
+	UTextBlock* StatTitleText;
+
+	UPROPERTY(meta = (BindWidget))
 	UImage* Bottlecap1;
 
 	UPROPERTY(meta = (BindWidget))
@@ -46,6 +49,10 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UImage* Bottlecap3;
 	#pragma endregion
+
+	// Sets the StatTitleText by the given WidgetID.
+	UFUNCTION()
+	void SetHoveredStatTextByID(int32 WidgetID);
 
 	// Set of the Bottlecap Images. Upon construct, index aligns with slot.
 	UPROPERTY(BlueprintReadOnly, Category = "UI")

@@ -81,6 +81,22 @@ public:
 	uint8 UpgradeMovementSpeed = 0;
 	#pragma endregion
 	
+	#pragma region Replicate Hovered Stat Upgrade UI
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentHoveredStat)
+	int32 CurrentHoveredStatID = INDEX_NONE;
+
+	UFUNCTION()
+	void OnRep_CurrentHoveredStat();
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetHoveredStat(int32 WidgetID);
+
+protected:
+
+	UFUNCTION()
+	void UpdateLocalHoveredStatUI();
+
+	#pragma endregion
 protected:
 
 	// Used for lookups with WidgetID when deallocating.

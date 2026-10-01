@@ -16,6 +16,7 @@ FBulletSpec UProjectileUtilities::MakeBulletSpec(const UFPSAbilitySystemComponen
 
     const UGunplayAttributeSet* Attributes = ASC->GetSet<UGunplayAttributeSet>();
 
+    Spec.BulletSize = Attributes->GetBulletSize();
     Spec.BulletSpeed = Attributes->GetBulletSpeed();
     Spec.BulletGravity = Attributes->GetBulletGravity();
     Spec.BulletArc = Attributes->GetBulletArc();

@@ -8,6 +8,7 @@
 #include "FPSPlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 UMatchEconomyComponent::UMatchEconomyComponent()
 {
@@ -45,6 +46,7 @@ void UMatchEconomyComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(UMatchEconomyComponent, CurrentAbilityOffers);
+    DOREPLIFETIME(UMatchEconomyComponent, CurrentHoveredStatID);
 }
 
 void UMatchEconomyComponent::OnRep_CurrentAbilityOffers()
@@ -263,6 +265,38 @@ TArray<FBottlecapReturnLocation> UMatchEconomyComponent::ApplyOffsetsByCost(uint
 
     return ReturnOffsets;
 }
+
+#pragma region Replicate Hovered Stat Upgrade UI
+void UMatchEconomyComponent::OnRep_CurrentHoveredStat()
+{
+    UpdateLocalHoveredStatUI();
+}
+
+void UMatchEconomyComponent::Server_SetHoveredStat_Implementation(int32 WidgetID)
+{
+    CurrentHoveredStatID = WidgetID;
+
+    // The server does NOT get an OnRep call for its own replicated property, so explicitly update the server's local UI here.
+    UpdateLocalHoveredStatUI();
+}
+
+void UMatchEconomyComponent::UpdateLocalHoveredStatUI()
+{
+    UWorld* World = GetWorld();
+    if (!World) { return; }
+
+    if (!PC){ PC = GetPlayerController(); }
+    if (!PC) { return; }
+
+    AFPSHudController* HUD = PC->GetHUD<AFPSHudController>();
+    
+    UDraftingUI* DraftingUI = HUD->GetDraftingWidget();
+
+    if (!DraftingUI) { return; }
+
+    DraftingUI->SetHoveredStatTextByID(CurrentHoveredStatID);
+}
+#pragma endregion
 
 APlayerController* UMatchEconomyComponent::GetPlayerController()
 {

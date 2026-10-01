@@ -62,6 +62,8 @@ void UDraftingUI::NativeConstruct()
 
     RefreshAbilityCards();
     AssignStatWidgetIDs();
+
+    StatTitleText->SetText(FText::GetEmpty());
 }
 
 void UDraftingUI::InitializeBottlecapDefaultLocations()
@@ -313,6 +315,36 @@ const TArray<FBottlecapReturnLocation> UDraftingUI::GetBottlecapReturnLocations(
     }
 
     return ReturnLocations;
+}
+
+void UDraftingUI::SetHoveredStatTextByID(int32 WidgetID)
+{
+    if (!StatButtons)
+    {
+        return;
+    }
+
+    for (int32 i = 0; i < StatButtons->GetChildrenCount(); ++i)
+    {
+        UDraftStatButton* Button = Cast<UDraftStatButton>(StatButtons->GetChildAt(i));
+
+        if (!Button) { continue; }
+
+        if (Button->GetWidgetID_Implementation() != WidgetID) { continue; }
+
+        if (Button->AbilityDataAsset)
+        {
+            StatTitleText->SetText(Button->AbilityDataAsset->Name);
+        }
+
+        return;
+    }
+
+    // If nothing is being hovered.
+    if (WidgetID == INDEX_NONE && StatTitleText)
+    {
+        StatTitleText->SetText(FText::GetEmpty());
+    }
 }
 
 #pragma region Utility

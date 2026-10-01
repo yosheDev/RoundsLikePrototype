@@ -98,6 +98,18 @@ UPlayerHUD* AFPSHudController::GetHUDWidget()
     }
 }
 
+UDraftingUI* AFPSHudController::GetDraftingWidget()
+{
+    if (DraftingWidget)
+    {
+        return DraftingWidget;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
 void AFPSHudController::BeginTranslateBottlecap(uint8 BottlecapID, FBottlecapReturnLocation ReturnLocationSS, bool bIsDeallocating)
 {
     UE_LOG(LogTemp, Error, TEXT("HUD BeginTranslateBottlecap %d"), BottlecapID);

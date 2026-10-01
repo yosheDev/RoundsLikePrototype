@@ -43,6 +43,12 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void ClickButton();
 
+	UFUNCTION()
+	void HandleStatButtonHovered();
+
+	UFUNCTION()
+	void HandleStatButtonUnhovered();
+
 	TObjectPtr<UDraftingUI> DraftingUI;
 
 private:

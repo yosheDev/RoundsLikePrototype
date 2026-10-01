@@ -41,6 +41,9 @@ public:
     UPlayerHUD* GetHUDWidget();
 
     UFUNCTION()
+    UDraftingUI* GetDraftingWidget();
+
+    UFUNCTION()
     void BeginTranslateBottlecap(uint8 BottlecapID, FBottlecapReturnLocation ReturnLocationSS, bool bIsDeallocating);
 
     UFUNCTION()

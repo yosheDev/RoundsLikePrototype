@@ -5,6 +5,7 @@
 #include "UI/Drafting/BottlecapReturnLocation.h"
 #include "UI/Drafting/DraftingUI.h"
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "FPSGameState.h"
 #include "FPSPlayerState.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -23,6 +24,8 @@ void UDraftStatButton::NativeConstruct()
     if (StatButton)
     {
         StatButton->OnClicked.AddDynamic(this, &UDraftStatButton::ClickButton);
+        StatButton->OnHovered.AddDynamic(this, &UDraftStatButton::HandleStatButtonHovered);
+        StatButton->OnUnhovered.AddDynamic(this, &UDraftStatButton::HandleStatButtonUnhovered);
     }
 
     // Bind AllocationSucceeded Delegate
@@ -44,6 +47,41 @@ void UDraftStatButton::SetWidgetID_Implementation(int32 NewID)
     WidgetID = NewID;
 }
 
+void UDraftStatButton::HandleStatButtonHovered()
+{
+    if (!DraftingUI) { return; }
+
+    if (!AbilityDataAsset)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("DraftStatButton %s has no AbilityDataAsset"), *GetName());
+        return;
+    }
+
+    if (AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>())
+    {
+        GS->EconomyComponent->Server_SetHoveredStat(WidgetID);
+    }
+    else
+    {
+        // As a backup, at least change the local UI to display correctly.
+        DraftingUI->StatTitleText->SetText(AbilityDataAsset->Name);
+    }
+}
+
+void UDraftStatButton::HandleStatButtonUnhovered()
+{
+    if (!DraftingUI) { return; }
+
+    if (AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>())
+    {
+        GS->EconomyComponent->Server_SetHoveredStat(INDEX_NONE);
+    }
+    else
+    {
+        // As a backup, at least change the local UI to display correctly.
+        DraftingUI->StatTitleText->SetText(FText::GetEmpty());
+    }
+}
 void UDraftStatButton::ClickButton_Implementation()
 {
     if (!bIsAllocated)
