@@ -18,10 +18,6 @@ public:
 
     UGA_PrimaryFire();
 
-    /** Origin point for Weapon to use. Camera location and rotation. May be replaced later on with scene component chid of fp camera.*/
-    UPROPERTY()
-    FTransform SpawnTransform;
-
 private:
     FTimerHandle FireTimerHandle;
 

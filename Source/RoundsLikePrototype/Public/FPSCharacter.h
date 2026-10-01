@@ -145,6 +145,9 @@ public:
 
 	/** Returns the currently equipped weapon. */
 	virtual AProjectileWeapon* GetEquippedWeapon_Implementation() const override;
+
+	/** Returns the first-person cosmetic weapon. */
+	virtual AFirstPersonWeapon* GetCosmeticWeapon_Implementation() const override;
 #pragma endregion
 
 #pragma endregion

@@ -7,6 +7,7 @@
 #include "IWeaponHolder.generated.h"
 
 class AProjectileWeapon;
+class AFirstPersonWeapon;
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
@@ -28,4 +29,8 @@ public:
 	/** Get the current weapon */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapons|WeaponHolder")
 	AProjectileWeapon* GetEquippedWeapon() const;
+
+	/** Get the current first-person cosmetic weapon */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Weapons|WeaponHolder")
+	AFirstPersonWeapon* GetCosmeticWeapon() const;
 };

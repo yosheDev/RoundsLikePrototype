@@ -55,16 +55,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	USkeletalMeshComponent* GetMesh();
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	FVector GetProjectileSpawnLocation();
+
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	UAmmoComponent* GetAmmoComponent() const;
 
 	/** Is this weapon currently able to fire a projectile? */
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual bool CanFire() const;
-
-	// Currently unused.
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	virtual TArray<FTransform> GetMuzzleLocations() const;
 
 	/** Handles shooting of projectiles accounting for weapon stats. */
 	UFUNCTION(BlueprintCallable, Category = "Weapon")

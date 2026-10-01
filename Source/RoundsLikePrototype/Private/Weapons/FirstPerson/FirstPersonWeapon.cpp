@@ -36,4 +36,16 @@ void AFirstPersonWeapon::PlayFireWeaponAnimation_Implementation()
 	// Play appropriate montage based on what weapon the player has.
 }
 
+FVector AFirstPersonWeapon::GetProjectileSpawnLocation()
+{
+	FVector Location = FVector::Zero();
 
+	if (!Mesh || !Mesh->DoesSocketExist(TEXT("ProjectileSpawnSocket")))
+	{
+		return Mesh ? Mesh->GetComponentTransform().GetLocation() : GetActorLocation();
+	}
+
+	Location = Mesh->GetSocketLocation(TEXT("ProjectileSpawnSocket"));
+
+	return Location;
+}

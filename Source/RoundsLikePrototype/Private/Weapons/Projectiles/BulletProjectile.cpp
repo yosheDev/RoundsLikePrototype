@@ -322,10 +322,9 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 
 	PostBounceVelocity = FMath::GetReflectionVector(IncomingVelocity, SurfaceNormal);
 	const float BounceRetention = FMath::Clamp((BounceCount > 1) ? (1.0 - (BounceCount * 0.02f)) : Spec.BulletBounceVelocityRetention, 0.0f, 1.0f);
-	//if (BounceCount <= 1)
-	//{
-		PostBounceVelocity *= BounceRetention;
-	//}
+
+	PostBounceVelocity *= BounceRetention;
+	
 	
 	#pragma endregion
 

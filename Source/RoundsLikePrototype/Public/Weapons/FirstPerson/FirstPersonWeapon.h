@@ -22,6 +22,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* Mesh;
 
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	FVector GetProjectileSpawnLocation();
+
 protected:
 
 	virtual void BeginPlay() override;

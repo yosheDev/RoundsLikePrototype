@@ -177,7 +177,7 @@ void AProjectileWeapon::SpawnProjectile(
 		SpawnData.SpawnTransform,		// Transform
 		this,							// Owner
 		GetInstigator(),				// Instigator
-		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 
 	if (!Projectile) { return; }
 
@@ -264,8 +264,17 @@ bool AProjectileWeapon::CanFire() const
 	return bIsProjectileValid;
 }
 
-TArray<FTransform> AProjectileWeapon::GetMuzzleLocations() const
+FVector AProjectileWeapon::GetProjectileSpawnLocation()
 {
-	return TArray<FTransform>();
+	FVector Location = FVector::Zero();
+
+	if (!Mesh || !Mesh->DoesSocketExist(TEXT("ProjectileSpawnSocket")))
+	{
+		return Mesh ? Mesh->GetComponentTransform().GetLocation() : GetActorLocation();
+	}
+
+	Location = Mesh->GetSocketLocation(TEXT("ProjectileSpawnSocket"));
+
+	return Location;
 }
 #pragma endregion

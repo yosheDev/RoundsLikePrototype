@@ -8,6 +8,7 @@
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
 #include "Weapons/FireData.h"
 #include "Weapons/AmmoComponent.h"
+#include "Weapons/FirstPerson/FirstPersonWeapon.h"
 
 // Constructor
 UGA_PrimaryFire::UGA_PrimaryFire()
@@ -224,11 +225,10 @@ void UGA_PrimaryFire::FireShot()
     }
 
     AProjectileWeapon* Weapon = IWeaponHolder::Execute_GetEquippedWeapon(Avatar);
+    AFirstPersonWeapon* CosmeticWeapon = IWeaponHolder::Execute_GetCosmeticWeapon(Avatar);
     UAmmoComponent* AmmoComponent = Weapon->GetAmmoComponent();
 
-    UE_LOG(
-        LogTemp,
-        Warning,
+    UE_LOG(LogTemp, Warning,
         TEXT("FireLog: [%s] FireShot() | CurrentAmmo=%d | ClientPredictedAmmo=%d"),
         CurrentActorInfo->AvatarActor.Get()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
         AmmoComponent ? AmmoComponent->CurrentAmmo : -1,
@@ -255,11 +255,68 @@ void UGA_PrimaryFire::FireShot()
     bBurstComplete = false;
 
     #pragma region Activate Primary Fire
+
     APlayerController* PC = CurrentActorInfo->PlayerController.Get();
-    FVector AimLocation = PC->PlayerCameraManager->GetCameraLocation();
-    FRotator AimRotation = PC->PlayerCameraManager->GetCameraRotation().Vector().Rotation();
-    //AimRotation.Pitch += Attributes->GetBulletArc(); // Commented out for now as I am reworking projectile physics. Projectile itself will handle arc now.
-    SpawnTransform = FTransform(AimRotation, AimLocation);
+
+    FVector CameraLocation;
+    FRotator CameraRotation;
+
+    PC->PlayerCameraManager->GetCameraViewPoint(CameraLocation, CameraRotation);
+
+    FVector AimTarget = FVector::Zero();
+    bool bShootFromCamCenter = false;
+
+    #pragma region Cosmetic Weapon Geometry Check
+    // If there is geometry in front of or inside of cosmetic weapon, shoot from camera center instead.
+    FHitResult FPCheckHit;
+    FCollisionQueryParams FPCheckQueryParams;
+    FPCheckQueryParams.AddIgnoredActor(Avatar);
+    FPCheckQueryParams.AddIgnoredActor(Weapon);
+
+    //FName TraceTag("FPCheck");
+    //FPCheckQueryParams.bDebugQuery = true;
+    //FPCheckQueryParams.TraceTag = TraceTag;
+    //GetWorld()->DebugDrawTraceTag = TraceTag;
+
+    FVector FPCheckStart = CosmeticWeapon->GetActorLocation() + (CameraRotation.Vector() * -50.0f);
+    FVector FPCheckEnd = FPCheckStart + (CameraRotation.Vector() * 175.0f);
+    if (GetWorld()->LineTraceSingleByChannel(FPCheckHit, FPCheckStart, FPCheckEnd, ECC_Visibility, FPCheckQueryParams))
+    {
+        bShootFromCamCenter = true;
+    }
+    #pragma endregion
+
+    #pragma region Camera Trace For Aim Target
+    const FVector AimDirection = CameraRotation.Vector();
+    const FVector TraceEnd = CameraLocation + AimDirection * 100000.0f;
+
+    FHitResult Hit;
+
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(Avatar);
+    QueryParams.AddIgnoredActor(Weapon);
+
+    if (GetWorld()->LineTraceSingleByChannel(Hit, CameraLocation, TraceEnd, ECC_Visibility, QueryParams))
+    {
+        if (Hit.Distance < 50.0f)
+        {
+            AimTarget = TraceEnd;
+        }
+        else 
+        {
+            AimTarget = Hit.ImpactPoint;
+        }
+    }
+    else
+    {
+        AimTarget = TraceEnd;
+    }
+    #pragma endregion
+
+    // Calculate spawn transform. If shooter is too close to a wall, use camera center instead.
+    const FVector SpawnLocation = bShootFromCamCenter ? CameraLocation : CosmeticWeapon->GetProjectileSpawnLocation();
+    const FVector ProjectileDirection = bShootFromCamCenter ? CameraRotation.Vector() : (AimTarget - SpawnLocation).GetSafeNormal();
+    const FTransform SpawnTransform = FTransform(ProjectileDirection.Rotation(), SpawnLocation);
 
     // Create SpawnTransform of SpawnData here. Weapon unique properties(spread, stats, bullets) will propograte in the AProjectileWeapon.
     FProjectileSpawnData SpawnData;
@@ -268,6 +325,7 @@ void UGA_PrimaryFire::FireShot()
     // Create FireData based on attributes and conditions.
     FFireData FireData = MakeFireData();
 
+    // Tell the weapon to fire, and pass along relevant data.
     Weapon->PrimaryFire(CurrentSpecHandle, CurrentActivationInfo, SpawnData, FireData);
 
     #pragma region TryActivate BulletJump
@@ -287,6 +345,7 @@ void UGA_PrimaryFire::FireShot()
         }
     }
     #pragma endregion
+
     #pragma endregion
 
     #pragma region Schedule Next Shot (if not a burst weapon)

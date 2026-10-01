@@ -293,6 +293,11 @@ AProjectileWeapon* AFPSCharacter::GetEquippedWeapon_Implementation() const
 {
 	return CurrentWeapon;
 }
+
+AFirstPersonWeapon* AFPSCharacter::GetCosmeticWeapon_Implementation() const
+{
+	return FirstPersonWeapon;
+}
 #pragma endregion
 
 #pragma endregion
