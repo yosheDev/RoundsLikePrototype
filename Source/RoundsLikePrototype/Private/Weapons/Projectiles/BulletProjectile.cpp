@@ -98,9 +98,10 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 
 	BulletData = InBulletData;
 
-	// Set bullet size.
-	SetActorScale3D(GetActorScale3D() * InBulletData.BulletSpec.BulletSize);
-	NiagaraComponent->SetFloatParameter(FName(TEXT("ActorScale")), GetActorScale3D().X);
+	// Set bullet size. Only increase the overlap col and niagara size. This way, bullets that are too big don't destroy on environment too easily.
+	//SetActorScale3D(GetActorScale3D() * InBulletData.BulletSpec.BulletSize);
+	SphereOverlapCollision->SetRelativeScale3D(SphereOverlapCollision->GetRelativeScale3D() * InBulletData.BulletSpec.BulletSize);
+	NiagaraComponent->SetFloatParameter(FName(TEXT("ActorScale")), NiagaraComponent->GetRelativeScale3D().X * InBulletData.BulletSpec.BulletSize);
 
 	#pragma region Initialize Trajectory
 	// Store the initial trajectory conditions.
