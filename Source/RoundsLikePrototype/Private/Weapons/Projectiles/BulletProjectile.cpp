@@ -156,6 +156,11 @@ void ABulletProjectile::Tick(float DeltaTime)
 	{
 		PreviousTrajectoryPosition = NewPosition;
 		ProjectileTime = NewTime;
+		CurrentVelocity = (GetActorLocation() - PreviousTrajectoryPosition) / DeltaTime;
+	}
+	else
+	{
+		PreviousTrajectoryPosition = GetActorLocation();
 	}
 	#pragma endregion
 }
@@ -296,7 +301,16 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 
 	#pragma region Reflect Velocity And Get New Velocity
 
-	const FVector IncomingVelocity = CalculateTrajectoryVelocity(ProjectileTime);
+	FVector IncomingVelocity = FVector::Zero();
+
+	if (!bHasBounced)
+	{
+		IncomingVelocity = CalculateTrajectoryVelocity(ProjectileTime);
+	}
+	else
+	{
+		IncomingVelocity = PostBounceVelocity;
+	}
 
 	if (IncomingVelocity.IsNearlyZero())
 	{
@@ -307,8 +321,12 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 	const FVector SurfaceNormal = Hit.ImpactNormal.GetSafeNormal();
 
 	PostBounceVelocity = FMath::GetReflectionVector(IncomingVelocity, SurfaceNormal);
-	const float BounceRetention = FMath::Clamp(Spec.BulletBounceVelocityRetention, 0.0f, 1.0f);
-	PostBounceVelocity *= BounceRetention;
+	const float BounceRetention = FMath::Clamp((BounceCount > 1) ? (1.0 - (BounceCount * 0.02f)) : Spec.BulletBounceVelocityRetention, 0.0f, 1.0f);
+	//if (BounceCount <= 1)
+	//{
+		PostBounceVelocity *= BounceRetention;
+	//}
+	
 	#pragma endregion
 
 	// Transition physics mode into natural ballistics simulation.

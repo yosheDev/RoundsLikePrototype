@@ -21,6 +21,8 @@ void UGunplayAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(UGunplayAttributeSet, BulletGravity);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletCritChance);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletLifestealAmount);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletBounceAmount);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletBounceVelocityRetention);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletType);
 
 	DOREPLIFETIME(UGunplayAttributeSet, WeaponFireType);

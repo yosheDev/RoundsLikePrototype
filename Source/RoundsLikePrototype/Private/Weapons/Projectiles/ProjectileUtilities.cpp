@@ -21,6 +21,8 @@ FBulletSpec UProjectileUtilities::MakeBulletSpec(const UFPSAbilitySystemComponen
     Spec.BulletArc = Attributes->GetBulletArc();
     Spec.BulletArcDistance = Attributes->GetBulletArcDistance();
     Spec.BulletArcPitchInfluence = Attributes->GetBulletArcPitchInfluence();
+    Spec.MaxBounces = Attributes->GetBulletBounceAmount();
+    Spec.BulletBounceVelocityRetention = Attributes->GetBulletBounceVelocityRetention();
     ASC->GetOwnedGameplayTags(Spec.Tags);
 
     return Spec;

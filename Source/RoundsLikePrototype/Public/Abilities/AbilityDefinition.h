@@ -33,7 +33,13 @@ public:
     FText Description;
 
     UPROPERTY(EditDefaultsOnly)
+    FText FlavorText;
+
+    UPROPERTY(EditDefaultsOnly)
     EAbilityRarity Rarity = EAbilityRarity::Common;
+
+    UPROPERTY(EditDefaultsOnly)
+    int32 Cost = 2;
 
     UPROPERTY(EditDefaultsOnly)
     TArray<TSubclassOf<UGameplayAbility>> GASAbilities;

@@ -68,6 +68,9 @@ protected:
 	float TrajectoryArcStrength = 1.0f;
 
 	UPROPERTY()
+	FVector CurrentVelocity;
+
+	UPROPERTY()
 	float CurrentTrajectorySpeed = 0.0f;
 
 	UPROPERTY()

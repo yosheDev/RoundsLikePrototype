@@ -54,6 +54,9 @@ void UAbilityCard::InitializeCard(UAbilityDefinition* NewDataAsset)
 
     AbilityName->SetText(AbilityDataAsset->Name);
     AbilityDesc->SetText(AbilityDataAsset->Description);
+    AbilityFlavor->SetText(AbilityDataAsset->FlavorText);
+
+    Cost = AbilityDataAsset->Cost;
 }
 
 void UAbilityCard::SelectAbility()

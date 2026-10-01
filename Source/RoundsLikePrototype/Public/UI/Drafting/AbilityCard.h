@@ -55,6 +55,9 @@ protected:
 	TObjectPtr<UTextBlock> AbilityDesc;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UTextBlock> AbilityFlavor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> AbilityImage;
 
 private:

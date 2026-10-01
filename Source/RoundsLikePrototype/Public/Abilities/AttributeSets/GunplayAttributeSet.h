@@ -65,6 +65,16 @@ public:
 	FGameplayAttributeData BulletGravity;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletGravity);
 
+	// Number of bounces projectile can do.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletBounceAmount;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletBounceAmount);
+
+	// Multiplied with velocity to determine retention of it.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletBounceVelocityRetention;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletBounceVelocityRetention);
+
 	// Chance for a critical strike upon impact.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BulletCritChance;
