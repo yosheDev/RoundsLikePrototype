@@ -8,6 +8,7 @@
 #include "ShooterWeaponHolder.h"//
 #include "AbilitySystemInterface.h"
 #include "Abilities/GameplayAbility.h"
+#include "Abilities/AbilityDefinition.h"
 #include "Weapons/ProjectileWeapon.h"
 #include "Weapons/IWeaponHolder.h"
 #include "FPSCharacter.generated.h"
@@ -80,6 +81,10 @@ protected:
 	/** Array exposed to the Editor to pick default abilities in Blueprint subclass. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+
+	/** Array exposed to the Editor to pick default gameplay effects in Blueprint subclass. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GAS|Abilities", meta = (BlueprintBaseOnly = "true"))
+	TArray<TObjectPtr<UAbilityDefinition>> DefaultSkills;
 
 private:
 	// SpecHandles for caching commonly used abilities to avoid constant lookup. Makes activating them O(1)

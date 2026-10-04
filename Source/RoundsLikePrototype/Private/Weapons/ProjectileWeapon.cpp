@@ -12,6 +12,7 @@
 #include "Enums/WeaponFireType.h"
 #include "Weapons/FireData.h"
 #include "GameplayTagContainer.h"
+#include "GameFramework/Character.h"
 #include "Components/FPSAbilitySystemComponent.h"
 
 AProjectileWeapon::AProjectileWeapon()
@@ -37,7 +38,23 @@ void AProjectileWeapon::SyncGunplayAttributes()
 
 			if (GunplayAttributes)
 			{
-				AmmoComponent->SetClipCapacity(FMath::RoundToInt(GunplayAttributes->GetClipCapacity()));
+				/*UE_LOG(LogTemp, Warning,
+					TEXT("[%s] AmmoLog: SyncGunplayAttributes Weapon=%s [%p] AmmoComponent=%s Clip=%d Regen=%f"),
+					Cast<ACharacter>(GetOwner())->IsLocallyControlled() ? TEXT("SERVER") : TEXT("CLIENT"),
+					*GetName(),
+					this,
+					*GetNameSafe(AmmoComponent),
+					static_cast<int32>(GunplayAttributes->GetClipCapacity()),
+					static_cast<float>(GunplayAttributes->GetBulletRegen()));*/
+
+				// Round to int because some skills may be multiplying it by floats.
+				AmmoComponent->SetClipCapacity(FMath::RoundToInt(static_cast<float>(GunplayAttributes->GetClipCapacity())));
+				AmmoComponent->SetAmmoRegen(GunplayAttributes->GetBulletRegen());
+
+				/*UE_LOG(LogTemp, Warning,
+					TEXT("[%s] AmmoLog: AFTER SYNC: MaxAmmo=%d"),
+					Cast<ACharacter>(GetOwner())->IsLocallyControlled() ? TEXT("SERVER") : TEXT("CLIENT"),
+					static_cast<int32>(AmmoComponent->MaxAmmo));*/
 			}
 		}
 	}

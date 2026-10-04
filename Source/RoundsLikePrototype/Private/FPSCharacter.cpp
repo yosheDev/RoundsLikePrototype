@@ -10,6 +10,7 @@
 #include "Weapons/FirstPerson/FirstPersonWeapon.h"
 #include "Weapons/AmmoComponent.h"
 #include "Weapons/IWeaponHolder.h"
+#include "Abilities/AbilityDefinition.h"
 #include "Abilities/Weapons/GA_PrimaryFire.h"
 #pragma endregion
 
@@ -479,6 +480,16 @@ void AFPSCharacter::GiveDefaultAbilities()
 				TryCacheAbilitySpecHandle(*GrantedSpec);
 			}
 		}
+	}
+
+	AFPSPlayerState* PS = Cast<AFPSPlayerState>(GetPlayerState());
+	// Iterate through all skills and apply them.
+	for (UAbilityDefinition* SkillAsset : DefaultSkills)
+	{
+		// Ensure the asset pointer itself isn't null and PS is valid
+		if (!SkillAsset || !PS) { continue; }
+
+		PS->Server_AddAccruedAbility(SkillAsset->AbilityTag);
 	}
 }
 

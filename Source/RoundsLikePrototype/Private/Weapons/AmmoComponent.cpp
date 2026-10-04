@@ -9,6 +9,8 @@
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"       
 #include "GameFramework/PlayerController.h"
+#include "Abilities/AttributeSets/GunplayAttributeSet.h"
+#include "Weapons/ProjectileWeapon.h"
 #include "FPSHudController.h"
 
 UAmmoComponent::UAmmoComponent()
@@ -27,12 +29,18 @@ void UAmmoComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(UAmmoComponent, CurrentAmmo);
+    DOREPLIFETIME(UAmmoComponent, MaxAmmo);
     DOREPLIFETIME(UAmmoComponent, EarliestReturnServerTime);
 }
 
 void UAmmoComponent::OnRep_CurrentAmmo()
 {
     ClientPredictedAmmo = CurrentAmmo;
+    UpdateLocalAmmoUI();
+}
+
+void UAmmoComponent::OnRep_MaxAmmo()
+{
     UpdateLocalAmmoUI();
 }
 
@@ -189,6 +197,34 @@ void UAmmoComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorC
 
 void UAmmoComponent::UpdateLocalAmmoUI()
 {
+    AProjectileWeapon* Weapon = Cast<AProjectileWeapon>(GetOwner());
+
+    AActor* WeaponOwner = Weapon ? Weapon->GetOwner() : nullptr;
+    APawn* PawnOwner = Cast<APawn>(WeaponOwner);
+    AController* Controller = PawnOwner ? PawnOwner->GetController() : nullptr;
+
+    /*UE_LOG(LogTemp, Warning,
+        TEXT("AmmoLog OWNERSHIP: "
+            "Ammo=%s [%p] "
+            "Weapon=%s [%p] "
+            "WeaponOwner=%s [%p] "
+            "Pawn=%s [%p] "
+            "Controller=%s [%p] "
+            "LocallyControlled=%s"),
+        *GetNameSafe(this),
+        this,
+        *GetNameSafe(Weapon),
+        Weapon,
+        *GetNameSafe(WeaponOwner),
+        WeaponOwner,
+        *GetNameSafe(PawnOwner),
+        PawnOwner,
+        *GetNameSafe(Controller),
+        Controller,
+        PawnOwner && PawnOwner->IsLocallyControlled()
+        ? TEXT("TRUE")
+        : TEXT("FALSE"));*/
+
     // Get owning Pawn.
     AActor* Owner = GetOwner()->GetOwner();
     APawn* Pawn = Cast<APawn>(Owner);
@@ -216,6 +252,16 @@ void UAmmoComponent::UpdateLocalAmmoUI()
 
             if (IsValid(HUD->GetHUDWidget()))
             {
+                /*UE_LOG(LogTemp, Warning,
+                    TEXT("AmmoLog: UpdateAmmoUI: [%s] Weapon=%s [%p] AmmoComponent=%s [%p] Display=%d Max=%d ReturnDelay=%f"),
+                    GetOwner()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
+                    *GetNameSafe(GetOwner()),
+                    GetOwner(),
+                    *GetNameSafe(this),
+                    this,
+                    DisplayAmmo,
+                    MaxAmmo,
+                    AmmoReturnDelay);*/
                 HUD->GetHUDWidget()->UpdateAmmoSlider(DisplayAmmo, MaxAmmo, ReturnTimeRemaining, AmmoReturnDelay);
             }
         }
@@ -224,9 +270,14 @@ void UAmmoComponent::UpdateLocalAmmoUI()
 
 void UAmmoComponent::SetClipCapacity(int32 Amount)
 {
-    MaxAmmo = Amount;
-    CurrentAmmo = Amount;
-    ClientPredictedAmmo = Amount;
+    /*UE_LOG(LogTemp, Warning,
+        TEXT("AmmoLog [%s] SetClipCapacity: %d -> %d"),
+        GetOwner() && GetOwner()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
+        MaxAmmo,
+        Amount);*/
+    MaxAmmo = FMath::Clamp(Amount, 1, 99999999);
+    CurrentAmmo = MaxAmmo;
+    ClientPredictedAmmo = MaxAmmo;
 
     UpdateLocalAmmoUI();
 }
@@ -238,4 +289,9 @@ void UAmmoComponent::SetAmmo(int32 Amount)
         CurrentAmmo = FMath::Min(Amount, MaxAmmo);
     }
     ClientPredictedAmmo = FMath::Min(Amount, MaxAmmo);
+}
+
+void UAmmoComponent::SetAmmoRegen(float Amount)
+{
+    AmmoReturnDelay = FMath::Clamp(Amount, 0.001f, 999999999.9f);
 }

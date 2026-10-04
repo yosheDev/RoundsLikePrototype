@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "AmmoComponent.generated.h"
 
 
@@ -77,8 +78,11 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	int32 ClientPredictedAmmo = -1;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, ReplicatedUsing=OnRep_MaxAmmo)
 	int32 MaxAmmo = 3;
+
+	UFUNCTION()
+	void OnRep_MaxAmmo();
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float AmmoReturnDelay = 2.0f;
@@ -92,4 +96,7 @@ public:
 	UFUNCTION()
 	void OnRep_EarliestReturnServerTime();
 	FTimerHandle AmmoReturnTimerHandle;
+
+	UFUNCTION()
+	void SetAmmoRegen(float Amount);
 };

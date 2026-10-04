@@ -32,10 +32,10 @@ class ROUNDSLIKEPROTOTYPE_API UAbilityPoolSubsystem : public UGameInstanceSubsys
 #pragma region Rarity Odds
 protected:
 	// Must be between 0-100.
-	float RarityCommonPercentage{ 60.0f };
-	float RarityUncommonPercentage{ 25.0f};
-	float RarityRarePercentage{ 12.0f };
-	float RarityLegendaryPercentage{ 3.0f };
+	float RarityCommonPercentage{ 61.73f };	// Probability makes this a ~99% chance to appear each ability draft.
+	float RarityUncommonPercentage{ 27.0f};	// Probability makes this a ~75% chance to appear each ability draft.
+	float RarityRarePercentage{ 9.17f };	// Probability makes this a ~35% chance to appear each ability draft.
+	float RarityLegendaryPercentage{ 2.1f }; // Probability makes this a ~10% chance to appear each ability draft.
 #pragma endregion
 
 public:
