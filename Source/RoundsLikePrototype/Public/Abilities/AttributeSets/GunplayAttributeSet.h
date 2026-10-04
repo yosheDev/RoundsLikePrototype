@@ -25,10 +25,43 @@ public:
 	UGunplayAttributeSet();
 
 	#pragma region Bullet Attributes
+	#pragma region Bullet Damage
 	// Maximum amount of damage each bullet can deal.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	FGameplayAttributeData BulletImpactDamage;
 	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletImpactDamage);
+
+	// Distance at which far distance falloff begins.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletDamageFalloffStartDistance;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletDamageFalloffStartDistance);
+
+	// End of distance falloff range.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletDamageFalloffEndDistance;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletDamageFalloffEndDistance);
+
+	// Modifier at max distance.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletDamageFarModifier;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletDamageFarModifier);
+
+	// Distance at which near distance falloff begins.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletDamageReverseFalloffStartDistance;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletDamageReverseFalloffStartDistance);
+
+	// End of distance reverse falloff range (for close-range modifications.)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletDamageReverseFalloffEndDistance;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletDamageReverseFalloffEndDistance);
+
+	// Modifier at min distance.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData BulletDamageNearModifier;
+	ATTRIBUTE_ACCESSORS(UGunplayAttributeSet, BulletDamageNearModifier);
+
+	#pragma endregion
 
 	// Influence factor for bullet jumping.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
@@ -92,7 +125,7 @@ public:
 
 #pragma endregion
 
-#pragma region Fire Attributes
+	#pragma region Fire Attributes
 
 	// Type for the bullet spread(0 = Standard, 1 = Burst, 2 = Automatic, 3 = Shotgun Spread, 4 = Charge Cannon?)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)

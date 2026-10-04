@@ -1,5 +1,6 @@
 // Copyright Jacob Jones 2026
 
+
 // Preprocessor Directives
 #include "Weapons/Projectiles/BulletProjectile.h"
 #include "NiagaraComponent.h"
@@ -22,6 +23,7 @@ static TAutoConsoleVariable<bool> CVarBulletTraces(
 	ECVF_Default									// Flags (e.g., ECVF_Cheat for cheat-only)
 );
 
+
 #pragma region Initialization
 ABulletProjectile::ABulletProjectile()
 {
@@ -32,13 +34,13 @@ ABulletProjectile::ABulletProjectile()
 	{
 		SetReplicates(false);
 	}
-	else 
+	else
 	{
 		SetReplicates(true);
 	}
 	bAlwaysRelevant = true;
 
-	#pragma region Create Components
+#pragma region Create Components
 	SphereHitCollision = CreateDefaultSubobject<USphereComponent>(TEXT("SphereHitCollision"));
 	SphereHitCollision->SetNotifyRigidBodyCollision(true);
 	SetRootComponent(SphereHitCollision);
@@ -50,7 +52,7 @@ ABulletProjectile::ABulletProjectile()
 	NiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireEffectComponent"));
 	NiagaraComponent->SetupAttachment(RootComponent);
 	NiagaraComponent->bAutoActivate = false;
-	#pragma endregion
+#pragma endregion
 }
 
 void ABulletProjectile::BeginPlay()
@@ -103,7 +105,7 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	SphereOverlapCollision->SetRelativeScale3D(SphereOverlapCollision->GetRelativeScale3D() * InBulletData.BulletSpec.BulletSize);
 	NiagaraComponent->SetFloatParameter(FName(TEXT("ActorScale")), NiagaraComponent->GetRelativeScale3D().X * InBulletData.BulletSpec.BulletSize);
 
-	#pragma region Initialize Trajectory
+#pragma region Initialize Trajectory
 	// Store the initial trajectory conditions.
 	TrajectoryOrigin = InBulletData.SpawnTransform.GetLocation();
 	TrajectoryDirection = InBulletData.SpawnTransform.GetUnitAxis(EAxis::X);
@@ -119,16 +121,24 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	TrajectoryArcStrength = FMath::Pow(1.0f - Verticality, 0.5f);
 	TrajectoryArcStrength = FMath::Clamp(TrajectoryArcStrength, 0.0f, 1.0f) * InBulletData.BulletSpec.BulletArcPitchInfluence;
 
+	ArcEndTime = FMath::Max(InBulletData.BulletSpec.BulletArcDistance, 1.0f) / CurrentTrajectorySpeed;
+
 	ProjectileTime = 0.0f;
 	PreviousTrajectoryPosition = CalculateTrajectoryPosition(0.0f);
+	bHasEnteredNaturalTrajectory = false;
+	NaturalTrajectoryOrigin = FVector::ZeroVector;
+	NaturalTrajectoryInitialVelocity = FVector::ZeroVector;
+	NaturalTrajectoryTime = 0.0f;
+	ArcEndTime = FMath::Max(InBulletData.BulletSpec.BulletArcDistance, 1.0f) / CurrentTrajectorySpeed;
 
 	if (CVarBulletTraces.GetValueOnGameThread())
 	{
 		DrawDebugTrajectory();
 	}
-	#pragma endregion
+#pragma endregion
 }
 #pragma endregion
+
 
 #pragma region Bullet Behavior
 void ABulletProjectile::Tick(float DeltaTime)
@@ -140,13 +150,10 @@ void ABulletProjectile::Tick(float DeltaTime)
 		#pragma region Natural Physics Projectile
 
 		const FVector StartPosition = GetActorLocation();
-
 		PostBounceVelocity += FVector(0.0f, 0.0f, GetWorld()->GetGravityZ() * BulletData.BulletSpec.BulletGravity) * DeltaTime;
-
 		const FVector EndPosition = StartPosition + PostBounceVelocity * DeltaTime;
 
 		MoveProjectileWithCollision(StartPosition, EndPosition);
-
 		return;
 		#pragma endregion
 	}
@@ -155,15 +162,57 @@ void ABulletProjectile::Tick(float DeltaTime)
 
 	const float NewTime = ProjectileTime + DeltaTime;
 
-	const FVector NewPosition = CalculateTrajectoryPosition(NewTime);
+	if (!bHasEnteredNaturalTrajectory && NewTime >= ArcEndTime)
+	{
+		const float RemainingTime = NewTime - ArcEndTime;
+
+		const FVector ArcEndPosition = CalculateTrajectoryPosition(ArcEndTime);
+
+		const bool bHitArcEnd = MoveProjectileWithCollision(PreviousTrajectoryPosition, ArcEndPosition);
+
+		if (bHitArcEnd)
+		{
+			PreviousTrajectoryPosition = GetActorLocation();
+			return;
+		}
+
+		TransitionToNaturalTrajectory();
+
+		NaturalTrajectoryTime = RemainingTime;
+
+		const FVector NaturalPosition = CalculateTrajectoryPosition(NaturalTrajectoryTime);
+
+		const bool bHitNatural = MoveProjectileWithCollision(ArcEndPosition, NaturalPosition);
+
+		if (!bHitNatural)
+		{
+			PreviousTrajectoryPosition = NaturalPosition;
+			ProjectileTime = NewTime;
+		}
+		else
+		{
+			PreviousTrajectoryPosition = GetActorLocation();
+		}
+
+		return;
+	}
+
+	const FVector NewPosition = CalculateTrajectoryPosition(bHasEnteredNaturalTrajectory ? NaturalTrajectoryTime + DeltaTime : NewTime);
 
 	const bool bHit = MoveProjectileWithCollision(PreviousTrajectoryPosition, NewPosition);
 
 	if (!bHit)
 	{
 		PreviousTrajectoryPosition = NewPosition;
-		ProjectileTime = NewTime;
-		CurrentVelocity = (GetActorLocation() - PreviousTrajectoryPosition) / DeltaTime;
+
+		if (bHasEnteredNaturalTrajectory)
+		{
+			NaturalTrajectoryTime += DeltaTime;
+		}
+		else
+		{
+			ProjectileTime = NewTime;
+		}
 	}
 	else
 	{
@@ -172,25 +221,34 @@ void ABulletProjectile::Tick(float DeltaTime)
 	#pragma endregion
 }
 
-FVector ABulletProjectile::CalculateTrajectoryPosition(float Time) const
+
+FVector ABulletProjectile::CalculateTrajectoryPosition(float Time)
 {
 	const FBulletSpec& Spec = BulletData.BulletSpec;
 
+	if (bHasEnteredNaturalTrajectory)
+	{
+		constexpr float GravityReferenceDistance = 1000.0f;
+		constexpr float GravityReferenceDrop = 100.0f;
+
+		const float GravityAcceleration = -2.0f * GravityReferenceDrop * Spec.BulletGravity * FMath::Square(CurrentTrajectorySpeed) / FMath::Square(GravityReferenceDistance);
+
+		const FVector GravityVector = FVector(0.0f, 0.0f, GravityAcceleration);
+
+		return NaturalTrajectoryOrigin + NaturalTrajectoryInitialVelocity * Time + 0.5f * GravityVector * Time * Time;
+	}
+
 	const float Distance = CurrentTrajectorySpeed * Time;
 
-	// Base forward movement
 	FVector Position = TrajectoryOrigin + (TrajectoryDirection * Distance);
 
-	if (!bHasBounced)
-	{
-		#pragma region Designed Arc
-		const float ArcDistance = FMath::Max(Spec.BulletArcDistance, 1.0f);
-		const float ArcAlpha = FMath::Clamp(Distance / ArcDistance, 0.0f, 1.0f);
-		const float ArcOffset = 4.0f * Spec.BulletArc * TrajectoryArcStrength * ArcAlpha * (1.0f - ArcAlpha);
+	#pragma region Designed Arc
+	const float ArcDistance = FMath::Max(Spec.BulletArcDistance, 1.0f);
+	const float ArcAlpha = FMath::Clamp(Distance / ArcDistance, 0.0f, 1.0f);
+	const float ArcOffset = 4.0f * Spec.BulletArc * TrajectoryArcStrength * ArcAlpha * (1.0f - ArcAlpha);
 
-		Position += TrajectoryArcDirection * ArcOffset;
-		#pragma endregion
-	}
+	Position += TrajectoryArcDirection * ArcOffset;
+	#pragma endregion
 
 	// Distance-based gravity (Gravity continues after bouncing.)
 
@@ -204,7 +262,8 @@ FVector ABulletProjectile::CalculateTrajectoryPosition(float Time) const
 	return Position;
 }
 
-FVector ABulletProjectile::CalculateTrajectoryVelocity(float Time) const
+
+FVector ABulletProjectile::CalculateTrajectoryVelocity(float Time)
 {
 	const FBulletSpec& Spec = BulletData.BulletSpec;
 
@@ -212,24 +271,16 @@ FVector ABulletProjectile::CalculateTrajectoryVelocity(float Time) const
 
 	const float Distance = BulletSpeed * Time;
 
-	// Forward velocity
 	const FVector ForwardVelocity = TrajectoryDirection * BulletSpeed;
 
 	FVector ArcVelocity = FVector::ZeroVector;
 
-	if (!bHasBounced)
+	if (!bHasEnteredNaturalTrajectory)
 	{
 		#pragma region Designed Arc Velocity
 		const float ArcDistance = FMath::Max(Spec.BulletArcDistance, 1.0f);
 		const float ArcAlpha = FMath::Clamp(Distance / ArcDistance, 0.0f, 1.0f);
-		float ArcSlope = 0.0f;
-
-		// Do not consider arc slope past the max arc distance.
-		if (Distance < ArcDistance)
-		{
-			ArcSlope = 4.0f * Spec.BulletArc * TrajectoryArcStrength * (1.0f - 2.0f * ArcAlpha) / ArcDistance;
-		}
-
+		const float ArcSlope = 4.0f * Spec.BulletArc * TrajectoryArcStrength * (1.0f - 2.0f * ArcAlpha) / ArcDistance;
 		ArcVelocity = TrajectoryArcDirection * ArcSlope * BulletSpeed;
 		#pragma endregion
 	}
@@ -243,6 +294,22 @@ FVector ABulletProjectile::CalculateTrajectoryVelocity(float Time) const
 
 	return ForwardVelocity + ArcVelocity + GravityVelocity;
 }
+
+
+void ABulletProjectile::TransitionToNaturalTrajectory()
+{
+	if (bHasEnteredNaturalTrajectory)
+	{
+		return;
+	}
+
+	NaturalTrajectoryOrigin = CalculateTrajectoryPosition(ArcEndTime);
+	NaturalTrajectoryInitialVelocity = CalculateTrajectoryVelocity(ArcEndTime);
+	NaturalTrajectoryTime = 0.0f;
+
+	bHasEnteredNaturalTrajectory = true;
+}
+
 
 bool ABulletProjectile::MoveProjectileWithCollision(const FVector& StartPosition, const FVector& EndPosition)
 {
@@ -284,15 +351,21 @@ bool ABulletProjectile::MoveProjectileWithCollision(const FVector& StartPosition
 	// No collision.
 	if (!bHit)
 	{
+		BulletTravelDistance += FVector::Distance(StartPosition, EndPosition);
+
 		SetActorLocation(EndPosition);
 		return false;
 	}
 
 	// Collision.
+	const float SegmentDistance = FVector::Distance(StartPosition, Hit.Location);
+	BulletTravelDistance += SegmentDistance;
+
 	SetActorLocation(Hit.Location);
 	BounceProjectile(Hit);
 	return true;
 }
+
 
 void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 {
@@ -331,8 +404,7 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 	const float BounceRetention = FMath::Clamp((BounceCount > 1) ? (1.0 - (BounceCount * 0.02f)) : Spec.BulletBounceVelocityRetention, 0.0f, 1.0f);
 
 	PostBounceVelocity *= BounceRetention;
-	
-	
+
 	#pragma endregion
 
 	// Transition physics mode into natural ballistics simulation.
@@ -343,7 +415,6 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 
 	PreviousTrajectoryPosition = GetActorLocation();
 
-	// Reset designed trajectory time because it is no longer used.
 	ProjectileTime = 0.0f;
 }
 
@@ -370,6 +441,7 @@ void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* Overla
 	}
 }
 
+
 void ABulletProjectile::PredictDamage(AActor* Target)
 {
 	// Get ASC Properly
@@ -384,9 +456,16 @@ void ABulletProjectile::PredictDamage(AActor* Target)
 	{
 		FString RoleString = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 		UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: PredictDamage() from [%s]"), *RoleString, *GetName());
-		TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data.Get());
+
+		FGameplayEffectSpec* Spec = GameplayEffectSpec.Data.Get();
+
+		const FGameplayTag TravelDistanceTag = FGameplayTag::RequestGameplayTag(TEXT("Data.BulletTravelDistance"));
+		Spec->SetSetByCallerMagnitude(TravelDistanceTag, GetBulletTravelDistance());
+
+		TargetASC->ApplyGameplayEffectSpecToSelf(*Spec);
 	}
 }
+
 
 void ABulletProjectile::ApplyDamage(AActor* Target)
 {
@@ -399,10 +478,17 @@ void ABulletProjectile::ApplyDamage(AActor* Target)
 	{
 		FString RoleString = HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
 		UE_LOG(LogTemp, Log, TEXT("FireLog: [%s]: ApplyDamage() from [%s]"), *RoleString, *GetName());
-		TargetASC->ApplyGameplayEffectSpecToSelf(*GameplayEffectSpec.Data);
+
+		FGameplayEffectSpec* Spec = GameplayEffectSpec.Data.Get();
+
+		const FGameplayTag TravelDistanceTag = FGameplayTag::RequestGameplayTag(TEXT("Data.BulletTravelDistance"));
+		Spec->SetSetByCallerMagnitude(TravelDistanceTag, GetBulletTravelDistance());
+
+		TargetASC->ApplyGameplayEffectSpecToSelf(*Spec);
 	}
 }
 #pragma endregion
+
 
 #pragma region Helpers
 void ABulletProjectile::DrawDebugTrajectory()
@@ -413,7 +499,22 @@ void ABulletProjectile::DrawDebugTrajectory()
 
 	const float DebugDuration = DebugDistance / Spec.BulletSpeed;
 
+	const float ArcDistance = FMath::Max(Spec.BulletArcDistance, 1.0f);
+	const float _ArcEndTime = ArcDistance / CurrentTrajectorySpeed;
+
 	const int32 NumSegments = 100;
+
+	// Calculate the exact state at the end of the designed arc.
+	const FVector ArcEndPosition = CalculateTrajectoryPosition(_ArcEndTime);
+
+	const FVector ArcEndVelocity = CalculateTrajectoryVelocity(_ArcEndTime);
+
+	constexpr float GravityReferenceDistance = 1000.0f;
+	constexpr float GravityReferenceDrop = 100.0f;
+
+	const float GravityAcceleration = -2.0f * GravityReferenceDrop * Spec.BulletGravity * FMath::Square(CurrentTrajectorySpeed) / FMath::Square(GravityReferenceDistance);
+
+	const FVector GravityVector = FVector(0.0f, 0.0f, GravityAcceleration);
 
 	FVector PreviousPosition = CalculateTrajectoryPosition(0.0f);
 
@@ -423,7 +524,23 @@ void ABulletProjectile::DrawDebugTrajectory()
 
 		const float Time = DebugDuration * Alpha;
 
-		const FVector CurrentPosition = CalculateTrajectoryPosition(Time);
+		FVector CurrentPosition;
+
+		if (Time <= _ArcEndTime)
+		{
+			// Designed arc phase.
+			CurrentPosition = CalculateTrajectoryPosition(Time);
+		}
+		else
+		{
+			// Natural trajectory phase.
+			const float NaturalTime = Time - _ArcEndTime;
+
+			CurrentPosition =
+				ArcEndPosition +
+				ArcEndVelocity * NaturalTime +
+				0.5f * GravityVector * NaturalTime * NaturalTime;
+		}
 
 		DrawDebugLine(
 			GetWorld(),
@@ -436,7 +553,18 @@ void ABulletProjectile::DrawDebugTrajectory()
 			2.0f
 		);
 
-		const FVector Velocity = CalculateTrajectoryVelocity(Time);
+		FVector Velocity;
+
+		if (Time <= _ArcEndTime)
+		{
+			Velocity = CalculateTrajectoryVelocity(Time);
+		}
+		else
+		{
+			const float NaturalTime = Time - _ArcEndTime;
+
+			Velocity = ArcEndVelocity + GravityVector * NaturalTime;
+		}
 
 		DrawDebugLine(
 			GetWorld(),
@@ -451,5 +579,11 @@ void ABulletProjectile::DrawDebugTrajectory()
 
 		PreviousPosition = CurrentPosition;
 	}
+}
+
+
+float ABulletProjectile::GetBulletTravelDistance() const
+{
+	return BulletTravelDistance;
 }
 #pragma endregion

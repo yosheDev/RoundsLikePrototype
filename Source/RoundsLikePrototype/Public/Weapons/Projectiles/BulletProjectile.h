@@ -43,6 +43,10 @@ public:
 	// Initializes attributes relevant to local projectile(movement, size, traits)
 	void InitializeBulletData(FProjectileSpawnData SpawnData);
 
+	// Returns distance the bullet has travelled from its spawn location.
+	UFUNCTION()
+	float GetBulletTravelDistance() const;
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -53,8 +57,8 @@ protected:
 
 	#pragma region Calculations
 	UFUNCTION()
-	FVector CalculateTrajectoryPosition(float Time) const;
-	FVector CalculateTrajectoryVelocity(float Time) const;
+	FVector CalculateTrajectoryPosition(float Time);
+	FVector CalculateTrajectoryVelocity(float Time);
 
 	UFUNCTION()
 	bool MoveProjectileWithCollision(const FVector& PreviousPosition, const FVector& NewPosition);
@@ -78,6 +82,35 @@ protected:
 
 	UPROPERTY()
 	FVector PreviousTrajectoryPosition = FVector::ZeroVector;
+
+	// Accumulates the travel distance.
+	UPROPERTY()
+	float BulletTravelDistance = 0.0f;
+
+	// The time the designed arc ended.
+	UPROPERTY()
+	float ArcEndTime = 0.0f;
+
+	#pragma region Natural Trajectory Transition
+
+	UPROPERTY()
+	bool bHasEnteredNaturalTrajectory = false;
+
+	// Exact point at the end of the designed arc.
+	UPROPERTY()
+	FVector NaturalTrajectoryOrigin = FVector::ZeroVector;
+
+	// Exact velocity at the end of the designed arc.
+	UPROPERTY()
+	FVector NaturalTrajectoryInitialVelocity = FVector::ZeroVector;
+
+	UPROPERTY()
+	float NaturalTrajectoryTime = 0.0f;
+
+	UFUNCTION()
+	void TransitionToNaturalTrajectory();
+
+	#pragma endregion
 
 	UFUNCTION()
 	void BounceProjectile(const FHitResult& Hit);

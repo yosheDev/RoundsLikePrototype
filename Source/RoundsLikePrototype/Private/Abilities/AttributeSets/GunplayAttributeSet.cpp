@@ -12,6 +12,19 @@ UGunplayAttributeSet::UGunplayAttributeSet()
 void UGunplayAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	#pragma region Bullet Damage
+	DOREPLIFETIME(UGunplayAttributeSet, BulletImpactDamage);
+
+	DOREPLIFETIME(UGunplayAttributeSet, BulletDamageFalloffStartDistance);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletDamageFalloffEndDistance);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletDamageFarModifier);
+
+	DOREPLIFETIME(UGunplayAttributeSet, BulletDamageReverseFalloffStartDistance);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletDamageReverseFalloffEndDistance);
+	DOREPLIFETIME(UGunplayAttributeSet, BulletDamageNearModifier);
+	#pragma endregion
+
 	DOREPLIFETIME(UGunplayAttributeSet, BulletJumpFactor);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSpeed);
 	DOREPLIFETIME(UGunplayAttributeSet, BulletSize);
