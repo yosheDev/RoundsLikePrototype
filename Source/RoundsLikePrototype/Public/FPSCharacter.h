@@ -188,6 +188,9 @@ protected:
 	void OnMaxHealthChanged(const FOnAttributeChangeData& Data);
 	void OnMaxSpeedChanged(const FOnAttributeChangeData& Data);
 	
+	// Called during SyncVitalityAttributes. Scales the player pawn according to attributes.
+	void UpdatePlayerScale();
+	bool bPlayerScaleUpdated = false;
 
 public:
 

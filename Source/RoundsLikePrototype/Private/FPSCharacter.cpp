@@ -263,10 +263,17 @@ void AFPSCharacter::CreateAndEquipWeapon_Implementation(TSubclassOf<AProjectileW
 		return;
 	}
 
+	FAttachmentTransformRules AttachmentRules(
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::SnapToTarget,
+		EAttachmentRule::KeepRelative,
+		true
+	);
+
 	Weapon->SetOwner(this);
 	Weapon->SetInstigator(this);
 	CurrentWeapon = Weapon;
-	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ThirdPersonWeaponSocket);
+	CurrentWeapon->AttachToComponent(GetMesh(), AttachmentRules, ThirdPersonWeaponSocket);
 
 	/** Clients do this on OnRep_CurrentWeapon instead of here. */
 	SpawnFirstPersonWeapon();
@@ -278,9 +285,16 @@ void AFPSCharacter::SpawnFirstPersonWeapon()
 
 	if (FirstPersonWeapon)
 	{
+		FAttachmentTransformRules AttachmentRules(
+			EAttachmentRule::SnapToTarget, 
+			EAttachmentRule::SnapToTarget, 
+			EAttachmentRule::KeepRelative, 
+			true                           
+		);
+
 		FirstPersonWeapon->SetOwner(this);
 		FirstPersonWeapon->SetInstigator(this);
-		FirstPersonWeapon->AttachToComponent(FPWeaponOffset, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		FirstPersonWeapon->AttachToComponent(FPWeaponOffset, AttachmentRules);
 
 		if (CurrentWeapon)
 		{
@@ -737,6 +751,47 @@ void AFPSCharacter::SyncGunplayAttributes()
 	}
 }
 
+void AFPSCharacter::UpdatePlayerScale()
+{
+	// Make sure this only happens once.
+	if (bPlayerScaleUpdated)
+	{
+		return;
+	}
+
+	bPlayerScaleUpdated = true;
+	float PlayerScale = static_cast<float>(VitalityAttributes->GetBodySize());
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		// Get absolute default values from Class Default Object (CDO)
+		AFPSCharacter* DefaultCharacter = Cast<AFPSCharacter>(GetClass()->GetDefaultObject());
+		UCapsuleComponent* DefaultCapsule = DefaultCharacter ? DefaultCharacter->GetCapsuleComponent() : nullptr;
+
+		float BaseRadius = DefaultCapsule ? DefaultCapsule->GetUnscaledCapsuleRadius() : 42.f;
+		float BaseHalfHeight = DefaultCapsule ? DefaultCapsule->GetUnscaledCapsuleHalfHeight() : 96.f;
+
+		float TargetRadius = BaseRadius * PlayerScale;
+		float TargetHalfHeight = BaseHalfHeight * PlayerScale;
+
+		// 1. Set Replicated Capsule Size
+		Capsule->SetCapsuleSize(TargetRadius, TargetHalfHeight);
+
+		if (USkeletalMeshComponent* CharacterMesh = GetMesh())
+		{
+			// 2. Scale the mesh. The attached actors (weapons/items) 
+			// will automatically double from 0.4 to 0.8 in world space now.
+			CharacterMesh->SetRelativeScale3D(FVector(PlayerScale));
+
+			// 3. Keep feet firmly on floor
+			FVector NewRelativeLocation = CharacterMesh->GetRelativeLocation();
+			NewRelativeLocation.Z = -TargetHalfHeight;
+			CharacterMesh->SetRelativeLocation(NewRelativeLocation);
+		}
+
+		GetCharacterMovement()->MaxStepHeight *= PlayerScale;
+	}
+}
 #pragma endregion
 
 #pragma region On Attribute Changed Delegate Functions
