@@ -38,6 +38,12 @@ protected:
 
 	TObjectPtr<UDraftingUI> DraftingUI;
 
+	UFUNCTION()
+	void HandleStatButtonHovered();
+
+	UFUNCTION()
+	void HandleStatButtonUnhovered();
+
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"))

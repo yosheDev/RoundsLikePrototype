@@ -274,6 +274,7 @@ void UMatchEconomyComponent::OnRep_CurrentHoveredStat()
 
 void UMatchEconomyComponent::Server_SetHoveredStat_Implementation(int32 WidgetID)
 {
+    UE_LOG(LogTemp, Warning, TEXT("DraftUILog: EconomyComponent Set Hovered Stat. ID is [%d]"), WidgetID);
     CurrentHoveredStatID = WidgetID;
 
     // The server does NOT get an OnRep call for its own replicated property, so explicitly update the server's local UI here.
@@ -288,13 +289,18 @@ void UMatchEconomyComponent::UpdateLocalHoveredStatUI()
     if (!PC){ PC = GetPlayerController(); }
     if (!PC) { return; }
 
-    AFPSHudController* HUD = PC->GetHUD<AFPSHudController>();
-    
-    UDraftingUI* DraftingUI = HUD->GetDraftingWidget();
+    if (PC->IsLocalPlayerController())
+    {
+        UE_LOG(LogTemp, Log, TEXT("DraftUILog: [%s] MatchEconomyComponent::UpdateLocalHoeveredStatUI()"), PC->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"));
 
-    if (!DraftingUI) { return; }
+        AFPSHudController* HUD = PC->GetHUD<AFPSHudController>();
 
-    DraftingUI->SetHoveredStatTextByID(CurrentHoveredStatID);
+        UDraftingUI* DraftingUI = HUD->GetDraftingWidget();
+
+        if (!DraftingUI) { return; }
+
+        DraftingUI->SetHoveredStatTextByID(CurrentHoveredStatID);
+    }
 }
 #pragma endregion
 

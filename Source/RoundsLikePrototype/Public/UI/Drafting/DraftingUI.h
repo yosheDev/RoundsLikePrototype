@@ -35,6 +35,9 @@ public:
 	UHorizontalBox* AbilityCards;
 
 	UPROPERTY(meta = (BindWidget))
+	UTextBlock* SkillDescriptionText;
+
+	UPROPERTY(meta = (BindWidget))
 	UHorizontalBox* StatButtons;
 
 	UPROPERTY(meta = (BindWidget))

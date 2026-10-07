@@ -64,6 +64,7 @@ void UDraftingUI::NativeConstruct()
     AssignStatWidgetIDs();
 
     StatTitleText->SetText(FText::GetEmpty());
+    SkillDescriptionText->SetText(FText::GetEmpty());
 }
 
 void UDraftingUI::InitializeBottlecapDefaultLocations()
@@ -319,6 +320,31 @@ const TArray<FBottlecapReturnLocation> UDraftingUI::GetBottlecapReturnLocations(
 
 void UDraftingUI::SetHoveredStatTextByID(int32 WidgetID)
 {
+    UE_LOG(LogTemp, Log, TEXT("DraftUILog: DraftingUI::SetHoveredStatTextByID()"));
+
+    // First, check Ability Cards
+    if (!AbilityCards)
+    {
+        return;
+    }
+
+    for (int32 i = 0; i < AbilityCards->GetChildrenCount(); ++i)
+    {
+        UAbilityCard* Card = Cast<UAbilityCard>(AbilityCards->GetChildAt(i));
+
+        if (!Card) { continue; }
+
+        if (Card->GetWidgetID_Implementation() != WidgetID) { continue; }
+
+        if (Card->AbilityDataAsset)
+        {
+            SkillDescriptionText->SetText(Card->AbilityDataAsset->Description);
+        }
+
+        return;
+    }
+
+    // Next, check Stat Buttons.
     if (!StatButtons)
     {
         return;
@@ -341,6 +367,10 @@ void UDraftingUI::SetHoveredStatTextByID(int32 WidgetID)
     }
 
     // If nothing is being hovered.
+    if (WidgetID == INDEX_NONE && SkillDescriptionText)
+    {
+        SkillDescriptionText->SetText(FText::GetEmpty());
+    }
     if (WidgetID == INDEX_NONE && StatTitleText)
     {
         StatTitleText->SetText(FText::GetEmpty());

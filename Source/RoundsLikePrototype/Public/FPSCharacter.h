@@ -189,8 +189,18 @@ protected:
 	void OnMaxSpeedChanged(const FOnAttributeChangeData& Data);
 	
 	// Called during SyncVitalityAttributes. Scales the player pawn according to attributes.
-	void UpdatePlayerScale();
+	UFUNCTION(Server, Reliable)
+	void Server_UpdatePlayerScale();
+
+	void ApplyPlayerScale();
+
 	bool bPlayerScaleUpdated = false;
+
+	UPROPERTY(ReplicatedUsing = OnRep_PlayerScale)
+	float PlayerScale = 1.0f;
+
+	UFUNCTION()
+	void OnRep_PlayerScale();
 
 public:
 

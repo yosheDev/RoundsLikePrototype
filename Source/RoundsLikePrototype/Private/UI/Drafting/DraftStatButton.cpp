@@ -7,6 +7,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "FPSGameState.h"
+#include "FPSPlayerController.h"
 #include "FPSPlayerState.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
@@ -53,18 +54,21 @@ void UDraftStatButton::HandleStatButtonHovered()
 
     if (!AbilityDataAsset)
     {
-        UE_LOG(LogTemp, Warning, TEXT("DraftStatButton %s has no AbilityDataAsset"), *GetName());
+        UE_LOG(LogTemp, Warning, TEXT("DraftUILog: DraftStatButton %s has no AbilityDataAsset"), *GetName());
         return;
     }
 
-    if (AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>())
+    UE_LOG(LogTemp, Log, TEXT("DraftUILog: Hover over UI element."));
+    if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
     {
-        GS->EconomyComponent->Server_SetHoveredStat(WidgetID);
+        PC->Server_SetHoveredStat(WidgetID);
+        UE_LOG(LogTemp, Log, TEXT("DraftUILog: Call PlayerController::SetHoveredStat ID is [%d]"), WidgetID);
     }
     else
     {
         // As a backup, at least change the local UI to display correctly.
         DraftingUI->StatTitleText->SetText(AbilityDataAsset->Name);
+        UE_LOG(LogTemp, Warning, TEXT("DraftUILog: Gamestate was invalid."));
     }
 }
 
@@ -82,6 +86,7 @@ void UDraftStatButton::HandleStatButtonUnhovered()
         DraftingUI->StatTitleText->SetText(FText::GetEmpty());
     }
 }
+
 void UDraftStatButton::ClickButton_Implementation()
 {
     if (!bIsAllocated)

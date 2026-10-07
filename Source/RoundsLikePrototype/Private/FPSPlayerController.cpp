@@ -10,10 +10,11 @@
 #include "GameFramework/PlayerStart.h"
 #include "FPSHudController.h"
 #include "FPSCharacter.h"
+#include "GameFramework/PlayerState.h"
+#include "FPSPlayerState.h"
 #include "EnhancedInputComponent.h"
 #include "FPSGameState.h"
 #include "FPSGameMode.h"
-#include "FPSPlayerState.h"
 #include "RoundsLikePrototype.h"
 
 void AFPSPlayerController::BeginPlay()
@@ -196,6 +197,24 @@ void AFPSPlayerController::Server_FinishedDraft_Implementation()
 	if (AFPSGameMode* FPSGameMode = GetWorld()->GetAuthGameMode<AFPSGameMode>())
 	{
 		FPSGameMode->PlayerFinishedDraft(this);
+	}
+}
+
+void AFPSPlayerController::Server_SetHoveredStat_Implementation(int32 WidgetID)
+{
+	UE_LOG(LogTemp, Log, TEXT("DraftUILog: Player Controller reached."));
+	
+	if (AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>())
+	{
+		// Ignore request if this Player State is not the current loser.
+		AFPSPlayerState* PS = GetPlayerState<AFPSPlayerState>();
+		if (GS->CurrentLoserState != PS)
+		{
+			return;
+		}
+
+		GS->EconomyComponent->Server_SetHoveredStat(WidgetID);
+		UE_LOG(LogTemp, Log, TEXT("DraftUILog: Call EconomyComponent::SetHoveredStat ID is [%d]"), WidgetID);
 	}
 }
 #pragma endregion

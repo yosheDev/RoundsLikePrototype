@@ -73,6 +73,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_FinishedDraft();
 
+	UFUNCTION(Server, Reliable)
+	void Server_SetHoveredStat(int32 WidgetID);
+
 	UFUNCTION()
 	void OnMatchPhaseChanged(EMatchPhase NewPhase);
 

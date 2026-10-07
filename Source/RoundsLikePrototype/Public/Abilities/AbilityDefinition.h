@@ -26,12 +26,19 @@ public:
     UPROPERTY(EditDefaultsOnly)
     FGameplayTag AbilityTag;
 
+    // Name of ability.
     UPROPERTY(EditDefaultsOnly)
     FText Name;
 
+    // Description that appears in text field under selection.
     UPROPERTY(EditDefaultsOnly)
     FText Description;
 
+    // Description of stat changes displayed on the card itself.
+    UPROPERTY(EditDefaultsOnly, meta = (MultiLine = true))
+    FText ChangeDescription;
+
+    // Flavor text that may appear at bottom of card.
     UPROPERTY(EditDefaultsOnly)
     FText FlavorText;
 

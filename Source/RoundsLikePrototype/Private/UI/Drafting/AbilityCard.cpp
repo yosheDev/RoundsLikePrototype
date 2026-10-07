@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "FPSPlayerState.h"
 #include "FPSGameState.h"
+#include "FPSPlayerController.h"
 #include "UI/Drafting/BottlecapReturnLocation.h"
 #include "UI/Drafting/DraftingUI.h"
 #include "Abilities/AbilityDefinition.h"
@@ -27,6 +28,8 @@ void UAbilityCard::NativeConstruct()
     if (SelectAbilityButton)
     {
         SelectAbilityButton->OnClicked.AddDynamic(this, &UAbilityCard::SelectAbility);
+        SelectAbilityButton->OnHovered.AddDynamic(this, &UAbilityCard::HandleStatButtonHovered);
+        SelectAbilityButton->OnUnhovered.AddDynamic(this, &UAbilityCard::HandleStatButtonUnhovered);
     }
 
     // Bind AllocationSucceeded Delegate
@@ -46,6 +49,45 @@ int32 UAbilityCard::GetWidgetID_Implementation()
 void UAbilityCard::SetWidgetID_Implementation(int32 NewID)
 {
     WidgetID = NewID;
+}
+
+void UAbilityCard::HandleStatButtonHovered()
+{
+    if (!DraftingUI) { return; }
+
+    if (!AbilityDataAsset)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("DraftUILog: AbilityCard %s has no AbilityDataAsset"), *GetName());
+        return;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("DraftUILog: Hover over AbilityCard UI element."));
+    if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
+    {
+        PC->Server_SetHoveredStat(WidgetID);
+        UE_LOG(LogTemp, Log, TEXT("DraftUILog: Call PlayerController::SetHoveredStat ID is [%d]"), WidgetID);
+    }
+    else
+    {
+        // As a backup, at least change the local UI to display correctly.
+        DraftingUI->StatTitleText->SetText(AbilityDataAsset->Name);
+        UE_LOG(LogTemp, Warning, TEXT("DraftUILog: Gamestate was invalid."));
+    }
+}
+
+void UAbilityCard::HandleStatButtonUnhovered()
+{
+    if (!DraftingUI) { return; }
+
+    if (AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>())
+    {
+        GS->EconomyComponent->Server_SetHoveredStat(INDEX_NONE);
+    }
+    else
+    {
+        // As a backup, at least change the local UI to display correctly.
+        DraftingUI->StatTitleText->SetText(FText::GetEmpty());
+    }
 }
 
 void UAbilityCard::InitializeCard(UAbilityDefinition* NewDataAsset)

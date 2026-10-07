@@ -85,6 +85,7 @@ void AFPSCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AFPSCharacter, CurrentWeapon);
+	DOREPLIFETIME(AFPSCharacter, PlayerScale);
 }
 
 void AFPSCharacter::PossessedBy(AController* NewController)
@@ -721,8 +722,9 @@ void AFPSCharacter::SyncVitalityAttributes()
 	PredictedHealth = VitalityAttributes->GetHealth();
 
 	// Body size
-	SetActorScale3D(FVector(VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize()));
-	
+	//SetActorScale3D(FVector(VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize(), VitalityAttributes->GetBodySize()));
+	Server_UpdatePlayerScale();
+
 	// Local player HUD widget.
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -751,46 +753,65 @@ void AFPSCharacter::SyncGunplayAttributes()
 	}
 }
 
-void AFPSCharacter::UpdatePlayerScale()
+void AFPSCharacter::Server_UpdatePlayerScale_Implementation()
 {
+	UE_LOG(LogTemp, Log, TEXT("ScaleLog: [%s] | [%f]"), GetLocalRole() == ROLE_Authority ? TEXT("SERVER") : TEXT("CLIENT"), VitalityAttributes->GetBodySize());
+	// Make sure this gets called on the server.
+
 	// Make sure this only happens once.
-	if (bPlayerScaleUpdated)
+	/*if (bPlayerScaleUpdated)
 	{
 		return;
 	}
 
-	bPlayerScaleUpdated = true;
-	float PlayerScale = static_cast<float>(VitalityAttributes->GetBodySize());
+	bPlayerScaleUpdated = true;*/
+	PlayerScale = static_cast<float>(VitalityAttributes->GetBodySize());
+	ApplyPlayerScale();
+	
+	// Later, make this work even when this event is called multiple times.
+	GetCharacterMovement()->MaxStepHeight = 50.0f * PlayerScale;
+}
 
-	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
-	{
-		// Get absolute default values from Class Default Object (CDO)
-		AFPSCharacter* DefaultCharacter = Cast<AFPSCharacter>(GetClass()->GetDefaultObject());
-		UCapsuleComponent* DefaultCapsule = DefaultCharacter ? DefaultCharacter->GetCapsuleComponent() : nullptr;
+void AFPSCharacter::OnRep_PlayerScale()
+{
+	UE_LOG(LogTemp, Warning,
+		TEXT("ScaleLog: CLIENT OnRep_PlayerScale: %f"),
+		PlayerScale);
 
-		float BaseRadius = DefaultCapsule ? DefaultCapsule->GetUnscaledCapsuleRadius() : 42.f;
-		float BaseHalfHeight = DefaultCapsule ? DefaultCapsule->GetUnscaledCapsuleHalfHeight() : 96.f;
+	ApplyPlayerScale();
+}
 
-		float TargetRadius = BaseRadius * PlayerScale;
-		float TargetHalfHeight = BaseHalfHeight * PlayerScale;
+void AFPSCharacter::ApplyPlayerScale()
+{
+	SetActorScale3D(FVector(PlayerScale, PlayerScale, PlayerScale));
 
-		// 1. Set Replicated Capsule Size
-		Capsule->SetCapsuleSize(TargetRadius, TargetHalfHeight);
+	//if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	//{
+	//	// Get absolute default values from Class Default Object (CDO)
+	//	AFPSCharacter* DefaultCharacter = Cast<AFPSCharacter>(GetClass()->GetDefaultObject());
+	//	UCapsuleComponent* DefaultCapsule = DefaultCharacter ? DefaultCharacter->GetCapsuleComponent() : nullptr;
 
-		if (USkeletalMeshComponent* CharacterMesh = GetMesh())
-		{
-			// 2. Scale the mesh. The attached actors (weapons/items) 
-			// will automatically double from 0.4 to 0.8 in world space now.
-			CharacterMesh->SetRelativeScale3D(FVector(PlayerScale));
+	//	float BaseRadius = DefaultCapsule ? DefaultCapsule->GetUnscaledCapsuleRadius() : 42.f;
+	//	float BaseHalfHeight = DefaultCapsule ? DefaultCapsule->GetUnscaledCapsuleHalfHeight() : 96.f;
 
-			// 3. Keep feet firmly on floor
-			FVector NewRelativeLocation = CharacterMesh->GetRelativeLocation();
-			NewRelativeLocation.Z = -TargetHalfHeight;
-			CharacterMesh->SetRelativeLocation(NewRelativeLocation);
-		}
+	//	float TargetRadius = BaseRadius * PlayerScale;
+	//	float TargetHalfHeight = BaseHalfHeight * PlayerScale;
 
-		GetCharacterMovement()->MaxStepHeight *= PlayerScale;
-	}
+	//	// 1. Set Replicated Capsule Size
+	//	Capsule->SetCapsuleSize(TargetRadius, TargetHalfHeight);
+
+	//	if (USkeletalMeshComponent* CharacterMesh = GetMesh())
+	//	{
+	//		// 2. Scale the mesh. The attached actors (weapons/items) 
+	//		// will automatically double from 0.4 to 0.8 in world space now.
+	//		CharacterMesh->SetRelativeScale3D(FVector(PlayerScale));
+
+	//		// 3. Keep feet firmly on floor
+	//		FVector NewRelativeLocation = CharacterMesh->GetRelativeLocation();
+	//		NewRelativeLocation.Z = -TargetHalfHeight;
+	//		CharacterMesh->SetRelativeLocation(NewRelativeLocation);
+	//	}
+	//}
 }
 #pragma endregion
 
