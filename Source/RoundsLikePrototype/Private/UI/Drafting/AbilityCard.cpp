@@ -2,6 +2,7 @@
 
 
 #include "UI/Drafting/AbilityCard.h"
+#include "Math/Color.h"
 #include "GameplayTagContainer.h"
 #include "FPSPlayerState.h"
 #include "FPSGameState.h"
@@ -10,6 +11,7 @@
 #include "UI/Drafting/DraftingUI.h"
 #include "Abilities/AbilityDefinition.h"
 #include "Components/TextBlock.h"
+#include "Components/RichTextBlock.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
@@ -95,10 +97,11 @@ void UAbilityCard::InitializeCard(UAbilityDefinition* NewDataAsset)
     AbilityDataAsset = NewDataAsset;
 
     AbilityName->SetText(AbilityDataAsset->Name);
-    AbilityDesc->SetText(AbilityDataAsset->Description);
+    AbilityDesc->SetText(AbilityDataAsset->ChangeDescription);
     AbilityFlavor->SetText(AbilityDataAsset->FlavorText);
 
     Cost = AbilityDataAsset->Cost;
+    SetCardColorByRarity(AbilityDataAsset->Rarity);
 }
 
 void UAbilityCard::SelectAbility()
@@ -118,7 +121,7 @@ void UAbilityCard::SelectAbility()
 void UAbilityCard::TryAllocation()
 {
     TArray<FBottlecapReturnLocation> Locations;
-    for (int i = 0; i < Cost; i++)
+    for (int32 i = 0; i < Cost; i++)
     {
         // Get target destinations for bottlecaps to slide to.
         FGeometry CachedGeometry = SelectAbilityButton->GetCachedGeometry();

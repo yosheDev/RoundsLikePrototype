@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Math/Color.h"
 #include "Blueprint/UserWidget.h"
 #include "Abilities/AbilityDefinition.h"
 #include "GameplayTagContainer.h"
@@ -11,6 +12,7 @@
 
 class UDraftingUI;
 class UTextBlock;
+class URichTextBlock;
 class UButton;
 class UImage;
 
@@ -49,6 +51,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"))
 	TObjectPtr<UAbilityDefinition> AbilityDataAsset;
 
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void SetCardColorByRarity(EAbilityRarity Rarity);
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
@@ -58,7 +63,7 @@ protected:
 	TObjectPtr<UTextBlock> AbilityName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UTextBlock> AbilityDesc;
+	TObjectPtr<URichTextBlock> AbilityDesc;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UTextBlock> AbilityFlavor;
@@ -76,8 +81,8 @@ private:
 
 	void HandleAllocationSucceeded(int32 InWidgetID);
 
-	UPROPERTY(EditAnywhere)
-	uint8 Cost = 2;
+	UPROPERTY()
+	int32 Cost = 2;
 
 	UFUNCTION()
 	void TryAllocation();
