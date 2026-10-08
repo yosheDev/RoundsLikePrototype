@@ -23,6 +23,8 @@ class ROUNDSLIKEPROTOTYPE_API UAbilityCard : public UUserWidget, public IAllocat
 
 public:
 
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 	// Initializes card display to match the AbilityDataAsset assigned.
 	void InitializeCard(UAbilityDefinition* NewDataAsset);
 
@@ -41,10 +43,42 @@ protected:
 	TObjectPtr<UDraftingUI> DraftingUI;
 
 	UFUNCTION()
-	void HandleStatButtonHovered();
+	void HandleButtonHovered();
 
 	UFUNCTION()
-	void HandleStatButtonUnhovered();
+	void HandleButtonUnhovered();
+
+	#pragma region Hover Animation
+public:
+
+	// Sets scale to hovered.
+	UFUNCTION()
+	void SetHoveredScale();
+
+	// Sets scale to unhovered.
+	UFUNCTION()
+	void SetUnhoveredScale();
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	UWidgetAnimation* IdleAnimation;
+
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	UWidgetAnimation* IdleHoveredAnimation;
+
+protected:
+
+	float CurrentScale = 1.0f;
+	float TargetScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Hover")
+	float NormalScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Hover")
+	float HoverScale = 1.15f;
+
+	UPROPERTY(EditAnywhere, Category = "Hover")
+	float HoverInterpSpeed = 12.0f;
+	#pragma endregion
 
 public:
 

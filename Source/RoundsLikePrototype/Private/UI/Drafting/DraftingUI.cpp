@@ -334,14 +334,18 @@ void UDraftingUI::SetHoveredStatTextByID(int32 WidgetID)
 
         if (!Card) { continue; }
 
-        if (Card->GetWidgetID_Implementation() != WidgetID) { continue; }
+        if (Card->GetWidgetID_Implementation() != WidgetID)
+        {   
+            Card->SetUnhoveredScale(); 
+            continue;
+        }
 
         if (Card->AbilityDataAsset)
         {
             SkillDescriptionText->SetText(Card->AbilityDataAsset->Description);
+            Card->SetHoveredScale();
+            continue;
         }
-
-        return;
     }
 
     // Next, check Stat Buttons.

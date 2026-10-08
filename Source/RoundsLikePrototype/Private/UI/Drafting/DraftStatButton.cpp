@@ -76,9 +76,10 @@ void UDraftStatButton::HandleStatButtonUnhovered()
 {
     if (!DraftingUI) { return; }
 
-    if (AFPSGameState* GS = GetWorld()->GetGameState<AFPSGameState>())
+    if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(GetOwningPlayer()))
     {
-        GS->EconomyComponent->Server_SetHoveredStat(INDEX_NONE);
+        PC->Server_SetHoveredStat(INDEX_NONE);
+        UE_LOG(LogTemp, Log, TEXT("DraftUILog: Call PlayerController::SetHoveredStat ID is [%d]"), WidgetID);
     }
     else
     {
