@@ -13,6 +13,7 @@
 #include "Weapons/FireData.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
+#include "Camera/CameraShakeBase.h"
 #include "Components/FPSAbilitySystemComponent.h"
 
 AProjectileWeapon::AProjectileWeapon()
@@ -272,6 +273,23 @@ void AProjectileWeapon::SpawnProjectile(
 	Projectile->FinishSpawning(SpawnData.SpawnTransform);
 
 	OnPrimaryFire.Broadcast();
+
+	// Camera Shake
+	PlayPrimaryFireCameraShake(1.0f);
+}
+
+void AProjectileWeapon::PlayPrimaryFireCameraShake(float ShakeScale)
+{
+	if (!CameraShakeClass) return;
+
+	if (UWorld* World = GetWorld())
+	{
+		APlayerController* LocalPC = World->GetFirstPlayerController();
+		if (LocalPC && LocalPC->PlayerCameraManager)
+		{
+			LocalPC->PlayerCameraManager->StartCameraShake(CameraShakeClass, ShakeScale);
+		}
+	}
 }
 
 #pragma region Utility Functions

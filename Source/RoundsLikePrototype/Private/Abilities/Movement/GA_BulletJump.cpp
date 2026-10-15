@@ -4,6 +4,7 @@
 #include "Abilities/Movement/GA_BulletJump.h"
 #include "Abilities/AttributeSets/GunplayAttributeSet.h"
 #include "Weapons/AmmoComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "FPSCharacter.h"
 
 
@@ -28,6 +29,21 @@ void UGA_BulletJump::ActivateAbility(
     }
 
     AFPSCharacter* Character = Cast<AFPSCharacter>(CurrentActorInfo->AvatarActor.Get());
+
+    // Character is not falling?
+    if (!(Character->GetCharacterMovement()->IsFalling()))
+    {
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+        return;
+    }
+
+    // Is not within acceptable look range?
+    if (FVector::DotProduct(Character->GetControlRotation().Vector(), FVector::DownVector) < .65)
+    {
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+        return;
+    }
+
     if (Character->GetBulletJumpsRemaining() > 0)
     {
         ExecuteBulletJump();

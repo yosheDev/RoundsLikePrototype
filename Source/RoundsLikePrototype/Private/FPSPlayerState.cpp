@@ -11,6 +11,7 @@
 #include "Subsystems/MatchInstanceSubsystem.h"
 #include "Abilities/AbilityDefinition.h"
 #include "Abilities/AbilityDefinitionHelper.h"
+#include "GameplayEffectComponents/TargetTagsGameplayEffectComponent.h"
 
 AFPSPlayerState::AFPSPlayerState()
 {
@@ -356,6 +357,23 @@ void AFPSPlayerState::SyncCharacterData()
 
 void AFPSPlayerState::ApplyAbilityDefinition(UAbilityDefinition* Definition)
 {
+	#pragma region Grant AbilityTag to player ASC
+	// Create blank dynamic effect as vessel to add the tag.
+	UGameplayEffect* DynamicEffect = NewObject<UGameplayEffect>(GetTransientPackage(), UGameplayEffect::StaticClass());
+	DynamicEffect->DurationPolicy = EGameplayEffectDurationType::Infinite;
+
+	// Tag Component handles granting the tag.
+	UTargetTagsGameplayEffectComponent& TargetTagsComponent = DynamicEffect->FindOrAddComponent<UTargetTagsGameplayEffectComponent>();
+
+	// Add the tag.
+	FInheritedTagContainer TagContainer;
+	TagContainer.AddTag(Definition->AbilityTag);
+	TargetTagsComponent.SetAndApplyTargetTagChanges(TagContainer);
+
+	FGameplayEffectContextHandle TagEffectContext = FPSAbilitySystemComponent->MakeEffectContext();
+	FActiveGameplayEffectHandle TagActiveHandle = FPSAbilitySystemComponent->ApplyGameplayEffectToSelf(DynamicEffect, 1.0f, TagEffectContext);
+	#pragma endregion
+	
 	// Grant all abilities provided by the Ability Definition.
 	for (const TSubclassOf<UGameplayAbility>& AbilityClass : Definition->GASAbilities)
 	{

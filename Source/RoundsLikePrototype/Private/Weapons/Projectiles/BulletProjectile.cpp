@@ -12,8 +12,15 @@
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
-#include "HAL/IConsoleManager.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "GameplayTagContainer.h"
 #include "Components/FPSAbilitySystemComponent.h"
+#include "HAL/IConsoleManager.h"
+
+#pragma region Skills
+#include "Abilities/Bullet/PeriodicVolumeDamage.h"
+#pragma endregion
+
 
 // CVAR for enabling/disabling trajectory traces.
 static TAutoConsoleVariable<bool> CVarBulletTraces(
@@ -375,7 +382,7 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 
 	if (BounceCount > Spec.MaxBounces)
 	{
-		Destroy();
+		DestroyUponHitCollision();
 		return;
 	}
 
@@ -421,6 +428,35 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 #pragma endregion
 
 #pragma region Damage
+void ABulletProjectile::DestroyUponHitCollision()
+{
+	#pragma region Stinkbomb Skill
+	static const FGameplayTag SpawnGasCloudTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.Stinkbomb"));
+
+	AActor* Shooter = GetOwner()->GetOwner(); //ABulletProjectile->AProjectileWeapon->AFPSCharacter
+
+	UAbilitySystemComponent* ShooterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Shooter);
+
+	if (ShooterASC && ShooterASC->HasMatchingGameplayTag(SpawnGasCloudTag))
+	{
+		if (HasAuthority())
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = Shooter;
+			SpawnParams.Instigator = Cast<APawn>(Shooter);
+
+			GetWorld()->SpawnActor<APeriodicVolumeDamage>(
+				StinkbombActorClass,
+				GetActorLocation(),
+				FRotator::ZeroRotator,
+				SpawnParams);
+		}
+	}
+	#pragma endregion
+
+	Destroy();
+}
+
 void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// If OtherActor is a valid target, excluded this projectiles Instigator. (Certain bullets may be able to affect the instigator??)

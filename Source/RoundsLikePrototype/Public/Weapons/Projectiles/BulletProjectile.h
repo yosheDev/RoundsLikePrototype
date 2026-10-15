@@ -126,6 +126,8 @@ protected:
 	uint8 BounceCount = 0;
 	#pragma endregion
 
+	UFUNCTION()
+	void DestroyUponHitCollision();
 
 	UFUNCTION()
 	void OnComponentBeginOverlapEvent(UPrimitiveComponent* OverlappedComponent, 
@@ -163,6 +165,10 @@ public:
 	/** Literal class of the Gameplay Effect that this projectile will deliver. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class UGameplayEffect> ProjectileGameplayEffect;
+
+	/** Literal class of the APeriodicVolumeDamage class for stinkbomb AOE skill. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon | Skills", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class APeriodicVolumeDamage> StinkbombActorClass;
 
 	/** Is this projectile a purely predicted projectile (on clients only)? */
 	UPROPERTY()

@@ -10,6 +10,7 @@
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
 #include "GameplayAbilitySpecHandle.h"
 #include "Abilities/GameplayAbilityTypes.h"
+#include "Camera/CameraShakeBase.h"
 #include "ProjectileWeapon.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPrimaryFireDelegate);
@@ -28,6 +29,10 @@ public:
 	// Gameplay effect which the sole purpose of it is to activate a gameplay cue to trigger primary fire montage and VFX.
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UGameplayEffect> PrimaryFireCueEffectClass;
+
+	// Camera shake class to use for projectile fire.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UCameraShakeBase> CameraShakeClass;
 
 protected:
 	
@@ -48,6 +53,9 @@ protected:
 
 	FRandomStream WeaponStream;
 
+	// Use this to inititate primary fire camera shaking.
+	UFUNCTION(BlueprintCallable, Category = "Effects|Camera Shake")
+	void PlayPrimaryFireCameraShake(float ShakeScale = 1.0f);
 public:	
 	
 	AProjectileWeapon();

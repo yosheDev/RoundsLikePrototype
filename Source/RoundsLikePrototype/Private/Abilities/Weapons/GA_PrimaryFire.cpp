@@ -8,6 +8,7 @@
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
 #include "Weapons/FireData.h"
 #include "Weapons/AmmoComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Weapons/FirstPerson/FirstPersonWeapon.h"
 
 // Constructor
@@ -341,7 +342,7 @@ void UGA_PrimaryFire::FireShot()
             FGameplayTagContainer TagContainer;
             TagContainer.AddTag(AbilityTag);
 
-            FPSAbilitySystemComponent->TryActivateAbilitiesByTag(TagContainer);
+            const bool bBulletJumpActivated = FPSAbilitySystemComponent->TryActivateAbilitiesByTag(TagContainer);
         }
     }
     #pragma endregion

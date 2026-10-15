@@ -94,7 +94,15 @@ bool UAmmoComponent::TryConsumeAmmo_Authoratative()
     ScheduleNextAmmoReturn();
 
     UpdateLocalAmmoUI();
-           
+    
+    UE_LOG(LogTemp, Warning,
+        TEXT("AmmoRegen: CONSUME | Weapon=%s | Ammo=%d | Pending=%d | Delay=%.3f | ServerTime=%.3f"),
+        *GetNameSafe(GetOwner()),
+        CurrentAmmo,
+        PendingReturns.Num(),
+        AmmoReturnDelay,
+        GetServerTime());
+
     return true;
 }
 
@@ -132,9 +140,15 @@ void UAmmoComponent::ScheduleNextAmmoReturn()
     }
     EarliestReturnServerTime = EarliestReturnTime;
 
-    // Start Ammo Return Timer
-    const float Delay = FMath::Max(0.0f, EarliestReturnServerTime - GetServerTime());
+    const float Delay = EarliestReturnServerTime - GetServerTime();
+    if (Delay <= 0.0f)
+    {
+        GetWorld()->GetTimerManager().ClearTimer(AmmoReturnTimerHandle);
+        ProcessAmmoReturns();
+        return;
+    }
 
+    // Start Ammo Return Timer
     GetWorld()->GetTimerManager().SetTimer(
         AmmoReturnTimerHandle,
         this,
@@ -151,16 +165,18 @@ void UAmmoComponent::ProcessAmmoReturns()
     if (!GetOwner()->HasAuthority()) { return; }
 
     const float CurrentTime = GetServerTime();
+    int32 ReturnsProcessed = 0;
 
     for (int32 i = PendingReturns.Num() - 1; i >= 0; --i)
     {
         if (PendingReturns[i] <= CurrentTime)
         {
-            CurrentAmmo++;
-
+           ++ReturnsProcessed;
             PendingReturns.RemoveAtSwap(i);
         }
     }
+
+    CurrentAmmo = FMath::Min(CurrentAmmo + ReturnsProcessed, MaxAmmo);
 
     UpdateLocalAmmoUI();
     ScheduleNextAmmoReturn();

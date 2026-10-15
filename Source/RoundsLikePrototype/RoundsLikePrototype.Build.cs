@@ -24,7 +24,8 @@ public class RoundsLikePrototype : ModuleRules
             "GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks",
-			"Niagara"
+            "EngineCameras",
+            "Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
