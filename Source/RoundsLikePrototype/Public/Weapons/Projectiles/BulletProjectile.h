@@ -170,6 +170,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon | Skills", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class APeriodicVolumeDamage> StinkbombActorClass;
 
+	/** Literal class of the APeriodicVolumeDamage class for explosion AOE skill. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon | Skills", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class APeriodicVolumeDamage> ExplosiveActorClass;
+	
 	/** Is this projectile a purely predicted projectile (on clients only)? */
 	UPROPERTY()
 	bool bPredictedProjectile = false;

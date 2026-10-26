@@ -43,6 +43,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* PrimaryFireAction;
+
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* ShiftAction;
 	#pragma endregion
 
 	/** Set up input action bindings */
@@ -90,6 +93,9 @@ protected:
 	virtual void PrimaryFireInputStarted(const FInputActionValue& Value);
 	virtual void PrimaryFireInputTriggered(const FInputActionValue& Value);
 	virtual void PrimaryFireInputCompleted(const FInputActionValue& Value);
+
+	virtual void ShiftInputStarted(const FInputActionValue& Value);
+	virtual void ShiftInputCompleted(const FInputActionValue& Value);
 	#pragma endregion
 
 	/** Gameplay Initialization */

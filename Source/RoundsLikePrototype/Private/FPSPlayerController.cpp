@@ -121,6 +121,8 @@ void AFPSPlayerController::SetupInputComponent()
 		Input->BindAction(PrimaryFireAction, ETriggerEvent::Started, this, &AFPSPlayerController::PrimaryFireInputStarted);
 		Input->BindAction(PrimaryFireAction, ETriggerEvent::Triggered, this, &AFPSPlayerController::PrimaryFireInputTriggered);
 		Input->BindAction(PrimaryFireAction, ETriggerEvent::Completed, this, &AFPSPlayerController::PrimaryFireInputCompleted);
+		Input->BindAction(ShiftAction, ETriggerEvent::Started, this, &AFPSPlayerController::ShiftInputStarted);
+		Input->BindAction(ShiftAction, ETriggerEvent::Completed, this, &AFPSPlayerController::ShiftInputCompleted);
 	}
 }
 
@@ -179,6 +181,22 @@ void AFPSPlayerController::PrimaryFireInputCompleted(const FInputActionValue& Va
 	if (IsValid(PlayerCharacter))
 	{
 		PlayerCharacter->PrimaryFireCompleted();
+	}
+}
+
+void AFPSPlayerController::ShiftInputStarted(const FInputActionValue& Value)
+{
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->ShiftInput();
+	}
+}
+
+void AFPSPlayerController::ShiftInputCompleted(const FInputActionValue& Value)
+{
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->ShiftInputCompleted();
 	}
 }
 #pragma endregion

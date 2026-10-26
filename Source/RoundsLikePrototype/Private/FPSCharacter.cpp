@@ -5,6 +5,7 @@
 #include "FPSCharacter.h"
 #include "FPSPlayerState.h"
 #include "FPSGameMode.h"
+#include "Components/FPSCharacterMovementComponent.h"
 #include "UI/HUD/HealthBar.h"
 #include "ShooterWeapon.h"//
 #include "Weapons/FirstPerson/FirstPersonWeapon.h"
@@ -36,9 +37,11 @@
 #include "Components/SceneComponent.h"
 #pragma endregion
 #pragma endregion
-
+#include "Abilities/Movement/OmniSlideAbility.h"
 // Constructor
-AFPSCharacter::AFPSCharacter()
+AFPSCharacter::AFPSCharacter(
+	const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UFPSCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	#pragma region Construct Components
 	#pragma region Construct Camera
@@ -246,6 +249,38 @@ void AFPSCharacter::PrimaryFireCompleted()
 
 #pragma endregion
 
+void AFPSCharacter::ShiftInput()
+{
+	if (FPSAbilitySystemComponent)
+	{
+		const FGameplayTag SlideTag = FGameplayTag::RequestGameplayTag(FName("GameplayAbility.Movement.OmniSlide"));
+
+		for (const FGameplayAbilitySpec& Spec :
+			FPSAbilitySystemComponent->GetActivatableAbilities())
+		{
+			if (!Spec.Ability)
+			{
+				continue;
+			}
+		}
+
+		FGameplayTagContainer AbilityTags;
+		AbilityTags.AddTag(SlideTag);
+
+		FPSAbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTags, true);
+	}
+}
+
+void AFPSCharacter::ShiftInputCompleted()
+{
+	/*if (FPSAbilitySystemComponent)
+	{
+		FGameplayTagContainer AbilityTags;
+		AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("GameplayAbility.Movement.OmniSlide")));
+
+		FPSAbilitySystemComponent->CancelAbilities(&AbilityTags);
+	}*/
+}
 #pragma endregion
 
 #pragma region Weapon
@@ -640,6 +675,79 @@ void AFPSCharacter::RefreshBulletJumps(int32 Amount)
 int32 AFPSCharacter::GetBulletJumpsRemaining()
 {
 	return BulletJumps;
+}
+#pragma endregion
+
+#pragma region Omnidirectional Slide
+void AFPSCharacter::RequestSlide()
+{
+	UFPSCharacterMovementComponent* MoveComp = Cast<UFPSCharacterMovementComponent>(GetCharacterMovement());
+
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	FVector Direction = GetLastMovementInputVector().GetSafeNormal2D();
+
+	if (Direction.IsNearlyZero())
+	{
+		Direction = GetVelocity().GetSafeNormal2D();
+	}
+
+	if (Direction.IsNearlyZero())
+	{
+		Direction = GetActorForwardVector();
+	}
+
+	if (Direction.IsNearlyZero())
+	{
+		Direction = GetLastMovementInputVector().GetSafeNormal2D();
+	}
+
+	if (Direction.IsNearlyZero())
+	{
+		Direction = GetActorForwardVector();
+	}
+
+	// Predict immediately on the owning client.
+	if (!MoveComp->TryStartSlide(Direction))
+	{
+		return;
+	}
+
+	// Send the request to the authoritative server.
+	if (!HasAuthority())
+	{
+		ServerRequestSlide(Direction);
+	}
+}
+
+void AFPSCharacter::ServerRequestSlide_Implementation(FVector_NetQuantizeNormal Direction)
+{
+	UFPSCharacterMovementComponent* MoveComp = Cast<UFPSCharacterMovementComponent>(GetCharacterMovement());
+
+	if (!MoveComp)
+	{
+		ClientRejectSlide();
+		return;
+	}
+
+	// The server independently validates the request.
+	if (!MoveComp->TryStartSlide(Direction))
+	{
+		ClientRejectSlide();
+	}
+}
+
+void AFPSCharacter::ClientRejectSlide_Implementation()
+{
+	UFPSCharacterMovementComponent* MoveComp = Cast<UFPSCharacterMovementComponent>(GetCharacterMovement());
+
+	if (MoveComp)
+	{
+		MoveComp->StopSlide();
+	}
 }
 #pragma endregion
 

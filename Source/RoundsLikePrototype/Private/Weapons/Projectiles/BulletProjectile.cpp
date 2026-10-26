@@ -430,12 +430,11 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 #pragma region Damage
 void ABulletProjectile::DestroyUponHitCollision()
 {
+	AActor* Shooter = GetOwner()->GetOwner(); //ABulletProjectile->AProjectileWeapon->AFPSCharacter
+	UAbilitySystemComponent* ShooterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Shooter);
+
 	#pragma region Stinkbomb Skill
 	static const FGameplayTag SpawnGasCloudTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.Stinkbomb"));
-
-	AActor* Shooter = GetOwner()->GetOwner(); //ABulletProjectile->AProjectileWeapon->AFPSCharacter
-
-	UAbilitySystemComponent* ShooterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Shooter);
 
 	if (ShooterASC && ShooterASC->HasMatchingGameplayTag(SpawnGasCloudTag))
 	{
@@ -454,6 +453,26 @@ void ABulletProjectile::DestroyUponHitCollision()
 	}
 	#pragma endregion
 
+	#pragma region Explosive Bullets Skill
+	static const FGameplayTag SpawnExplosionTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.ExplosiveRounds"));
+
+	if (ShooterASC && ShooterASC->HasMatchingGameplayTag(SpawnExplosionTag))
+	{
+		if (HasAuthority())
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = Shooter;
+			SpawnParams.Instigator = Cast<APawn>(Shooter);
+
+			GetWorld()->SpawnActor<APeriodicVolumeDamage>(
+				ExplosiveActorClass,
+				GetActorLocation(),
+				FRotator::ZeroRotator,
+				SpawnParams);
+		}
+	}
+	#pragma endregion
+
 	Destroy();
 }
 
@@ -465,14 +484,14 @@ void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* Overla
 	if (!HasAuthority() && bPredictedProjectile)
 	{
 		PredictDamage(OtherActor);
-		Destroy();
+		DestroyUponHitCollision();
 		return;
 	}
 
 	if (HasAuthority())
 	{
 		ApplyDamage(OtherActor);
-		Destroy();
+		DestroyUponHitCollision();
 		return;
 	}
 }

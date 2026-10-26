@@ -108,6 +108,19 @@ public:
 
 	int32 GetBulletJumpsRemaining();
 #pragma endregion
+
+#pragma region Omnidirectional Slide
+public:
+	UFUNCTION(BlueprintCallable, Category = "Movement|Slide")
+	void RequestSlide();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestSlide(FVector_NetQuantizeNormal Direction);
+
+	UFUNCTION(Client, Reliable)
+	void ClientRejectSlide();
+#pragma endregion
+
 #pragma endregion
 
 #pragma region Weapons
@@ -222,7 +235,7 @@ protected:
 
 public:
 
-	AFPSCharacter();
+	AFPSCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual void Landed(const FHitResult& Hit) override;
 
@@ -268,6 +281,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void PrimaryFireCompleted();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void ShiftInput();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void ShiftInputCompleted();
 #pragma endregion
 
 protected:
