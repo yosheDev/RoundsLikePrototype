@@ -2,13 +2,20 @@
 
 #include "Components/FPSCharacterMovementComponent.h"
 #include "FPSCharacter.h"
-
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 
 namespace SlideMove
 {
     constexpr uint8 SlideFlag = FSavedMove_Character::FLAG_Custom_0;
+}
+
+void UFPSCharacterMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(UFPSCharacterMovementComponent, SlideDirection);
 }
 
 class FNetworkPredictionData_Client_Slide : public FNetworkPredictionData_Client_Character
@@ -30,21 +37,19 @@ void FSavedMove_Custom::Clear()
 {
     FSavedMove_Character::Clear();
 
-    SavedSlideDirection = FVector::ForwardVector;
-    SavedSlideTimeRemaining = 0.f;
     bSavedSliding = false;
+    SavedSlideDirection = FVector::ForwardVector;
+
+    bSavedWantsToStartSlide = false;
+    SavedSlideTimeRemaining = 0.0f;
+    SavedSlideStartDirection = FVector::ForwardVector;
+    SavedMovementMode = MOVE_Walking;
+    SavedCustomMovementMode = 0;
 }
 
 uint8 FSavedMove_Custom::GetCompressedFlags() const
 {
-    uint8 Result = FSavedMove_Character::GetCompressedFlags();
-
-    if (bSavedSliding)
-    {
-        Result |= FLAG_Custom_0;
-    }
-
-    return Result;
+    return FSavedMove_Character::GetCompressedFlags();
 }
 
 void FSavedMove_Custom::SetMoveFor(
@@ -64,13 +69,16 @@ void FSavedMove_Custom::SetMoveFor(
         return;
     }
 
-    if (const UFPSCharacterMovementComponent* MoveComp =
-        Cast<UFPSCharacterMovementComponent>(
-            Character->GetCharacterMovement()))
+    if (const UFPSCharacterMovementComponent* MoveComp = Cast<UFPSCharacterMovementComponent>(Character->GetCharacterMovement()))
     {
         bSavedSliding = MoveComp->IsSliding();
         SavedSlideDirection = MoveComp->SlideDirection;
+
         SavedSlideTimeRemaining = MoveComp->SlideTimeRemaining;
+        bSavedWantsToStartSlide = MoveComp->bPendingSlideStartRequest;
+        SavedSlideStartDirection = MoveComp->PendingSlideStartDirection;
+        SavedMovementMode = MoveComp->MovementMode;
+        SavedCustomMovementMode = MoveComp->CustomMovementMode;
     }
 }
 
@@ -83,14 +91,20 @@ void FSavedMove_Custom::PrepMoveFor(ACharacter* Character)
         return;
     }
 
-    if (UFPSCharacterMovementComponent* MoveComp =
-        Cast<UFPSCharacterMovementComponent>(
-            Character->GetCharacterMovement()))
+    if (UFPSCharacterMovementComponent* MoveComp = Cast<UFPSCharacterMovementComponent>(Character->GetCharacterMovement()))
     {
         MoveComp->RestoreSlideState(
             bSavedSliding,
             SavedSlideDirection,
             SavedSlideTimeRemaining);
+
+        MoveComp->bPendingSlideStartRequest = bSavedWantsToStartSlide;
+        MoveComp->PendingSlideStartDirection = SavedSlideStartDirection;
+
+        if (MoveComp->MovementMode != SavedMovementMode || (SavedMovementMode == MOVE_Custom && MoveComp->CustomMovementMode != SavedCustomMovementMode))
+        {
+            MoveComp->SetMovementMode(SavedMovementMode, SavedCustomMovementMode);
+        }
     }
 }
 
@@ -99,8 +113,7 @@ bool FSavedMove_Custom::CanCombineWith(
     ACharacter* Character,
     float MaxDelta) const
 {
-    const FSavedMove_Custom* Other =
-        static_cast<const FSavedMove_Custom*>(NewMove.Get());
+    const FSavedMove_Custom* Other = static_cast<const FSavedMove_Custom*>(NewMove.Get());
 
     if (!Other)
     {
@@ -108,24 +121,311 @@ bool FSavedMove_Custom::CanCombineWith(
     }
 
     if (bSavedSliding != Other->bSavedSliding ||
-        !SavedSlideDirection.Equals(
-            Other->SavedSlideDirection, 0.01f))
+        !SavedSlideDirection.Equals(Other->SavedSlideDirection, 0.01f) ||
+        bSavedWantsToStartSlide != Other->bSavedWantsToStartSlide ||
+        bSavedWantsToStartSlide &&
+        !SavedSlideStartDirection.Equals(Other->SavedSlideStartDirection, 0.01f) ||
+        SavedMovementMode != Other->SavedMovementMode ||
+        SavedCustomMovementMode != Other->SavedCustomMovementMode)
     {
         return false;
     }
 
-    return FSavedMove_Character::CanCombineWith(
-        NewMove,
-        Character,
-        MaxDelta);
+    return FSavedMove_Character::CanCombineWith(NewMove, Character, MaxDelta);
+}
+#pragma endregion
+
+#pragma region Network Move Data
+void FSlideNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& ClientMove, ENetworkMoveType MoveType)
+{
+    Super::ClientFillNetworkMoveData(ClientMove, MoveType);
+
+    const FSavedMove_Custom& SlideMove = static_cast<const FSavedMove_Custom&>(ClientMove);
+
+    bWantsToStartSlide = SlideMove.bSavedWantsToStartSlide;
+    SlideStartDirection = SlideMove.SavedSlideStartDirection;
+}
+
+bool FSlideNetworkMoveData::Serialize(
+    UCharacterMovementComponent& CharacterMovement,
+    FArchive& Ar,
+    UPackageMap* PackageMap,
+    ENetworkMoveType MoveType)
+{
+    if (!Super::Serialize(
+        CharacterMovement,
+        Ar,
+        PackageMap,
+        MoveType))
+    {
+        return false;
+    }
+
+    Ar << bWantsToStartSlide;
+    Ar << SlideStartDirection;
+
+    return !Ar.IsError();
 }
 #pragma endregion
 
 UFPSCharacterMovementComponent::UFPSCharacterMovementComponent()
 {
-    // These settings are inherited from CMC. Adjust them
-    // in your project as needed.
     bOrientRotationToMovement = true;
+
+    SetNetworkMoveDataContainer(SlideNetworkMoveDataContainer);
+}
+
+void UFPSCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
+{
+    Super::UpdateFromCompressedFlags(Flags);
+
+    const FCharacterNetworkMoveData* BaseMoveData = GetCurrentNetworkMoveData();
+
+    if (!BaseMoveData)
+    {
+        return;
+    }
+
+    const FSlideNetworkMoveData* SlideMoveData = static_cast<const FSlideNetworkMoveData*>(BaseMoveData);
+
+    if (!SlideMoveData->bWantsToStartSlide)
+    {
+        return;
+    }
+
+    // The request is now consumed by the shared movement-state hook.
+    bPendingSlideStartRequest = true;
+    PendingSlideStartDirection = FVector(SlideMoveData->SlideStartDirection).GetSafeNormal2D();
+}
+
+FNetworkPredictionData_Client* UFPSCharacterMovementComponent::GetPredictionData_Client() const
+{
+    check(PawnOwner != nullptr);
+
+    if (!ClientPredictionData)
+    {
+        UFPSCharacterMovementComponent* MutableThis = const_cast<UFPSCharacterMovementComponent*>(this);
+
+        MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Slide(*this);
+    }
+
+    return ClientPredictionData;
+}
+
+void UFPSCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
+{
+    Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+
+    UE_LOG(LogTemp, Warning,
+        TEXT("SlideModeChange: Role=%d Previous=%d/%d Current=%d/%d"),
+        CharacterOwner ? (int32)CharacterOwner->GetLocalRole() : -1,
+        (int32)PreviousMovementMode,
+        (int32)PreviousCustomMode,
+        (int32)MovementMode,
+        (int32)CustomMovementMode);
+
+    if (PreviousMovementMode == MOVE_Custom &&
+        PreviousCustomMode == SlideCustomMode &&
+        !IsSliding())
+    {
+        bSlideRequested = false;
+
+        if (CharacterOwner)
+        {
+            CharacterOwner->UnCrouch();
+        }
+    }
+}
+
+void UFPSCharacterMovementComponent::SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode)
+{
+    if (MovementMode != NewMovementMode || (NewMovementMode == MOVE_Custom && CustomMovementMode != NewCustomMode))
+    {
+        UE_LOG(LogTemp, Warning,
+            TEXT("SlideNet: Role=%d Local=%d %d/%d -> %d/%d"),
+            CharacterOwner ? (int32)CharacterOwner->GetLocalRole() : -1,
+            CharacterOwner ? CharacterOwner->IsLocallyControlled() : false,
+            (int32)MovementMode,
+            (int32)CustomMovementMode,
+            (int32)NewMovementMode,
+            (int32)NewCustomMode);
+    }
+
+    Super::SetMovementMode(NewMovementMode, NewCustomMode);
+}
+
+void UFPSCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
+{
+    Super::UpdateCharacterStateBeforeMovement(DeltaSeconds);
+
+    if (!bPendingSlideStartRequest)
+    {
+        return;
+    }
+
+    const FVector Direction = PendingSlideStartDirection;
+
+    // Consume the request exactly once.
+    bPendingSlideStartRequest = false;
+
+    if (!IsSliding())
+    {
+        TryStartSlide(Direction);
+    }
+}
+
+void UFPSCharacterMovementComponent::SmoothClientPosition(float DeltaSeconds)
+{
+    if (HasValidData() &&
+        CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy &&
+        IsSliding() &&
+        NetworkSmoothingMode == ENetworkSmoothingMode::Exponential)
+    {
+        if (FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character())
+        {
+            // Preserve interpolation, but reduce the time the mesh
+            // spends correcting its position during a slide.
+            const float OriginalSmoothNetUpdateTime = ClientData->SmoothNetUpdateTime;
+
+            ClientData->SmoothNetUpdateTime = FMath::Min(OriginalSmoothNetUpdateTime, SlideMeshSmoothingTime);
+
+            Super::SmoothClientPosition(DeltaSeconds);
+
+            ClientData->SmoothNetUpdateTime = OriginalSmoothNetUpdateTime;
+
+            return;
+        }
+    }
+
+    Super::SmoothClientPosition(DeltaSeconds);
+
+    Super::SmoothClientPosition(DeltaSeconds);
+}
+
+void UFPSCharacterMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
+{
+    if (CustomMovementMode == SlideCustomMode)
+    {
+        PhysSlide(DeltaTime, Iterations);
+        return;
+    }
+
+    Super::PhysCustom(DeltaTime, Iterations);
+}
+
+
+
+#pragma region Sliding
+void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
+{
+    if (DeltaTime < MIN_TICK_TIME || !UpdatedComponent || !CharacterOwner)
+    {
+        return;
+    }
+
+    if (CharacterOwner && CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy)
+    {
+        // Do not run a second local slide simulation for simulated proxies.
+        return;
+    }
+
+
+    // The slide is intended to remain grounded.
+    FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
+
+    if (!CurrentFloor.IsWalkableFloor())
+    {
+        Velocity = Velocity.GetClampedToMaxSize2D(MaxWalkSpeed);
+        SetMovementMode(MOVE_Falling);
+        return;
+    }
+
+    const bool bHasAuthority = CharacterOwner && CharacterOwner->HasAuthority();
+
+    SlideTimeRemaining -= DeltaTime;
+
+    if (SlideTimeRemaining <= 0.0f)
+    {
+        StopSlide();
+        return;
+    }
+
+
+    // Linear deceleration from SlideSpeed to 0.5, make this better later.
+    const float RemainingFraction = FMath::Clamp(
+        SlideTimeRemaining / SlideDuration,
+        0.5f,
+        1.0f);
+
+    const float CurrentSpeed = FMath::Max(SlideSpeed * RemainingFraction, MaxWalkSpeed);
+
+    Velocity = SlideDirection * CurrentSpeed;
+
+    /*const float SpeedLoss = FMath::Min(CurrentSpeed, SlideBrakingDeceleration * DeltaTime);
+
+    if (CurrentSpeed > KINDA_SMALL_NUMBER)
+    {
+        Velocity -= Velocity.GetSafeNormal2D() * SpeedLoss;
+    }*/
+
+    // Preserve the slide speed, but align its direction to the slope.
+    const FVector FloorNormal = CurrentFloor.HitResult.ImpactNormal;
+    const float Speed2D = Velocity.Size2D();
+
+    FVector GroundVelocity =
+        FVector::VectorPlaneProject(Velocity, FloorNormal);
+
+    if (!GroundVelocity.IsNearlyZero())
+    {
+        GroundVelocity =
+            GroundVelocity.GetSafeNormal() * Speed2D;
+    }
+
+    Velocity = GroundVelocity;
+
+    const FVector Delta = Velocity * DeltaTime;
+    const FQuat Rotation = UpdatedComponent->GetComponentQuat();
+
+    FHitResult Hit;
+
+    SafeMoveUpdatedComponent(
+        Delta,
+        Rotation,
+        true,
+        Hit);
+
+    if (Hit.IsValidBlockingHit())
+    {
+        SlideAlongSurface(
+            Delta,
+            1.f - Hit.Time,
+            Hit.Normal,
+            Hit,
+            true);
+    }
+
+    // Check ground contact after collision resolution.
+    FindFloor(
+        UpdatedComponent->GetComponentLocation(),
+        CurrentFloor,
+        false);
+
+    if (!CurrentFloor.IsWalkableFloor())
+    {
+        Velocity = Velocity.GetClampedToMaxSize2D(MaxWalkSpeed);
+        SetMovementMode(MOVE_Falling);
+        return;
+    }
+
+    /* UE_LOG(LogTemp, Warning,
+         TEXT("SlideNet: Role=%d Mode=%d CustomMode=%d "
+             "Location=%s Velocity=%s Time=%.3f"),
+         CharacterOwner ? (int32)CharacterOwner->GetLocalRole() : -1,
+         (int32)MovementMode,
+         (int32)CustomMovementMode,
+         *UpdatedComponent->GetComponentLocation().ToCompactString(),
+         *Velocity.ToCompactString(),
+         SlideTimeRemaining);*/
 }
 
 bool UFPSCharacterMovementComponent::IsSliding() const
@@ -138,8 +438,25 @@ bool UFPSCharacterMovementComponent::CanStartSlide() const
     return CharacterOwner
         && UpdatedComponent
         && IsMovingOnGround()
-        && !IsSliding()
-        && Velocity.Size2D() >= MinimumStartSpeed;
+        && !IsSliding();
+}
+
+void UFPSCharacterMovementComponent::RequestSlide(const FVector& Direction)
+{
+    if (bPendingSlideStartRequest || IsSliding())
+    {
+        return;
+    }
+
+    const FVector NormalizedDirection = Direction.GetSafeNormal2D();
+
+    if (NormalizedDirection.IsNearlyZero())
+    {
+        return;
+    }
+
+    bPendingSlideStartRequest = true;
+    PendingSlideStartDirection = NormalizedDirection;
 }
 
 bool UFPSCharacterMovementComponent::TryStartSlide(const FVector& Direction)
@@ -163,10 +480,8 @@ bool UFPSCharacterMovementComponent::TryStartSlide(const FVector& Direction)
         return false;
     }
 
-    const float InitialSpeed = FMath::Max(Velocity.Size2D(), MinimumStartSpeed);
-
-    Velocity.X = NewDirection.X * InitialSpeed;
-    Velocity.Y = NewDirection.Y * InitialSpeed;
+    Velocity.X = NewDirection.X * SlideSpeed;
+    Velocity.Y = NewDirection.Y * SlideSpeed;
     Velocity.Z = 0.f;
 
     SlideDirection = NewDirection;
@@ -177,7 +492,7 @@ bool UFPSCharacterMovementComponent::TryStartSlide(const FVector& Direction)
 
     if (CharacterOwner)
     {
-        CharacterOwner->Crouch();
+        //CharacterOwner->Crouch();
     }
 
     return true;
@@ -210,8 +525,15 @@ void UFPSCharacterMovementComponent::StopSlide()
 
     if (CharacterOwner)
     {
-        CharacterOwner->UnCrouch();
+        //CharacterOwner->UnCrouch();
     }
+
+    UE_LOG(LogTemp, Warning,
+        TEXT("SlideNet: StopSlide: Role=%d Mode=%d CustomMode=%d TimeRemaining=%.3f"),
+        CharacterOwner ? (int32)CharacterOwner->GetLocalRole() : -1,
+        (int32)MovementMode,
+        (int32)CustomMovementMode,
+        SlideTimeRemaining);
 }
 
 void UFPSCharacterMovementComponent::RestoreSlideState(
@@ -232,181 +554,8 @@ void UFPSCharacterMovementComponent::RestoreSlideState(
     }
     else if (IsSliding())
     {
-        // Do not force walking here. The movement simulation
-        // will determine whether walking or falling is valid.
         SetMovementMode(MOVE_Walking);
     }
 }
 
-void UFPSCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
-{
-    Super::UpdateFromCompressedFlags(Flags);
-
-    const bool bWantsSlide =
-        (Flags & SlideMove::SlideFlag) != 0;
-
-    if (bWantsSlide && !IsSliding())
-    {
-        // The saved move communicates slide intent. Validate
-        // it independently rather than trusting the client.
-        FVector Direction = Velocity.GetSafeNormal2D();
-
-        if (Direction.IsNearlyZero())
-        {
-            Direction = Acceleration.GetSafeNormal2D();
-        }
-
-        if (!TryStartSlide(Direction))
-        {
-            bSlideRequested = false;
-        }
-    }
-}
-
-FNetworkPredictionData_Client* UFPSCharacterMovementComponent::GetPredictionData_Client() const
-{
-    check(PawnOwner != nullptr);
-
-    if (!ClientPredictionData)
-    {
-        UFPSCharacterMovementComponent* MutableThis = const_cast<UFPSCharacterMovementComponent*>(this);
-
-        MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Slide(*this);
-    }
-
-    return ClientPredictionData;
-}
-
-void UFPSCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
-{
-    Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
-
-    if (PreviousMovementMode == MOVE_Custom &&
-        PreviousCustomMode == SlideCustomMode &&
-        !IsSliding())
-    {
-        bSlideRequested = false;
-
-        if (CharacterOwner)
-        {
-            CharacterOwner->UnCrouch();
-        }
-    }
-}
-
-void UFPSCharacterMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
-{
-    if (CustomMovementMode == SlideCustomMode)
-    {
-        PhysSlide(DeltaTime, Iterations);
-        return;
-    }
-
-    Super::PhysCustom(DeltaTime, Iterations);
-}
-
-void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
-{
-    if (DeltaTime < MIN_TICK_TIME || !UpdatedComponent || !CharacterOwner)
-    {
-        return;
-    }
-
-    // The slide is intended to remain grounded.
-    FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
-
-    if (!CurrentFloor.IsWalkableFloor())
-    {
-        SetMovementMode(MOVE_Falling);
-        return;
-    }
-
-    SlideTimeRemaining -= DeltaTime;
-
-    if (SlideTimeRemaining <= 0.f || Velocity.Size2D() < MinimumSlideSpeed)
-    {
-        StopSlide();
-        return;
-    }
-
-    // Apply limited directional steering while preserving
-    // most of the momentum accumulated at slide start.
-    FVector Steering = Acceleration.GetClampedToMaxSize(SlideSteeringAcceleration);
-
-    Steering.Z = 0.f;
-
-    Velocity += Steering * DeltaTime;
-
-    // Simple slide drag. This avoids normal walking braking
-    // from rapidly eliminating the initial slide momentum.
-    const float DragFactor =
-        FMath::Max(0.f, 1.f - SlideFriction * DeltaTime);
-
-    Velocity.X *= DragFactor;
-    Velocity.Y *= DragFactor;
-
-    // Keep speed bounded.
-    const float Speed2D = Velocity.Size2D();
-
-    if (Speed2D > MaximumSlideSpeed)
-    {
-        const FVector Limited = Velocity.GetSafeNormal2D() * MaximumSlideSpeed;
-
-        Velocity.X = Limited.X;
-        Velocity.Y = Limited.Y;
-    }
-
-    Velocity.Z = 0.f;
-
-    const float CurrentSpeed = Velocity.Size2D();
-
-    const float SpeedLoss = FMath::Min(
-        CurrentSpeed,
-        SlideBrakingDeceleration * DeltaTime);
-
-    if (CurrentSpeed > KINDA_SMALL_NUMBER)
-    {
-        Velocity -= Velocity.GetSafeNormal2D() * SpeedLoss;
-    }
-
-    const FVector Delta = Velocity * DeltaTime;
-    const FQuat Rotation = UpdatedComponent->GetComponentQuat();
-
-    FHitResult Hit;
-
-    SafeMoveUpdatedComponent(
-        Delta,
-        Rotation,
-        true,
-        Hit);
-
-    if (Hit.IsValidBlockingHit())
-    {
-        SlideAlongSurface(
-            Delta,
-            1.f - Hit.Time,
-            Hit.Normal,
-            Hit,
-            true);
-    }
-
-    // Check ground contact after collision resolution.
-    FindFloor(
-        UpdatedComponent->GetComponentLocation(),
-        CurrentFloor,
-        false);
-
-    if (!CurrentFloor.IsWalkableFloor())
-    {
-        SetMovementMode(MOVE_Falling);
-        return;
-    }
-
-    Velocity.Z = 0.f;
-
-    if (SlideTimeRemaining <= 0.f ||
-        Velocity.Size2D() < MinimumSlideSpeed)
-    {
-        StopSlide();
-    }
-}
+#pragma endregion

@@ -683,7 +683,7 @@ void AFPSCharacter::RequestSlide()
 {
 	UFPSCharacterMovementComponent* MoveComp = Cast<UFPSCharacterMovementComponent>(GetCharacterMovement());
 
-	if (!MoveComp)
+	if (!MoveComp || MoveComp->IsSliding())
 	{
 		return;
 	}
@@ -697,57 +697,10 @@ void AFPSCharacter::RequestSlide()
 
 	if (Direction.IsNearlyZero())
 	{
-		Direction = GetActorForwardVector();
+		Direction = GetActorForwardVector().GetSafeNormal2D();
 	}
 
-	if (Direction.IsNearlyZero())
-	{
-		Direction = GetLastMovementInputVector().GetSafeNormal2D();
-	}
-
-	if (Direction.IsNearlyZero())
-	{
-		Direction = GetActorForwardVector();
-	}
-
-	// Predict immediately on the owning client.
-	if (!MoveComp->TryStartSlide(Direction))
-	{
-		return;
-	}
-
-	// Send the request to the authoritative server.
-	if (!HasAuthority())
-	{
-		ServerRequestSlide(Direction);
-	}
-}
-
-void AFPSCharacter::ServerRequestSlide_Implementation(FVector_NetQuantizeNormal Direction)
-{
-	UFPSCharacterMovementComponent* MoveComp = Cast<UFPSCharacterMovementComponent>(GetCharacterMovement());
-
-	if (!MoveComp)
-	{
-		ClientRejectSlide();
-		return;
-	}
-
-	// The server independently validates the request.
-	if (!MoveComp->TryStartSlide(Direction))
-	{
-		ClientRejectSlide();
-	}
-}
-
-void AFPSCharacter::ClientRejectSlide_Implementation()
-{
-	UFPSCharacterMovementComponent* MoveComp = Cast<UFPSCharacterMovementComponent>(GetCharacterMovement());
-
-	if (MoveComp)
-	{
-		MoveComp->StopSlide();
-	}
+	MoveComp->RequestSlide(Direction);
 }
 #pragma endregion
 

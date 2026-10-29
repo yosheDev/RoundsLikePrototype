@@ -113,12 +113,6 @@ public:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Movement|Slide")
 	void RequestSlide();
-
-	UFUNCTION(Server, Reliable)
-	void ServerRequestSlide(FVector_NetQuantizeNormal Direction);
-
-	UFUNCTION(Client, Reliable)
-	void ClientRejectSlide();
 #pragma endregion
 
 #pragma endregion
