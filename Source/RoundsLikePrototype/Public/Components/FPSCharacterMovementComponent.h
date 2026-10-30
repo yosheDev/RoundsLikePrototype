@@ -102,7 +102,7 @@ public:
     bool TryStartSlide(const FVector& Direction);
 
     UFUNCTION(BlueprintCallable, Category = "Movement|Slide")
-    void StopSlide();
+    void StopSlide(bool bForJump);
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Movement|Slide")
     bool IsSliding() const;
@@ -121,6 +121,8 @@ protected:
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
     virtual void UpdateCharacterStateBeforeMovement(float DeltaSeconds) override;
+
+    virtual bool CanCrouchInCurrentState() const override;
 
     // Override the network smoothing so that instantaneous bursts of speed can have visual clarity instead of lagging behind.
     virtual void SmoothClientPosition(float DeltaSeconds) override;

@@ -4,6 +4,7 @@
 #include "FPSCharacter.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Net/UnrealNetwork.h"
 
 namespace SlideMove
@@ -171,7 +172,6 @@ bool FSlideNetworkMoveData::Serialize(
 UFPSCharacterMovementComponent::UFPSCharacterMovementComponent()
 {
     bOrientRotationToMovement = true;
-
     SetNetworkMoveDataContainer(SlideNetworkMoveDataContainer);
 }
 
@@ -224,16 +224,13 @@ void UFPSCharacterMovementComponent::OnMovementModeChanged(EMovementMode Previou
         (int32)MovementMode,
         (int32)CustomMovementMode);
 
-    if (PreviousMovementMode == MOVE_Custom &&
-        PreviousCustomMode == SlideCustomMode &&
-        !IsSliding())
+    /*if (PreviousMovementMode == MOVE_Custom && PreviousCustomMode == SlideCustomMode && !IsSliding())
     {
-
         if (CharacterOwner)
         {
             CharacterOwner->UnCrouch();
         }
-    }
+    }*/
 }
 
 void UFPSCharacterMovementComponent::SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode)
@@ -251,6 +248,11 @@ void UFPSCharacterMovementComponent::SetMovementMode(EMovementMode NewMovementMo
     }
 
     Super::SetMovementMode(NewMovementMode, NewCustomMode);
+
+    if (NewMovementMode == MOVE_Custom && NewCustomMode == static_cast<uint8>(ECustomMovementMode::Slide))
+    {
+        bCrouchMaintainsBaseLocation = true;
+    }
 }
 
 void UFPSCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float DeltaSeconds)
@@ -271,6 +273,16 @@ void UFPSCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float De
     {
         TryStartSlide(Direction);
     }
+}
+
+bool UFPSCharacterMovementComponent::CanCrouchInCurrentState() const
+{
+    if (IsSliding())
+    {
+        return true;
+    }
+
+    return Super::CanCrouchInCurrentState();
 }
 
 void UFPSCharacterMovementComponent::SmoothClientPosition(float DeltaSeconds)
@@ -329,8 +341,6 @@ void UFPSCharacterMovementComponent::PhysCustom(float DeltaTime, int32 Iteration
     Super::PhysCustom(DeltaTime, Iterations);
 }
 
-
-
 #pragma region Sliding
 void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations)
 {
@@ -345,6 +355,16 @@ void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations
         return;
     }
 
+    const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent();
+
+    const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+    const float BottomZ = Capsule->GetComponentLocation().Z - HalfHeight;
+
+    /*UE_LOG(LogTemp, Warning,
+        TEXT("SlideCrouch: HalfHeight=%.2f CapsuleZ=%.2f BottomZ=%.2f"),
+        HalfHeight,
+        Capsule->GetComponentLocation().Z,
+        BottomZ);*/
 
     // The slide is intended to remain grounded.
     FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
@@ -358,12 +378,19 @@ void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations
 
     const bool bHasAuthority = CharacterOwner && CharacterOwner->HasAuthority();
 
-    SlideTimeRemaining -= DeltaTime;
+    SlideTimeRemaining = FMath::Max(SlideTimeRemaining - DeltaTime, 0.0f);
 
     if (SlideTimeRemaining <= 0.0f)
     {
-        StopSlide();
-        return;
+        // StopSlide() will not stop the slide until the Character is uncrouched successfully. Basically if still under a small gap do not stop sliding yet.
+        // Should allow players to slide longer under longer slide spaces.
+        StopSlide(false);
+
+        // If slide was successfully stopped.
+        if (!IsSliding())
+        {
+            return;
+        }
     }
 
 
@@ -495,7 +522,7 @@ bool UFPSCharacterMovementComponent::TryStartSlide(const FVector& Direction)
     {
         return false;
     }
-
+    
     Velocity.X = NewDirection.X * SlideSpeed;
     Velocity.Y = NewDirection.Y * SlideSpeed;
     Velocity.Z = 0.f;
@@ -503,23 +530,54 @@ bool UFPSCharacterMovementComponent::TryStartSlide(const FVector& Direction)
     SlideDirection = NewDirection;
     SlideTimeRemaining = SlideDuration;
 
-    SetMovementMode(MOVE_Custom, SlideCustomMode);
+    const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent();
 
-    if (CharacterOwner)
+    const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+    const float BottomZ = Capsule->GetComponentLocation().Z - HalfHeight;
+
+    if (CharacterOwner && !CharacterOwner->bIsCrouched)
     {
-        //CharacterOwner->Crouch();
+        CharacterOwner->Crouch();
     }
+
+    const UCharacterMovementComponent* MoveComp = CharacterOwner->GetCharacterMovement();
+
+    SetMovementMode(MOVE_Custom, SlideCustomMode);
 
     return true;
 }
 
-void UFPSCharacterMovementComponent::StopSlide()
+void UFPSCharacterMovementComponent::StopSlide(bool bForJump)
 {
     if (!IsSliding())
     {
         return;
     }
 
+    // Is there enough space to end the slide?
+    if (CharacterOwner && CharacterOwner->bIsCrouched)
+    {
+        CharacterOwner->UnCrouch();
+
+        // If sliding is stopping for a jump, immediately change movement mode and jump.
+        if (bForJump)
+        {
+            if (CurrentFloor.IsWalkableFloor())
+            {
+                SetMovementMode(MOVE_Walking);
+            }
+            else
+            {
+                SetMovementMode(MOVE_Falling);
+            }
+        }
+
+        // Not enough clearance to stand yet.
+        if (CharacterOwner->bIsCrouched)
+        {
+            return;
+        }
+    }
 
     // Recheck the floor before selecting the next mode.
     FindFloor(
@@ -536,17 +594,12 @@ void UFPSCharacterMovementComponent::StopSlide()
         SetMovementMode(MOVE_Falling);
     }
 
-    if (CharacterOwner)
-    {
-        //CharacterOwner->UnCrouch();
-    }
-
-    UE_LOG(LogTemp, Warning,
+    /*UE_LOG(LogTemp, Warning,
         TEXT("SlideNet: StopSlide: Role=%d Mode=%d CustomMode=%d TimeRemaining=%.3f"),
         CharacterOwner ? (int32)CharacterOwner->GetLocalRole() : -1,
         (int32)MovementMode,
         (int32)CustomMovementMode,
-        SlideTimeRemaining);
+        SlideTimeRemaining);*/
 }
 
 void UFPSCharacterMovementComponent::RestoreSlideState(

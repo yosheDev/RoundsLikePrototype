@@ -12,6 +12,7 @@ void UMovementAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	DOREPLIFETIME(UMovementAttributeSet, JumpCount);
 	DOREPLIFETIME(UMovementAttributeSet, GravityScale);
 	DOREPLIFETIME(UMovementAttributeSet, CrouchedHalfHeight);
+	DOREPLIFETIME(UMovementAttributeSet, SlideCooldownCoefficient);
 }
 
 #pragma region OnRep Functions

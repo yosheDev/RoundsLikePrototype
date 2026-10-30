@@ -46,6 +46,11 @@ public:
 	FGameplayAttributeData CrouchedHalfHeight;
 	ATTRIBUTE_ACCESSORS(UMovementAttributeSet, CrouchedHalfHeight);
 
+	// Slide cooldown duration modifier.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	FGameplayAttributeData SlideCooldownCoefficient;
+	ATTRIBUTE_ACCESSORS(UMovementAttributeSet, SlideCooldownCoefficient);
+
 #pragma region OnRep Functions
 protected:
 	UFUNCTION()

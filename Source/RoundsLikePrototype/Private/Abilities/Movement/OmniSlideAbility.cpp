@@ -44,6 +44,26 @@ void UOmniSlideAbility::ActivateAbility(
 
     ExecuteOmniSlide();
 
+    // Create the Cooldown Spec manually so we can inject the SetByCaller data
+    //FGameplayEffectSpecHandle CooldownSpecHandle = MakeOutgoingCooldownEffectSpec(Handle, ActorInfo, ActivationInfo);
+    //if (CooldownSpecHandle.IsValid())
+    //{
+    //    float MyBaseCooldown = 5.0f; // Define your base cooldown for this specific ability here
+
+    //    // Inject the base duration into the spec using the exact tag your MMC expects
+    //    CooldownSpecHandle.Data.Get()->SetSetByCallerMagnitude(
+    //        FGameplayTag::RequestGameplayTag(FName("Data.CooldownBaseDuration")),
+    //        MyBaseCooldown
+    //    );
+
+    //    // Apply the customized cooldown spec to the owner
+    //    ApplyCooldownEffectSpec(Handle, ActorInfo, ActivationInfo, CooldownSpecHandle);
+    //}
+    //else
+    //{
+        bool bCooldownApplied = CommitAbilityCooldown(Handle, ActorInfo, ActivationInfo, true);
+    //}
+
     EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
