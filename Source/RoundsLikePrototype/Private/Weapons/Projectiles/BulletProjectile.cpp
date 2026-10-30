@@ -13,6 +13,7 @@
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "Abilities/AttributeSets/VitalityAttributeSet.h"
 #include "GameplayTagContainer.h"
 #include "Components/FPSAbilitySystemComponent.h"
 #include "HAL/IConsoleManager.h"
@@ -480,6 +481,18 @@ void ABulletProjectile::OnComponentBeginOverlapEvent(UPrimitiveComponent* Overla
 {
 	// If OtherActor is a valid target, excluded this projectiles Instigator. (Certain bullets may be able to affect the instigator??)
 	if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) { return; }
+
+	// Make sure other actor is Damageable.
+	IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(OtherActor);
+	if (!AbilitySystemInterface){ return; }
+
+	// Other Actor has an AbilitySystemComponent
+	UAbilitySystemComponent* OtherASC = AbilitySystemInterface->GetAbilitySystemComponent();
+	if (!OtherASC){ return; }
+
+	// Check whether the other actor has a Vitality AttributeSet.
+	const UVitalityAttributeSet* OtherVitality = OtherASC->GetSet<UVitalityAttributeSet>();
+	if (!OtherVitality){ return; }
 
 	if (!HasAuthority() && bPredictedProjectile)
 	{

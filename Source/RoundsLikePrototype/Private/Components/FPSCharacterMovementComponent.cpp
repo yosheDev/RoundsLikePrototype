@@ -15,7 +15,7 @@ void UFPSCharacterMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetime
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-    DOREPLIFETIME(UFPSCharacterMovementComponent, SlideDirection);
+    //DOREPLIFETIME(UFPSCharacterMovementComponent, SlideDirection);
 }
 
 class FNetworkPredictionData_Client_Slide : public FNetworkPredictionData_Client_Character
@@ -228,7 +228,6 @@ void UFPSCharacterMovementComponent::OnMovementModeChanged(EMovementMode Previou
         PreviousCustomMode == SlideCustomMode &&
         !IsSliding())
     {
-        bSlideRequested = false;
 
         if (CharacterOwner)
         {
@@ -276,30 +275,47 @@ void UFPSCharacterMovementComponent::UpdateCharacterStateBeforeMovement(float De
 
 void UFPSCharacterMovementComponent::SmoothClientPosition(float DeltaSeconds)
 {
-    if (HasValidData() &&
-        CharacterOwner->GetLocalRole() == ROLE_SimulatedProxy &&
-        IsSliding() &&
-        NetworkSmoothingMode == ENetworkSmoothingMode::Exponential)
+    if (!HasValidData() ||
+        CharacterOwner->GetLocalRole() != ROLE_SimulatedProxy ||
+        !IsSliding() ||
+        NetworkSmoothingMode != ENetworkSmoothingMode::Exponential ||
+        DeltaSeconds <= 0.f)
     {
-        if (FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character())
-        {
-            // Preserve interpolation, but reduce the time the mesh
-            // spends correcting its position during a slide.
-            const float OriginalSmoothNetUpdateTime = ClientData->SmoothNetUpdateTime;
+        Super::SmoothClientPosition(DeltaSeconds);
+        return;
+    }
 
-            ClientData->SmoothNetUpdateTime = FMath::Min(OriginalSmoothNetUpdateTime, SlideMeshSmoothingTime);
+    FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
 
-            Super::SmoothClientPosition(DeltaSeconds);
+    if (!ClientData)
+    {
+        Super::SmoothClientPosition(DeltaSeconds);
+        return;
+    }
 
-            ClientData->SmoothNetUpdateTime = OriginalSmoothNetUpdateTime;
+    const float OriginalSmoothNetUpdateTime = ClientData->SmoothNetUpdateTime;
 
-            return;
-        }
+    const float OffsetSize = ClientData->MeshTranslationOffset.Size();
+
+    if (OffsetSize > KINDA_SMALL_NUMBER)
+    {
+        // Aim for a correction rate comparable to the slide's speed.
+        const float CatchupSpeed = FMath::Max(Velocity.Size2D(), MaxWalkSpeed) * SlideMeshCatchupSpeedMultiplier;
+
+        // Exponential smoothing normally decays the offset
+        // proportionally. Calculate a time window that instead
+        // produces an approximately constant correction speed.
+        const float DesiredLocationTime = FMath::Max(OffsetSize / CatchupSpeed, DeltaSeconds * 1.01f);
+
+        // UE halves the location smoothing time when velocity is zero.
+        const float VelocityTimeMultiplier = Velocity.IsZero() ? 2.f : 1.f;
+
+        ClientData->SmoothNetUpdateTime = DesiredLocationTime * VelocityTimeMultiplier;
     }
 
     Super::SmoothClientPosition(DeltaSeconds);
 
-    Super::SmoothClientPosition(DeltaSeconds);
+    ClientData->SmoothNetUpdateTime = OriginalSmoothNetUpdateTime;
 }
 
 void UFPSCharacterMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
@@ -486,7 +502,6 @@ bool UFPSCharacterMovementComponent::TryStartSlide(const FVector& Direction)
 
     SlideDirection = NewDirection;
     SlideTimeRemaining = SlideDuration;
-    bSlideRequested = true;
 
     SetMovementMode(MOVE_Custom, SlideCustomMode);
 
@@ -502,11 +517,9 @@ void UFPSCharacterMovementComponent::StopSlide()
 {
     if (!IsSliding())
     {
-        bSlideRequested = false;
         return;
     }
 
-    bSlideRequested = false;
 
     // Recheck the floor before selecting the next mode.
     FindFloor(
@@ -543,7 +556,6 @@ void UFPSCharacterMovementComponent::RestoreSlideState(
 {
     SlideDirection = SavedDirection;
     SlideTimeRemaining = SavedTimeRemaining;
-    bSlideRequested = bWasSliding;
 
     if (bWasSliding)
     {

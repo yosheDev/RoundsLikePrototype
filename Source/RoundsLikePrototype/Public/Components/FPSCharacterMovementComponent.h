@@ -135,13 +135,11 @@ private:
     bool bPendingSlideStartRequest = false;
     FVector PendingSlideStartDirection = FVector::ForwardVector;
 
-    UPROPERTY(Replicated)
+    //UPROPERTY(Replicated)
     FVector SlideDirection = FVector::ForwardVector;
-    bool bSlideRequested = false;
-    bool bProxySlideDirectionInitialized = false;
 
-    UPROPERTY(EditAnywhere, Category = "Movement|Slide|Networking", meta = (ClampMin = "0.01", ClampMax = "0.5"))
-    float SlideMeshSmoothingTime = 0.035f;
+    UPROPERTY(EditAnywhere, Category = "Movement|Slide|Networking", meta = (ClampMin = "0.1", ClampMax = "3.0"))
+    float SlideMeshCatchupSpeedMultiplier = 1.0f;
 
     void PhysSlide(float DeltaTime, int32 Iterations);
     bool CanStartSlide() const;
