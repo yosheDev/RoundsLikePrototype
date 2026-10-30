@@ -372,7 +372,7 @@ void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations
     if (!CurrentFloor.IsWalkableFloor())
     {
         Velocity = Velocity.GetClampedToMaxSize2D(MaxWalkSpeed);
-        SetMovementMode(MOVE_Falling);
+        StopSlide(false);
         return;
     }
 
@@ -420,8 +420,7 @@ void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations
 
     if (!GroundVelocity.IsNearlyZero())
     {
-        GroundVelocity =
-            GroundVelocity.GetSafeNormal() * Speed2D;
+        GroundVelocity = GroundVelocity.GetSafeNormal() * Speed2D;
     }
 
     Velocity = GroundVelocity;
@@ -456,7 +455,7 @@ void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations
     if (!CurrentFloor.IsWalkableFloor())
     {
         Velocity = Velocity.GetClampedToMaxSize2D(MaxWalkSpeed);
-        SetMovementMode(MOVE_Falling);
+        StopSlide(false);
         return;
     }
 
