@@ -35,6 +35,9 @@ public:
 
     void InitializeWithAbilitySystem(UAbilitySystemComponent* InASC);
 
+    UFUNCTION(BlueprintCallable, Category = "Health")
+    void Heal(float HealAmount);
+
 #pragma region Delegates
 public:
 

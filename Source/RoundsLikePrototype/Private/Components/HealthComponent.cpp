@@ -82,6 +82,29 @@ void UHealthComponent::InitializeWithAbilitySystem(UAbilitySystemComponent* InAS
     );
 }
 
+void UHealthComponent::Heal(float HealAmount)
+{
+    if (!AbilitySystemComponent || !VitalityAttributeSet)
+    {
+        return;
+    }
+
+    if (HealAmount <= 0.0f)
+    {
+        return;
+    }
+
+    AbilitySystemComponent->ApplyModToAttribute(
+        UVitalityAttributeSet::GetHealthAttribute(),
+        EGameplayModOp::Additive,
+        HealAmount
+    );
+
+    if (bIsDead && GetHealth() > 0.0f)
+    {
+        bIsDead = false;
+    }
+}
 
 void UHealthComponent::UnbindFromAbilitySystem()
 {

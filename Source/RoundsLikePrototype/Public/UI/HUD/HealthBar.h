@@ -21,13 +21,12 @@ class ROUNDSLIKEPROTOTYPE_API UHealthBar : public UUserWidget
 	
 public:
     // Update visual display of the health bar.
+    UFUNCTION(BlueprintCallable)
     void UpdateHealthBar(float CurrentHealth, float MaxHealth);
 
 protected:
 
     virtual void NativeConstruct() override;
-
-    // IMPORTANT: "meta = (BindWidget)" is what allows the c++ to connect to actual widget in designer. MUST match name.
 
     UPROPERTY(meta = (BindWidget))
     UProgressBar* HealthBar;
