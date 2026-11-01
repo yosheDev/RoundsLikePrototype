@@ -4,6 +4,7 @@
 // Preprocessor Directives
 #include "Weapons/Projectiles/BulletProjectile.h"
 #include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Weapons/Projectiles/BulletSpec.h"
@@ -16,6 +17,8 @@
 #include "Abilities/AttributeSets/VitalityAttributeSet.h"
 #include "GameplayTagContainer.h"
 #include "Components/FPSAbilitySystemComponent.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
 #include "HAL/IConsoleManager.h"
 
 #pragma region Skills
@@ -87,6 +90,39 @@ void ABulletProjectile::BeginPlay()
 
 	// Activate main visual effect, containing mesh and particles.
 	NiagaraComponent->Activate(true);
+
+	// If player has the incantation skill, load the visual VFX.
+	static const FGameplayTag IncantationTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.Incantation"));
+	AActor* Shooter = GetOwner()->GetOwner(); //ABulletProjectile->AProjectileWeapon->AFPSCharacter
+	UAbilitySystemComponent* ShooterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Shooter);
+
+	if (ShooterASC && ShooterASC->HasMatchingGameplayTag(IncantationTag))
+	{
+		if (HasAuthority())
+		{
+			if (!IncantationVFX.IsNull())
+			{
+				// Check if the asset is already loaded into memory currently. If it is, call the OnLoaded manually.
+				if (IncantationVFX.IsValid())
+				{
+					OnIncantationSystemLoaded();
+				}
+				else
+				{
+					// Async load the asset.
+					FStreamableManager& StreamableManager = UAssetManager::Get().GetStreamableManager();
+
+					StreamableManager.RequestAsyncLoad(
+						IncantationVFX.ToSoftObjectPath(),
+						FStreamableDelegate::CreateUObject(this, &ABulletProjectile::OnIncantationSystemLoaded)
+					);
+				}
+			}
+			
+			// Increase overlap hitbox size/scale.
+			SphereOverlapCollision->SetSphereRadius(SphereOverlapCollision->GetUnscaledSphereRadius() * IncantationScaleCoefficient);
+		}
+	}
 }
 
 void ABulletProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -557,6 +593,32 @@ void ABulletProjectile::ApplyDamage(AActor* Target)
 }
 #pragma endregion
 
+void ABulletProjectile::OnIncantationSystemLoaded()
+{
+	// Resolve the soft pointer to a hard pointer now that it is loaded
+	UNiagaraSystem* LoadedSystem = IncantationVFX.Get();
+
+	if (!LoadedSystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to resolve loaded Niagara System."));
+		return;
+	}
+
+	USceneComponent* AttachTarget = GetRootComponent();
+	if (!AttachTarget) return;
+
+	SpawnedIncantationVFXComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		LoadedSystem,
+		AttachTarget,
+		FName(),
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		EAttachLocation::SnapToTarget,
+		false
+	);
+
+	SpawnedIncantationVFXComponent->SetFloatParameter(FName("ActorScale"), (IncantationScaleCoefficient * 1.1f)); // The literal is to give players more leeway.
+}
 
 #pragma region Helpers
 void ABulletProjectile::DrawDebugTrajectory()

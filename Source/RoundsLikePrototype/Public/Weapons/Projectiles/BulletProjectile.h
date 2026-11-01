@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Weapons/Projectiles/BulletSpec.h"
 #include "Weapons/Projectiles/ProjectileSpawnData.h"
 #include "GameplayEffectTypes.h"
@@ -33,6 +34,10 @@ protected:
 	/** The primary Visual Effect of the projectile. Acts as the main visual body. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UNiagaraComponent> NiagaraComponent;
+
+	/** Only spawned and used if player has Incantation skill. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class UNiagaraComponent> SpawnedIncantationVFXComponent;
 
 #pragma endregion
 
@@ -154,6 +159,17 @@ protected:
 	UFUNCTION()
 	void OnRep_BulletData();
 
+#pragma region Incantation
+protected:
+	// The scale coefficient for the incantation ability.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon | Skills")
+	float IncantationScaleCoefficient = 2.0f;
+
+private:
+	// When IncantationSystem is done loading from memory. Used to spawn and attach to projectile.
+	void OnIncantationSystemLoaded();
+#pragma endregion
+
 public:
 
 	//	TODO: When I was trying to make stuff work, I ended up needing the UGameplayEffect here and not just the handle...Why? How bad is this? Can I avoid it?
@@ -174,6 +190,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon | Skills", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class APeriodicVolumeDamage> ExplosiveActorClass;
 	
+	// VFX to load and attach to bullets if player has incantation skill.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon | Skills", meta = (AllowPrivateAccess = "true"))
+	TSoftObjectPtr<UNiagaraSystem> IncantationVFX;
+
 	/** Is this projectile a purely predicted projectile (on clients only)? */
 	UPROPERTY()
 	bool bPredictedProjectile = false;
