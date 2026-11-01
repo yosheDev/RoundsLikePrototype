@@ -542,6 +542,8 @@ bool UFPSCharacterMovementComponent::TryStartSlide(const FVector& Direction)
     const UCharacterMovementComponent* MoveComp = CharacterOwner->GetCharacterMovement();
 
     SetMovementMode(MOVE_Custom, SlideCustomMode);
+    
+    Cast<AFPSCharacter>(CharacterOwner)->PlaySlideFX();
 
     return true;
 }

@@ -11,6 +11,7 @@
 #include "Abilities/AbilityDefinition.h"
 #include "Weapons/ProjectileWeapon.h"
 #include "Weapons/IWeaponHolder.h"
+#include "Materials/MaterialInterface.h"
 #include "FPSCharacter.generated.h"
 
 // Forward declarations
@@ -113,6 +114,9 @@ public:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Movement|Slide")
 	void RequestSlide();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Movement|Slide")
+	void PlaySlideFX();
 #pragma endregion
 
 #pragma endregion
@@ -218,6 +222,19 @@ private:
 	void BindAttributeSetDelegates();
 #pragma endregion
 
+#pragma region Camera
+protected:
+	// Post process materail to use for radial screen blur effects.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PostProcess")
+	UMaterialInterface* RadialBlurPPM;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "PostProcess")
+	UMaterialInstanceDynamic* DynamicRadialBlurPPM;
+public:
+	// Call this function at runtime to change the blur weight dynamically.
+	UFUNCTION(BlueprintCallable, Category = "PostProcess")
+	void UpdateBlurPostProcessWeight(float NewWeight);
+#pragma endregion
 public:
 	UPROPERTY(EditAnywhere)
 	bool bIsDead;

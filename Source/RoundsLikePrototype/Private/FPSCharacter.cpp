@@ -77,6 +77,9 @@ AFPSCharacter::AFPSCharacter(
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	DynamicRadialBlurPPM = UMaterialInstanceDynamic::Create(RadialBlurPPM, this);
+	UpdateBlurPostProcessWeight(0.0f);
 }
 
 void AFPSCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -702,8 +705,38 @@ void AFPSCharacter::RequestSlide()
 
 	MoveComp->RequestSlide(Direction);
 }
+
+void AFPSCharacter::PlaySlideFX_Implementation()
+{
+	// Timeline in BP.
+}
+
 #pragma endregion
 
+#pragma endregion
+
+#pragma region Camera
+void AFPSCharacter::UpdateBlurPostProcessWeight(float NewWeight)
+{
+	if (!FirstPersonCamera || !DynamicRadialBlurPPM)
+	{
+		return;
+	}
+
+	// Clamp weight between 0.0 (inactive) and 1.0 (fully active)
+	float ClampedWeight = FMath::Clamp(NewWeight, 0.0f, 1.0f);
+
+	// 1. Create the Weighted Blendable object
+	FWeightedBlendable WeightedBlendable;
+	WeightedBlendable.Weight = ClampedWeight;
+	WeightedBlendable.Object = DynamicRadialBlurPPM;
+
+	// Clear any old blendables to prevent stacking the same material infinitely
+	FirstPersonCamera->PostProcessSettings.WeightedBlendables.Array.Empty();
+
+	// Push the weighted material into the settings array
+	FirstPersonCamera->PostProcessSettings.WeightedBlendables.Array.Add(WeightedBlendable);
+}
 #pragma endregion
 
 void AFPSCharacter::Landed(const FHitResult& Hit)
