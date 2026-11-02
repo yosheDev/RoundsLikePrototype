@@ -48,6 +48,11 @@ void AFPSGameState::OnRep_MatchWinnerState()
 
 void AFPSGameState::UpdateMatchSubsystem()
 {
+    if (!HasAuthority())
+    {
+        return;
+    }
+
     UMatchInstanceSubsystem* MatchSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>();
 
     FMatchData NewData;
@@ -58,8 +63,13 @@ void AFPSGameState::UpdateMatchSubsystem()
     NewData.PlayerTwo = PlayerTwo;
     NewData.PlayerOneWins = PlayerOneWins;
     NewData.PlayerTwoWins = PlayerTwoWins;
+    NewData.PlayerOneRoundWins = PlayerOneRoundWins;
+    NewData.PlayerTwoRoundWins = PlayerTwoRoundWins;
+    NewData.PlayerOneId = IsValid(PlayerOne) ? PlayerOne->GetPlayerId() : MatchSubsystem->MatchData.PlayerOneId;
+    NewData.PlayerTwoId = IsValid(PlayerTwo) ? PlayerTwo->GetPlayerId() : MatchSubsystem->MatchData.PlayerTwoId;
 
     MatchSubsystem->SetMatchData(NewData);
+    UE_LOG(LogTemp, Log, TEXT("MatchLog: MatchSubsystem is updated."));
 }
 
 void AFPSGameState::InitializeMatchData()
@@ -74,6 +84,10 @@ void AFPSGameState::InitializeMatchData()
     PlayerTwo = NewData.PlayerTwo;
     PlayerOneWins = NewData.PlayerOneWins;
     PlayerTwoWins = NewData.PlayerTwoWins;
+    PlayerOneRoundWins = NewData.PlayerOneRoundWins;
+    PlayerTwoRoundWins = NewData.PlayerTwoRoundWins;
+
+    UE_LOG(LogTemp, Log, TEXT("MatchLog: Initialized MatchData on GameState from Subsystem Data."));
 }
 
 AFPSPlayerState* AFPSGameState::GetCurrentLoserState()

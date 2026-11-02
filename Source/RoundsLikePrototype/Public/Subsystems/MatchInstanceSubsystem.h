@@ -37,10 +37,26 @@ struct FMatchData
 	TObjectPtr<AFPSPlayerState> PlayerTwo = nullptr;
 
 	UPROPERTY()
-	uint8 PlayerOneWins = 0;
+	int32 PlayerOneId = INDEX_NONE;
 
 	UPROPERTY()
+	int32 PlayerTwoId = INDEX_NONE;
+
+	// Number of rounds player one has won.
+	UPROPERTY()
+	uint8 PlayerOneWins = 0;
+
+	// Number of rounds player two has won.
+	UPROPERTY()
 	uint8 PlayerTwoWins = 0;
+
+	// Number of wins player one has in ONLY the current round.
+	UPROPERTY()
+	uint8 PlayerOneRoundWins = 0;
+
+	// Number of wins player two has in ONLY the current round.
+	UPROPERTY()
+	uint8 PlayerTwoRoundWins = 0;
 };
 
 UCLASS()

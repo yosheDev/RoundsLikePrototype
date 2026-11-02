@@ -58,6 +58,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match")
     uint8 PlayerTwoWins = 0;
 
+    // Number of wins player one has in ONLY the current round.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match")
+    uint8 PlayerOneRoundWins = 0;
+
+    // Number of wins player two has in ONLY the current round.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Match")
+    uint8 PlayerTwoRoundWins = 0;
+
     UFUNCTION(BlueprintCallable, Category = "Match")
     void UpdateMatchSubsystem();
 

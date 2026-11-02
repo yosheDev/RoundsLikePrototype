@@ -30,11 +30,11 @@ void AFPSGameMode::PostLogin(APlayerController* NewPlayer)
 	AFPSPlayerState* PS = NewPlayer->GetPlayerState<AFPSPlayerState>();
 	UMatchInstanceSubsystem* MatchSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>();
 
-	if (!MatchSubsystem->MatchData.PlayerOne)
+	if (MatchSubsystem->MatchData.PlayerOneId == INDEX_NONE)
 	{
 		FPSGameState->PlayerOne = PS;
 	}
-	else if (!MatchSubsystem->MatchData.PlayerTwo)
+	else if (MatchSubsystem->MatchData.PlayerTwoId == INDEX_NONE)
 	{
 		FPSGameState->PlayerTwo = PS;
 	}
@@ -66,19 +66,94 @@ void AFPSGameMode::LoadNextArena()
 	GetWorld()->ServerTravel(MapPath);
 }
 
+void AFPSGameMode::HandleSeamlessTravelPlayer(AController*& C)
+{
+	Super::HandleSeamlessTravelPlayer(C);
+
+	RebindPlayerStates();
+}
+
 void AFPSGameMode::PostSeamlessTravel()
 {
 	Super::PostSeamlessTravel();
 
+	FPSGameState = GetGameState<AFPSGameState>();
+
 	if (!IsValid(FPSGameState))
 	{
-		FPSGameState = GetGameState<AFPSGameState>();
-		FPSGameState->InitializeMatchData();
+		UE_LOG(LogTemp, Error, TEXT("MatchLog: Failed to retrieve GameState after seamless travel."));
+		return;
 	}
+	
+	FPSGameState->InitializeMatchData();
+
+	RebindPlayerStates();
+
+	FPSGameState->UpdateMatchSubsystem();
+
+	UE_LOG(LogTemp, Log,
+		TEXT("MatchLog: FPSGameMode::PostSeamlessTravel() - PlayerOne: [%s] PlayerTwo: [%s]"),
+		*GetNameSafe(FPSGameState->PlayerOne),
+		*GetNameSafe(FPSGameState->PlayerTwo));
 
 	bHasFinishedTravel = true;
 
 	TryRoundStart();
+}
+
+void AFPSGameMode::RebindPlayerStates()
+{
+	if (!IsValid(FPSGameState))
+	{
+		FPSGameState = GetGameState<AFPSGameState>();
+	}
+
+	if (!IsValid(FPSGameState))
+	{
+		return;
+	}
+
+	UMatchInstanceSubsystem* MatchSubsystem =
+		GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>();
+
+	if (!MatchSubsystem)
+	{
+		return;
+	}
+
+	const int32 PlayerOneId = MatchSubsystem->MatchData.PlayerOneId;
+	const int32 PlayerTwoId = MatchSubsystem->MatchData.PlayerTwoId;
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+
+		if (!IsValid(PC))
+		{
+			continue;
+		}
+
+		AFPSPlayerState* PS = PC->GetPlayerState<AFPSPlayerState>();
+
+		if (!IsValid(PS))
+		{
+			continue;
+		}
+
+		if (PS->GetPlayerId() == PlayerOneId)
+		{
+			FPSGameState->PlayerOne = PS;
+		}
+		else if (PS->GetPlayerId() == PlayerTwoId)
+		{
+			FPSGameState->PlayerTwo = PS;
+		}
+	}
+
+	UE_LOG(LogTemp, Log,
+		TEXT("MatchLog: Rebound PlayerStates. PlayerOne: %s | PlayerTwo: %s"),
+		*GetNameSafe(FPSGameState->PlayerOne),
+		*GetNameSafe(FPSGameState->PlayerTwo));
 }
 
 void AFPSGameMode::RestartPlayer(AController* NewPlayer)
@@ -227,6 +302,9 @@ void AFPSGameMode::PlayerFinishedDraft(AFPSPlayerController* PC)
 	{
 		if (PC->GetPlayerState<AFPSPlayerState>() == FPSGameState->CurrentLoserState)
 		{
+			FPSGameState->PlayerOneRoundWins = 0;
+			FPSGameState->PlayerTwoRoundWins = 0;
+
 			SetMatchPhase(EMatchPhase::RoundStarting);
 		}
 	}
@@ -276,47 +354,96 @@ void AFPSGameMode::StartRound()
 
 void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 {
-	if (FPSGameState->MatchPhase == EMatchPhase::InRound)
+	if (FPSGameState->MatchPhase != EMatchPhase::InRound)
 	{
-		FPSGameState->CurrentLoserState = Loser->GetPlayerState<AFPSPlayerState>();
-
-		bool bMatchEnd = false;
-		if (FPSGameState->CurrentLoserState == FPSGameState->PlayerOne)
-		{
-			GivePoint(2);
-
-			if (FPSGameState->PlayerTwoWins >= WinsRequired)
-			{
-				bMatchEnd = true;
-				FPSGameState->MatchWinnerState = FPSGameState->PlayerTwo;
-			}
-
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player One Wins: [%u]"), FPSGameState->PlayerOneWins));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player Two Wins: [%u]"), FPSGameState->PlayerTwoWins));
-		}
-		else if (FPSGameState->CurrentLoserState == FPSGameState->PlayerTwo)
-		{
-			GivePoint(1);
-
-			if (FPSGameState->PlayerOneWins >= WinsRequired)
-			{
-				bMatchEnd = true;
-				FPSGameState->MatchWinnerState = FPSGameState->PlayerOne;
-			}
-
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player One Wins: [%u]"), FPSGameState->PlayerOneWins));
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player Two Wins: [%u]"), FPSGameState->PlayerTwoWins));
-		}
-
-		if (bMatchEnd)
-		{
-			SetMatchPhase(EMatchPhase::MatchEnd);
-		}
-		else
-		{
-			SetMatchPhase(EMatchPhase::RoundEnd);
-		}
+		return;
 	}
+
+	AFPSPlayerState* LosingPlayer = Loser->GetPlayerState<AFPSPlayerState>();
+	
+	UE_LOG(LogTemp, Log,
+		TEXT("MatchLog: LosingPlayer: %s | PlayerOne: %s | PlayerTwo: %s"),
+		*GetNameSafe(LosingPlayer),
+		*GetNameSafe(FPSGameState->PlayerOne),
+		*GetNameSafe(FPSGameState->PlayerTwo));
+
+	if (!IsValid(LosingPlayer) ||
+		!IsValid(FPSGameState->PlayerOne) ||
+		!IsValid(FPSGameState->PlayerTwo))
+	{
+		UE_LOG(LogTemp, Error, TEXT("MatchLog: Cannot award round win. PlayerState references are invalid."));
+		return;
+	}
+
+	#pragma region Check Current Round Best of 3 Series
+	UE_LOG(LogTemp, Log, TEXT("MatchLog: FPSGameMode::OnPlayerDefeated() BEFORE Assigning RoundWins: PlayerOneRoundWins: [%d] | PlayerTwoRoundWins: [%d]"), FPSGameState->PlayerOneRoundWins, FPSGameState->PlayerTwoRoundWins);
+
+	// First, check if round ends (if best out of 2 has completed)
+	if (LosingPlayer == FPSGameState->PlayerOne)
+	{
+		UE_LOG(LogTemp, Log, TEXT("MatchLog: FPSGameMode::OnPlayerDefeated() PlayerOne lost, so PlayerTwoRoundWins is incremented by 1."));
+		FPSGameState->PlayerTwoRoundWins++;
+	}
+	else if (LosingPlayer == FPSGameState->PlayerTwo)
+	{
+		UE_LOG(LogTemp, Log, TEXT("MatchLog: FPSGameMode::OnPlayerDefeated() PlayerTwo lost, so PlayerOneRoundWins is incremented by 1."));
+		FPSGameState->PlayerOneRoundWins++;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("MatchLog: FPSGameMode::OnPlayerDefeated() AFTER Assigning RoundWins: PlayerOneRoundWins: [%d] | PlayerTwoRoundWins: [%d]"), FPSGameState->PlayerOneRoundWins, FPSGameState->PlayerTwoRoundWins);
+	
+	// If the round series is not yet over, immediately call RoundEnd without assigning points or current loser on GameState.
+	if (FPSGameState->PlayerOneRoundWins < RoundSeriesWinsNeeded && FPSGameState->PlayerTwoRoundWins < RoundSeriesWinsNeeded)
+	{
+		SetMatchPhase(EMatchPhase::RoundEnd);
+		return;
+	}
+	#pragma endregion
+
+	#pragma region Round Over, Assign Loser and Award Points to Winner
+
+	// Assign loser.
+	FPSGameState->CurrentLoserState = LosingPlayer;
+
+	bool bMatchEnd = false;
+
+	// Award points and determine if match is over.
+	if (FPSGameState->CurrentLoserState == FPSGameState->PlayerOne)
+	{
+		GivePoint(2);
+
+		if (FPSGameState->PlayerTwoWins >= WinsRequired)
+		{
+			bMatchEnd = true;
+			FPSGameState->MatchWinnerState = FPSGameState->PlayerTwo;
+		}
+
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player One Wins: [%u]"), FPSGameState->PlayerOneWins));
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player Two Wins: [%u]"), FPSGameState->PlayerTwoWins));
+	}
+	else if (FPSGameState->CurrentLoserState == FPSGameState->PlayerTwo)
+	{
+		GivePoint(1);
+
+		if (FPSGameState->PlayerOneWins >= WinsRequired)
+		{
+			bMatchEnd = true;
+			FPSGameState->MatchWinnerState = FPSGameState->PlayerOne;
+		}
+
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player One Wins: [%u]"), FPSGameState->PlayerOneWins));
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player Two Wins: [%u]"), FPSGameState->PlayerTwoWins));
+	}
+
+	if (bMatchEnd)
+	{
+		SetMatchPhase(EMatchPhase::MatchEnd);
+	}
+	else
+	{
+		SetMatchPhase(EMatchPhase::RoundEnd);
+	}
+	#pragma endregion
 }
 
 void AFPSGameMode::EndMatch()
@@ -328,13 +455,28 @@ void AFPSGameMode::EndMatch()
 
 void AFPSGameMode::NotifyRoundEndComplete(AFPSPlayerController* PlayerController)
 {
+	if (ReadyPlayers.Contains(PlayerController))
+	{
+		return;
+	}
+
 	ReadyPlayers.Add(PlayerController);
 
 	/** Advance to AbilityDraft phase once all players are ready. */
 	if (ReadyPlayers.Num() == 2)
 	{
 		ResetReadyPlayers();
-		StartDraft();
+
+		const bool bSeriesComplete = FPSGameState->PlayerOneRoundWins >= RoundSeriesWinsNeeded || FPSGameState->PlayerTwoRoundWins >= RoundSeriesWinsNeeded;
+
+		if (bSeriesComplete)
+		{
+			StartDraft();
+		}
+		else
+		{
+			SetMatchPhase(EMatchPhase::RoundStarting);
+		}
 	}
 }
 #pragma endregion

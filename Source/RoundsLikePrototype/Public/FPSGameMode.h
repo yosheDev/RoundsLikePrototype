@@ -18,8 +18,13 @@ class ROUNDSLIKEPROTOTYPE_API AFPSGameMode : public AGameModeBase
 	
 public:
 
+	// Amount of round wins needed to win the match.
 	UPROPERTY(EditDefaultsOnly, Category = "Default | Match")
 	uint8 WinsRequired = 2;
+
+	// Amount of wins needed between each drafting phase.
+	UPROPERTY(EditDefaultsOnly, Category = "Default | Match")
+	uint8 RoundSeriesWinsNeeded = 2;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Default | Maps")
 	TArray<TSoftObjectPtr<UWorld>> ArenaMaps;
@@ -51,6 +56,10 @@ public:
 	virtual void BeginPlay() override;
 
 	virtual void PostLogin(APlayerController* NewPlayer) override;
+
+	virtual void HandleSeamlessTravelPlayer(AController*& C) override;
+
+	void RebindPlayerStates();
 
 	virtual void RestartPlayer(AController* NewPlayer) override;
 
