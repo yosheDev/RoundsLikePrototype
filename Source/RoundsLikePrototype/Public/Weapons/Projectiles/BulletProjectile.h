@@ -64,6 +64,7 @@ protected:
 	UFUNCTION()
 	FVector CalculateTrajectoryPosition(float Time);
 	FVector CalculateTrajectoryVelocity(float Time);
+	float CalculateTrajectorySpeed() const;
 
 	UFUNCTION()
 	bool MoveProjectileWithCollision(const FVector& PreviousPosition, const FVector& NewPosition);
@@ -170,6 +171,16 @@ private:
 	void OnIncantationSystemLoaded();
 #pragma endregion
 
+#pragma region Bubble Bullets
+protected:
+	// Stores if bullet is a bubble bullet or not.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsBubbleBullet = false;
+
+	// Stores the initial speed so that is can be used for calculations after ArcDistance.
+	UPROPERTY(VisibleAnywhere)
+	float InitialTrajectorySpeed = 0.0f;
+#pragma endregion
 public:
 
 	//	TODO: When I was trying to make stuff work, I ended up needing the UGameplayEffect here and not just the handle...Why? How bad is this? Can I avoid it?

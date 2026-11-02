@@ -90,39 +90,6 @@ void ABulletProjectile::BeginPlay()
 
 	// Activate main visual effect, containing mesh and particles.
 	NiagaraComponent->Activate(true);
-
-	// If player has the incantation skill, load the visual VFX.
-	static const FGameplayTag IncantationTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.Incantation"));
-	AActor* Shooter = GetOwner()->GetOwner(); //ABulletProjectile->AProjectileWeapon->AFPSCharacter
-	UAbilitySystemComponent* ShooterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Shooter);
-
-	if (ShooterASC && ShooterASC->HasMatchingGameplayTag(IncantationTag))
-	{
-		if (HasAuthority())
-		{
-			if (!IncantationVFX.IsNull())
-			{
-				// Check if the asset is already loaded into memory currently. If it is, call the OnLoaded manually.
-				if (IncantationVFX.IsValid())
-				{
-					OnIncantationSystemLoaded();
-				}
-				else
-				{
-					// Async load the asset.
-					FStreamableManager& StreamableManager = UAssetManager::Get().GetStreamableManager();
-
-					StreamableManager.RequestAsyncLoad(
-						IncantationVFX.ToSoftObjectPath(),
-						FStreamableDelegate::CreateUObject(this, &ABulletProjectile::OnIncantationSystemLoaded)
-					);
-				}
-			}
-			
-			// Increase overlap hitbox size/scale.
-			SphereOverlapCollision->SetSphereRadius(SphereOverlapCollision->GetUnscaledSphereRadius() * IncantationScaleCoefficient);
-		}
-	}
 }
 
 void ABulletProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -149,10 +116,54 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	SphereOverlapCollision->SetRelativeScale3D(SphereOverlapCollision->GetRelativeScale3D() * InBulletData.BulletSpec.BulletSize);
 	NiagaraComponent->SetFloatParameter(FName(TEXT("ActorScale")), NiagaraComponent->GetRelativeScale3D().X * InBulletData.BulletSpec.BulletSize);
 
-#pragma region Initialize Trajectory
+	#pragma region Check For Ability Tags
+	AActor* Shooter = GetOwner()->GetOwner(); //ABulletProjectile->AProjectileWeapon->AFPSCharacter
+	UAbilitySystemComponent* ShooterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Shooter);
+
+	#pragma region Incantation
+	// If player has the incantation skill, load the visual VFX.
+	static const FGameplayTag IncantationTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.Incantation"));
+	if (ShooterASC && ShooterASC->HasMatchingGameplayTag(IncantationTag))
+	{
+		if (HasAuthority())
+		{
+			if (!IncantationVFX.IsNull())
+			{
+				// Check if the asset is already loaded into memory currently. If it is, call the OnLoaded manually.
+				if (IncantationVFX.IsValid())
+				{
+					OnIncantationSystemLoaded();
+				}
+				else
+				{
+					// Async load the asset.
+					FStreamableManager& StreamableManager = UAssetManager::Get().GetStreamableManager();
+
+					StreamableManager.RequestAsyncLoad(
+						IncantationVFX.ToSoftObjectPath(),
+						FStreamableDelegate::CreateUObject(this, &ABulletProjectile::OnIncantationSystemLoaded)
+					);
+				}
+			}
+
+			// Increase overlap hitbox size/scale.
+			SphereOverlapCollision->SetSphereRadius(SphereOverlapCollision->GetUnscaledSphereRadius() * IncantationScaleCoefficient);
+		}
+	}
+	#pragma endregion
+
+	#pragma region Bubble Bullet
+	static const FGameplayTag BubbleTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletTypes.Bubble"));
+	bIsBubbleBullet = ShooterASC && ShooterASC->HasMatchingGameplayTag(BubbleTag);
+	#pragma endregion
+
+#pragma endregion
+
+	#pragma region Initialize Trajectory
 	// Store the initial trajectory conditions.
 	TrajectoryOrigin = InBulletData.SpawnTransform.GetLocation();
 	TrajectoryDirection = InBulletData.SpawnTransform.GetUnitAxis(EAxis::X);
+	InitialTrajectorySpeed = InBulletData.BulletSpec.BulletSpeed;
 	CurrentTrajectorySpeed = InBulletData.BulletSpec.BulletSpeed;
 	FVector CameraUp = InBulletData.SpawnTransform.GetUnitAxis(EAxis::Z);
 
@@ -179,15 +190,34 @@ void ABulletProjectile::InitializeBulletData(FProjectileSpawnData InBulletData)
 	{
 		DrawDebugTrajectory();
 	}
-#pragma endregion
+	#pragma endregion
 }
 #pragma endregion
-
 
 #pragma region Bullet Behavior
 void ABulletProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	#pragma region Bubble Bullet Simplified Movement
+	if (bIsBubbleBullet)
+	{
+		const float CurrentSpeed = CalculateTrajectorySpeed();
+
+		const FVector StartPosition = GetActorLocation();
+
+		const FVector EndPosition = StartPosition + TrajectoryDirection * CurrentSpeed * DeltaTime;
+
+		const bool bHit = MoveProjectileWithCollision(StartPosition, EndPosition);
+
+		if (!bHit)
+		{
+			PreviousTrajectoryPosition = EndPosition;
+		}
+
+		return;
+	}
+	#pragma endregion
 
 	if (bHasBounced)
 	{
@@ -270,7 +300,7 @@ FVector ABulletProjectile::CalculateTrajectoryPosition(float Time)
 {
 	const FBulletSpec& Spec = BulletData.BulletSpec;
 
-	if (bHasEnteredNaturalTrajectory)
+	if (bHasEnteredNaturalTrajectory && !bIsBubbleBullet)
 	{
 		constexpr float GravityReferenceDistance = 1000.0f;
 		constexpr float GravityReferenceDrop = 100.0f;
@@ -306,7 +336,6 @@ FVector ABulletProjectile::CalculateTrajectoryPosition(float Time)
 	return Position;
 }
 
-
 FVector ABulletProjectile::CalculateTrajectoryVelocity(float Time)
 {
 	const FBulletSpec& Spec = BulletData.BulletSpec;
@@ -339,6 +368,27 @@ FVector ABulletProjectile::CalculateTrajectoryVelocity(float Time)
 	return ForwardVelocity + ArcVelocity + GravityVelocity;
 }
 
+float ABulletProjectile::CalculateTrajectorySpeed() const
+{
+	if (!bIsBubbleBullet)
+	{
+		return InitialTrajectorySpeed;
+	}
+
+	const float ArcDistance = FMath::Max(BulletData.BulletSpec.BulletArcDistance, 1.0f);
+
+	const float SlowdownAlpha = FMath::Clamp(
+		(BulletTravelDistance - ArcDistance) / ArcDistance,
+		0.0f,
+		1.0f
+	);
+
+	return FMath::Lerp(
+		InitialTrajectorySpeed,
+		InitialTrajectorySpeed * 0.2f,
+		SlowdownAlpha
+	);
+}
 
 void ABulletProjectile::TransitionToNaturalTrajectory()
 {
@@ -467,48 +517,54 @@ void ABulletProjectile::BounceProjectile(const FHitResult& Hit)
 #pragma region Damage
 void ABulletProjectile::DestroyUponHitCollision()
 {
-	AActor* Shooter = GetOwner()->GetOwner(); //ABulletProjectile->AProjectileWeapon->AFPSCharacter
-	UAbilitySystemComponent* ShooterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Shooter);
-
-	#pragma region Stinkbomb Skill
-	static const FGameplayTag SpawnGasCloudTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.Stinkbomb"));
-
-	if (ShooterASC && ShooterASC->HasMatchingGameplayTag(SpawnGasCloudTag))
+	if (IsValid(GetOwner()))
 	{
-		if (HasAuthority())
+		if (IsValid(GetOwner()->GetOwner()))
 		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = Shooter;
-			SpawnParams.Instigator = Cast<APawn>(Shooter);
+			AActor* Shooter = GetOwner()->GetOwner(); //ABulletProjectile->AProjectileWeapon->AFPSCharacter
+			UAbilitySystemComponent* ShooterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Shooter);
 
-			GetWorld()->SpawnActor<APeriodicVolumeDamage>(
-				StinkbombActorClass,
-				GetActorLocation(),
-				FRotator::ZeroRotator,
-				SpawnParams);
+			#pragma region Stinkbomb Skill
+			static const FGameplayTag SpawnGasCloudTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.Stinkbomb"));
+
+			if (ShooterASC && ShooterASC->HasMatchingGameplayTag(SpawnGasCloudTag))
+			{
+				if (HasAuthority())
+				{
+					FActorSpawnParameters SpawnParams;
+					SpawnParams.Owner = Shooter;
+					SpawnParams.Instigator = Cast<APawn>(Shooter);
+
+					GetWorld()->SpawnActor<APeriodicVolumeDamage>(
+						StinkbombActorClass,
+						GetActorLocation(),
+						FRotator::ZeroRotator,
+						SpawnParams);
+				}
+			}
+			#pragma endregion
+
+			#pragma region Explosive Bullets Skill
+			static const FGameplayTag SpawnExplosionTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.ExplosiveRounds"));
+
+			if (ShooterASC && ShooterASC->HasMatchingGameplayTag(SpawnExplosionTag))
+			{
+				if (HasAuthority())
+				{
+					FActorSpawnParameters SpawnParams;
+					SpawnParams.Owner = Shooter;
+					SpawnParams.Instigator = Cast<APawn>(Shooter);
+
+					GetWorld()->SpawnActor<APeriodicVolumeDamage>(
+						ExplosiveActorClass,
+						GetActorLocation(),
+						FRotator::ZeroRotator,
+						SpawnParams);
+				}
+			}
+			#pragma endregion
 		}
 	}
-	#pragma endregion
-
-	#pragma region Explosive Bullets Skill
-	static const FGameplayTag SpawnExplosionTag = FGameplayTag::RequestGameplayTag(FName("AbilityDefinition.BulletEffects.ExplosiveRounds"));
-
-	if (ShooterASC && ShooterASC->HasMatchingGameplayTag(SpawnExplosionTag))
-	{
-		if (HasAuthority())
-		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = Shooter;
-			SpawnParams.Instigator = Cast<APawn>(Shooter);
-
-			GetWorld()->SpawnActor<APeriodicVolumeDamage>(
-				ExplosiveActorClass,
-				GetActorLocation(),
-				FRotator::ZeroRotator,
-				SpawnParams);
-		}
-	}
-	#pragma endregion
 
 	Destroy();
 }
@@ -616,8 +672,8 @@ void ABulletProjectile::OnIncantationSystemLoaded()
 		EAttachLocation::SnapToTarget,
 		false
 	);
-
-	SpawnedIncantationVFXComponent->SetFloatParameter(FName("ActorScale"), (IncantationScaleCoefficient * 1.1f)); // The literal is to give players more leeway.
+	//*InBulletData.BulletSpec.BulletSize
+	SpawnedIncantationVFXComponent->SetFloatParameter(FName("ActorScale"), (NiagaraComponent->GetRelativeScale3D().X * BulletData.BulletSpec.BulletSize * IncantationScaleCoefficient * 1.1f)); // The literal is to give players more leeway.
 }
 
 #pragma region Helpers
