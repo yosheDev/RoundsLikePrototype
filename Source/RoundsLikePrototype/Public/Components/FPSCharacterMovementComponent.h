@@ -84,9 +84,6 @@ public:
     float SlideSteeringAcceleration = 500.f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slide")
-    float MaximumSlideSpeed = 1400.f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slide")
     float SlideCapsuleHalfHeight = 55.f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Slide")

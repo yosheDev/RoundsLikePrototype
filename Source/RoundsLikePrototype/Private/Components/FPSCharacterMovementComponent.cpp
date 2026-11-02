@@ -400,7 +400,7 @@ void UFPSCharacterMovementComponent::PhysSlide(float DeltaTime, int32 Iterations
         0.5f,
         1.0f);
 
-    const float CurrentSpeed = FMath::Max(SlideSpeed * RemainingFraction, MaxWalkSpeed);
+    const float CurrentSpeed = FMath::Max((MaxWalkSpeed + SlideSpeed) * RemainingFraction, MaxWalkSpeed);
 
     Velocity = SlideDirection * CurrentSpeed;
 
@@ -522,8 +522,8 @@ bool UFPSCharacterMovementComponent::TryStartSlide(const FVector& Direction)
         return false;
     }
     
-    Velocity.X = NewDirection.X * SlideSpeed;
-    Velocity.Y = NewDirection.Y * SlideSpeed;
+    Velocity.X = NewDirection.X * (MaxWalkSpeed + SlideSpeed);
+    Velocity.Y = NewDirection.Y * (MaxWalkSpeed + SlideSpeed);
     Velocity.Z = 0.f;
 
     SlideDirection = NewDirection;

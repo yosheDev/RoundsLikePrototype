@@ -400,6 +400,11 @@ void AFPSPlayerState::ApplyAbilityDefinition(UAbilityDefinition* Definition)
 			if (NewSpecHandle.IsValid())
 			{
 				FPSAbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*NewSpecHandle.Data.Get());
+
+				UE_LOG(LogTemp, Warning,
+					TEXT("TRAVEL - Applied Effect: %s | Valid: %d"),
+					*GetNameSafe(EffectClass),
+					NewSpecHandle.IsValid());
 			}
 		}
 	}
@@ -441,7 +446,7 @@ UAbilitySystemComponent* AFPSPlayerState::GetAbilitySystemComponent() const
 
 void AFPSPlayerState::Server_AddAccruedAbility_Implementation(FGameplayTag AbilityTag)
 {
-	AccruedAbilities.AddUnique(AbilityTag);
+	AccruedAbilities.Add(AbilityTag);
 }
 
 FGameplayTagContainer AFPSPlayerState::GetOwnedAbilityTags()
