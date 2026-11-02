@@ -60,6 +60,7 @@ void UAbilityCard::InitializeCard(UAbilityDefinition* NewDataAsset)
     AbilityFlavor->SetText(AbilityDataAsset->FlavorText);
 
     Cost = AbilityDataAsset->Cost;
+    AbilityCost->SetText(FText::FromString(FString::FromInt(Cost)));
     SetCardColorByRarity(AbilityDataAsset->Rarity);
 }
 
