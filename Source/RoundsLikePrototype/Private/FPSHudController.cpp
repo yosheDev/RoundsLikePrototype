@@ -4,7 +4,9 @@
 #include "FPSHudController.h"
 #include "UI/Drafting/DraftingUI.h"
 #include "UI/Drafting/BottlecapReturnLocation.h"
+#include "FPSGameState.h"
 #include "UI/HUD/PlayerHUD.h"
+#include "UI/Presentation/MatchStateDisplayWidget.h"
 
 // This is causing an exception violation.
 void AFPSHudController::ShowAbilitySelection()
@@ -119,4 +121,45 @@ void AFPSHudController::BeginTranslateBottlecap(uint8 BottlecapID, FBottlecapRet
 const TArray<FBottlecapReturnLocation> AFPSHudController::GetBottlecapReturnLocations(uint8 Amount)
 {
     return DraftingWidget->GetBottlecapReturnLocations(Amount);
+}
+
+UMatchStateDisplayWidget* AFPSHudController::GetMatchStateDisplayWidget()
+{
+    if (MatchStateDisplayWidget)
+    {
+        return MatchStateDisplayWidget;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+void AFPSHudController::PresentMatchState(FGamePlayerData PlayerOneData, FGamePlayerData PlayerTwoData, uint8 CurrentLoserID)
+{
+    UE_LOG(LogTemp, Log, TEXT("PresentationLog: FPSHudController::PresentMatchState()"));
+    if (!MatchStateDisplayWidget)
+    {
+        MatchStateDisplayWidget = CreateWidget<UMatchStateDisplayWidget>(GetOwningPlayerController(), MatchStateDisplayWidgetClass);
+
+        if (IsValid(MatchStateDisplayWidget))
+        {
+            MatchStateDisplayWidget->AddToViewport();
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Failed to create MatchStateDisplayWidget."));
+            return;
+        }
+    }
+
+    if (MatchStateDisplayWidget)
+    {
+        MatchStateDisplayWidget->SetVisibility(ESlateVisibility::Visible);
+        MatchStateDisplayWidget->UpdateMatchStateDisplay(PlayerOneData, PlayerTwoData, CurrentLoserID);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("PresentationLog: FPSHudController::PresentMatchState(): MatchStateDisplayWidget is still null after creating one."));
+    }
 }

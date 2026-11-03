@@ -61,26 +61,38 @@ protected:
 	
 	
 public:
-	UFUNCTION(Client, Reliable)
+	UFUNCTION(BlueprintCallable, Client, Reliable)
+	void Client_SetInputEnabled(bool bIsEnabled);
+
+	UFUNCTION(BlueprintCallable)
+	void SetInputEnabled(bool bIsEnabled);
+
+	UFUNCTION(BlueprintCallable, Client, Reliable)
 	void Client_ShowDraftScreen();
 
-	UFUNCTION(Client, Reliable)
+	UFUNCTION(BlueprintCallable, Client, Reliable)
 	void Client_SetCanSelectUI(bool CanSelectUI);
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void SetDisplayHUD(bool bCanDisplay);
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void Server_NotifyRoundEndComplete();
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void Server_FinishedDraft();
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetHoveredStat(int32 WidgetID);
 
-	UFUNCTION()
-	void OnMatchPhaseChanged(EMatchPhase NewPhase);
+	UFUNCTION(BlueprintCallable, Client, Reliable)
+	void Client_OnMatchPhaseChanged(EMatchPhase NewPhase);
+
+	UFUNCTION(BlueprintCallable, Client, Reliable)
+	void Client_PresentMatchState(FGamePlayerData PlayerOneData, FGamePlayerData PlayerTwoData, uint8 CurrentLoserID);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void Server_NotifyMatchStateDisplayComplete();
 
 protected:
 	#pragma region Input Functions

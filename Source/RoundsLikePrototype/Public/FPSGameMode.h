@@ -7,6 +7,7 @@
 #include "FPSPlayerController.h"
 #include "FPSGameState.h"
 #include "Enums/SpawnSide.h"
+#include "Curves/CurveFloat.h"
 #include "FPSGameMode.generated.h"
 
 class AFPSPlayerStart;
@@ -116,14 +117,25 @@ public:
 	UFUNCTION()
 	void NotifyRoundEndComplete(AFPSPlayerController* PlayerController);
 
+	UFUNCTION()
+	void NotifyMatchStateDisplayComplete(AFPSPlayerController* PlayerController);
+
 	/** The match has ended. */
 	void EndMatch();
 
-	private:
+private:
 
-		/** Clears the HashSet being used to store which players are ready to progress. */
-		void ResetReadyPlayers();
+	/** Clears the HashSet being used to store which players are ready to progress. */
+	void ResetReadyPlayers();
 
-		/** Destroys all player pawns. */
-		void DestroyPawns();
+	/** Destroys all player pawns. */
+	void DestroyPawns();
+
+	void SetPlayersMovementEnabled(bool bEnabled);
+
+#pragma region Presentation
+protected:
+	// Plays after a round has ended and displays player scores. Afterwards, either loads into draft or matchend.
+	void PresentMatchState();
+#pragma endregion
 };

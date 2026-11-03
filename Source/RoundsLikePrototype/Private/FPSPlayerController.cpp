@@ -62,27 +62,27 @@ void AFPSPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
 	
 }
 
-void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
+void AFPSPlayerController::Client_OnMatchPhaseChanged_Implementation(EMatchPhase NewPhase)
 {
 	if (!IsLocalController())
 	{
 		return;
 	}
 
-	//UE_LOG(LogTemp, Log, TEXT("[%s]: OnMatchPhaseChanged() to [%s]"), HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"), *UEnum::GetValueAsString(NewPhase));
+	UE_LOG(LogTemp, Log, TEXT("PresentationLog: FPSPlayerController: OnMatchPhaseChanged: [%s]"), *UEnum::GetValueAsString(NewPhase));
 	switch (NewPhase)
 	{
 		case EMatchPhase::RoundStarting:
 		{
 			// Disable Gameplay Input
-			DisableInput(this);
+			SetInputEnabled(false);
 			SetDisplayHUD(true);
 			break;
 		}
 		case EMatchPhase::InRound:
 		{
 			// Enable Gameplay Input
-			EnableInput(this);
+			SetInputEnabled(true);
 			Client_SetCanSelectUI(false);
 			SetDisplayHUD(true);
 			break;
@@ -96,11 +96,8 @@ void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
 		}
 		case EMatchPhase::AbilityDraft:
 		{
-			/* Bring up Ability Draft UI and determine */
+			/* Bring up Ability Draft UI*/
 
-			AFPSGameState* FPSGameState = Cast<AFPSGameState>(GetWorld()->GetGameState());
-			const bool bCanSelect = (GetPlayerState<AFPSPlayerState>() == FPSGameState->CurrentLoserState);
-			Client_SetCanSelectUI(bCanSelect);
 			Client_ShowDraftScreen();
 			break;
 		}
@@ -108,6 +105,28 @@ void AFPSPlayerController::OnMatchPhaseChanged(EMatchPhase NewPhase)
 }
 
 #pragma region Input
+void AFPSPlayerController::Client_SetInputEnabled_Implementation(bool bIsEnabled)
+{
+	SetInputEnabled(bIsEnabled);
+}
+
+void AFPSPlayerController::SetInputEnabled(bool bIsEnabled)
+{
+	UE_LOG(LogTemp, Log, TEXT("PresentationLog: [%s] InputEnabled: [%s]"), *GetName(), bIsEnabled ? TEXT("true") : TEXT("false"));
+	if (bIsEnabled)
+	{
+		EnableInput(this);
+		SetIgnoreMoveInput(false);
+		SetIgnoreLookInput(false);
+	}
+	else
+	{
+		DisableInput(this);
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+	}
+}
+
 void AFPSPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -210,6 +229,14 @@ void AFPSPlayerController::Server_NotifyRoundEndComplete_Implementation()
 	}
 }
 
+void AFPSPlayerController::Server_NotifyMatchStateDisplayComplete_Implementation()
+{
+	if (AFPSGameMode* GM = GetWorld()->GetAuthGameMode<AFPSGameMode>())
+	{
+		GM->NotifyMatchStateDisplayComplete(this);
+	}
+}
+
 void AFPSPlayerController::Server_FinishedDraft_Implementation()
 {
 	if (AFPSGameMode* FPSGameMode = GetWorld()->GetAuthGameMode<AFPSGameMode>())
@@ -276,6 +303,16 @@ void AFPSPlayerController::SetDisplayHUD(bool bShouldDisplay)
 	if (AFPSHudController* HUD = Cast<AFPSHudController>(GetHUD()))
 	{
 		HUD->SetDisplayHUD(bShouldDisplay);
+	}
+}
+
+void AFPSPlayerController::Client_PresentMatchState_Implementation(FGamePlayerData PlayerOneData, FGamePlayerData PlayerTwoData, uint8 CurrentLoserID)
+{
+	UE_LOG(LogTemp, Log, TEXT("PresentationLog: FPSPlayerController::PresentMatchState()"));
+
+	if (AFPSHudController* HUD = Cast<AFPSHudController>(GetHUD()))
+	{
+		HUD->PresentMatchState(PlayerOneData, PlayerTwoData, CurrentLoserID);
 	}
 }
 #pragma endregion

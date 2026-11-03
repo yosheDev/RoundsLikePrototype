@@ -6,6 +6,8 @@
 #include "GameFramework/HUD.h"
 #include "UI/Drafting/DraftingUI.h"
 #include "UI/HUD/PlayerHUD.h"
+#include "UI/Presentation/MatchStateDisplayWidget.h"
+#include "FPSGameState.h"
 #include "FPSHudController.generated.h"
 
 class UUserWidget;
@@ -44,11 +46,17 @@ public:
     UDraftingUI* GetDraftingWidget();
 
     UFUNCTION()
+    UMatchStateDisplayWidget* GetMatchStateDisplayWidget();
+
+    UFUNCTION()
     void BeginTranslateBottlecap(uint8 BottlecapID, FBottlecapReturnLocation ReturnLocationSS, bool bIsDeallocating);
 
     UFUNCTION()
     const TArray<FBottlecapReturnLocation> GetBottlecapReturnLocations(uint8 Amount);
     
+    UFUNCTION()
+    void PresentMatchState(FGamePlayerData PlayerOneData, FGamePlayerData PlayerTwoData, uint8 CurrentLoserID);
+
 protected:
 
     UPROPERTY(EditDefaultsOnly)
@@ -62,4 +70,10 @@ protected:
 
     UPROPERTY()
     UPlayerHUD* HUDWidget;
+
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<UMatchStateDisplayWidget> MatchStateDisplayWidgetClass;
+
+    UPROPERTY()
+    UMatchStateDisplayWidget* MatchStateDisplayWidget;
 };

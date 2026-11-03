@@ -4,6 +4,7 @@
 #include "FPSGameMode.h"
 #include "FPSPlayerState.h"
 #include "FPSPlayerController.h"
+#include "FPSCharacter.h"
 #include "FPSHudController.h"
 #include "FPSGameState.h"
 #include "Subsystems/AbilityPoolSubsystem.h"
@@ -11,6 +12,7 @@
 #include "EngineUtils.h"
 #include "Enums/SpawnSide.h"
 #include "AbilitySystemGlobals.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Spawns/FPSPlayerStart.h"
 
 void AFPSGameMode::BeginPlay()
@@ -165,7 +167,14 @@ void AFPSGameMode::RestartPlayer(AController* NewPlayer)
 	// Disable player input. Input will be renabled upon countdown end.
 	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(NewPlayer))
 	{
-		PC->DisableInput(PC);
+		PC->SetInputEnabled(false);
+		PC->Client_SetInputEnabled(false);
+
+		if (AFPSCharacter* Character = Cast<AFPSCharacter>(PC->GetPawn()))
+		{
+			Character->GetCharacterMovement()->StopMovementImmediately();
+			Character->GetCharacterMovement()->DisableMovement();
+		}
 	}
 
 	// Attempt to start the round.
@@ -265,10 +274,19 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 			 * The ability draft phase has finished. Begin preparing the next round. 
 			 * AFPSGameMode::TryRoundStart() is called only after map is loaded and both players have spawned in.
 			 */
+
+			SetPlayersMovementEnabled(false);
+
+			if (FPSGameState)
+			{
+				FPSGameState->StartKillSlowdown();
+			}
+			
 			LoadNextArena();
 			break;
 
 		case EMatchPhase::InRound:
+			SetPlayersMovementEnabled(true);
 			break;
 
 		case EMatchPhase::RoundEnd:
@@ -375,6 +393,8 @@ void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 		return;
 	}
 
+	FPSGameState->StartKillSlowdown();
+
 	#pragma region Check Current Round Best of 3 Series
 	UE_LOG(LogTemp, Log, TEXT("MatchLog: FPSGameMode::OnPlayerDefeated() BEFORE Assigning RoundWins: PlayerOneRoundWins: [%d] | PlayerTwoRoundWins: [%d]"), FPSGameState->PlayerOneRoundWins, FPSGameState->PlayerTwoRoundWins);
 
@@ -417,9 +437,6 @@ void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 			bMatchEnd = true;
 			FPSGameState->MatchWinnerState = FPSGameState->PlayerTwo;
 		}
-
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player One Wins: [%u]"), FPSGameState->PlayerOneWins));
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player Two Wins: [%u]"), FPSGameState->PlayerTwoWins));
 	}
 	else if (FPSGameState->CurrentLoserState == FPSGameState->PlayerTwo)
 	{
@@ -430,9 +447,6 @@ void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 			bMatchEnd = true;
 			FPSGameState->MatchWinnerState = FPSGameState->PlayerOne;
 		}
-
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player One Wins: [%u]"), FPSGameState->PlayerOneWins));
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Player Two Wins: [%u]"), FPSGameState->PlayerTwoWins));
 	}
 
 	if (bMatchEnd)
@@ -441,6 +455,7 @@ void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 	}
 	else
 	{
+
 		SetMatchPhase(EMatchPhase::RoundEnd);
 	}
 	#pragma endregion
@@ -452,8 +467,36 @@ void AFPSGameMode::EndMatch()
 }
 
 #pragma region Server Pending Players Ready
-
 void AFPSGameMode::NotifyRoundEndComplete(AFPSPlayerController* PlayerController)
+{
+	if (ReadyPlayers.Contains(PlayerController))
+	{
+		return;
+	}
+
+	ReadyPlayers.Add(PlayerController);
+
+	/** Advance to AbilityDraft phase once all players are ready. */
+	if (ReadyPlayers.Num() == 2)
+	{
+		ResetReadyPlayers();
+
+		const bool bSeriesComplete = FPSGameState->PlayerOneRoundWins >= RoundSeriesWinsNeeded || FPSGameState->PlayerTwoRoundWins >= RoundSeriesWinsNeeded;
+
+		if (bSeriesComplete)
+		{
+			PresentMatchState();
+		}
+		else
+		{
+			// TO DO EVENTUALLY: Present match state here but for round wins not total wins.
+			SetMatchPhase(EMatchPhase::RoundStarting);
+		}
+		
+	}
+}
+
+void AFPSGameMode::NotifyMatchStateDisplayComplete(AFPSPlayerController* PlayerController)
 {
 	if (ReadyPlayers.Contains(PlayerController))
 	{
@@ -479,6 +522,16 @@ void AFPSGameMode::NotifyRoundEndComplete(AFPSPlayerController* PlayerController
 		}
 	}
 }
+#pragma endregion
+
+#pragma region Presentation
+
+void AFPSGameMode::PresentMatchState()
+{
+	// Player controllers need to react and then display the state themselves locally.
+	FPSGameState->HandlePresentMatchState();
+}
+
 #pragma endregion
 
 #pragma region Utility
@@ -539,6 +592,40 @@ void AFPSGameMode::DestroyPawns()
 		{
 			PC->GetPawn()->Destroy();
 		}
+	}
+}
+
+void AFPSGameMode::SetPlayersMovementEnabled(bool bEnabled)
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AFPSPlayerController* PC = Cast<AFPSPlayerController>(It->Get());
+
+		if (!IsValid(PC))
+		{
+			continue;
+		}
+
+		AFPSCharacter* Character = Cast<AFPSCharacter>(PC->GetPawn());
+
+		if (IsValid(Character))
+		{
+			UCharacterMovementComponent* Movement =
+				Character->GetCharacterMovement();
+
+			if (bEnabled)
+			{
+				Movement->SetMovementMode(MOVE_Walking);
+			}
+			else
+			{
+				Movement->StopMovementImmediately();
+				Movement->DisableMovement();
+			}
+		}
+
+		// Also disable input on the owning client.
+		PC->Client_SetInputEnabled(bEnabled);
 	}
 }
 #pragma endregion
