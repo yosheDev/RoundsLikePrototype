@@ -131,7 +131,7 @@ private:
 	/** Destroys all player pawns. */
 	void DestroyPawns();
 
-	void SetPlayersMovementEnabled(bool bEnabled);
+	void SetPlayersControlEnabled(bool bEnabled);
 
 #pragma region Presentation
 protected:

@@ -235,6 +235,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PostProcess")
 	void UpdateBlurPostProcessWeight(float NewWeight);
 #pragma endregion
+
+#pragma region Control
+public:
+	UPROPERTY(ReplicatedUsing = OnRep_CanControl)
+	bool bCanControl = false;
+
+	UFUNCTION()
+	void OnRep_CanControl();
+
+	void SetCanControl(bool bNewCanControl);
+#pragma endregion
+
 public:
 	UPROPERTY(EditAnywhere)
 	bool bIsDead;

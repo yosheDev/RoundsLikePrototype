@@ -115,8 +115,7 @@ void AFPSGameMode::RebindPlayerStates()
 		return;
 	}
 
-	UMatchInstanceSubsystem* MatchSubsystem =
-		GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>();
+	UMatchInstanceSubsystem* MatchSubsystem = GetGameInstance()->GetSubsystem<UMatchInstanceSubsystem>();
 
 	if (!MatchSubsystem)
 	{
@@ -163,19 +162,6 @@ void AFPSGameMode::RestartPlayer(AController* NewPlayer)
 	AActor* StartSpot = FindPlayerStart(NewPlayer);
 
 	RestartPlayerAtPlayerStart(NewPlayer, StartSpot);
-
-	// Disable player input. Input will be renabled upon countdown end.
-	if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(NewPlayer))
-	{
-		PC->SetInputEnabled(false);
-		PC->Client_SetInputEnabled(false);
-
-		if (AFPSCharacter* Character = Cast<AFPSCharacter>(PC->GetPawn()))
-		{
-			Character->GetCharacterMovement()->StopMovementImmediately();
-			Character->GetCharacterMovement()->DisableMovement();
-		}
-	}
 
 	// Attempt to start the round.
 	SpawnedPlayers.Add(NewPlayer);
@@ -275,8 +261,6 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 			 * AFPSGameMode::TryRoundStart() is called only after map is loaded and both players have spawned in.
 			 */
 
-			SetPlayersMovementEnabled(false);
-
 			if (FPSGameState)
 			{
 				FPSGameState->StartKillSlowdown();
@@ -286,7 +270,7 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 			break;
 
 		case EMatchPhase::InRound:
-			SetPlayersMovementEnabled(true);
+			SetPlayersControlEnabled(true);
 			break;
 
 		case EMatchPhase::RoundEnd:
@@ -595,37 +579,17 @@ void AFPSGameMode::DestroyPawns()
 	}
 }
 
-void AFPSGameMode::SetPlayersMovementEnabled(bool bEnabled)
+void AFPSGameMode::SetPlayersControlEnabled(bool bEnabled)
 {
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
-		AFPSPlayerController* PC = Cast<AFPSPlayerController>(It->Get());
-
-		if (!IsValid(PC))
+		if (AFPSPlayerController* PC = Cast<AFPSPlayerController>(It->Get()))
 		{
-			continue;
-		}
-
-		AFPSCharacter* Character = Cast<AFPSCharacter>(PC->GetPawn());
-
-		if (IsValid(Character))
-		{
-			UCharacterMovementComponent* Movement =
-				Character->GetCharacterMovement();
-
-			if (bEnabled)
+			if (AFPSCharacter* Character = Cast<AFPSCharacter>(PC->GetPawn()))
 			{
-				Movement->SetMovementMode(MOVE_Walking);
-			}
-			else
-			{
-				Movement->StopMovementImmediately();
-				Movement->DisableMovement();
+				Character->SetCanControl(true);
 			}
 		}
-
-		// Also disable input on the owning client.
-		PC->Client_SetInputEnabled(bEnabled);
 	}
 }
 #pragma endregion

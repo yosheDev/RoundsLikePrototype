@@ -92,6 +92,7 @@ void AFPSCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AFPSCharacter, CurrentWeapon);
 	DOREPLIFETIME(AFPSCharacter, PlayerScale);
+	DOREPLIFETIME(AFPSCharacter, bCanControl);
 }
 
 void AFPSCharacter::PossessedBy(AController* NewController)
@@ -149,6 +150,11 @@ void AFPSCharacter::OnRep_CurrentWeapon()
 #pragma region Input Actions
 void AFPSCharacter::Look(const FInputActionValue& Value)
 {
+	if (!bCanControl)
+	{
+		return;
+	}
+
 	FVector2D LookVector = Value.Get<FVector2D>() * 1.0f; // Replace the constant float with look sensitivity when that value has a home.
 
 	// only route inputs if the character is not dead
@@ -162,6 +168,11 @@ void AFPSCharacter::Look(const FInputActionValue& Value)
 
 void AFPSCharacter::Move(const FInputActionValue& Value)
 {
+	if (!bCanControl)
+	{
+		return;
+	}
+
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	if (!bIsDead)
@@ -179,6 +190,11 @@ void AFPSCharacter::Move(const FInputActionValue& Value)
 
 void AFPSCharacter::JumpStart()
 {
+	if (!bCanControl)
+	{
+		return;
+	}
+
 	// only route inputs if the character is not dead
 	if (!bIsDead)
 	{
@@ -193,6 +209,11 @@ void AFPSCharacter::JumpStart()
 
 void AFPSCharacter::JumpEnd()
 {
+	if (!bCanControl)
+	{
+		return;
+	}
+
 	// only route inputs if the character is not dead
 	if (!bIsDead)
 	{
@@ -254,6 +275,11 @@ void AFPSCharacter::PrimaryFireCompleted()
 
 void AFPSCharacter::ShiftInput()
 {
+	if (!bCanControl)
+	{
+		return;
+	}
+
 	if (FPSAbilitySystemComponent)
 	{
 		const FGameplayTag SlideTag = FGameplayTag::RequestGameplayTag(FName("GameplayAbility.Movement.OmniSlide"));
@@ -276,13 +302,37 @@ void AFPSCharacter::ShiftInput()
 
 void AFPSCharacter::ShiftInputCompleted()
 {
-	/*if (FPSAbilitySystemComponent)
+	if (!bCanControl)
 	{
-		FGameplayTagContainer AbilityTags;
-		AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("GameplayAbility.Movement.OmniSlide")));
+		return;
+	}
+}
+#pragma endregion
 
-		FPSAbilitySystemComponent->CancelAbilities(&AbilityTags);
-	}*/
+#pragma region Control
+void AFPSCharacter::SetCanControl(bool bNewCanControl)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	bCanControl = bNewCanControl;
+
+	OnRep_CanControl();
+}
+
+void AFPSCharacter::OnRep_CanControl()
+{
+	if (bCanControl)
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
+	else
+	{
+		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->DisableMovement();
+	}
 }
 #pragma endregion
 
