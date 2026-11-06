@@ -406,43 +406,6 @@ AFirstPersonWeapon* AFPSCharacter::GetCosmeticWeapon_Implementation() const
 
 #pragma endregion
 
-#pragma region RandomCrapToCleanUp
-
-void AFPSCharacter::Die()
-{
-	if (bIsDead)
-	{
-		return;
-	}
-
-	bIsDead = true;
-
-	// stop character movement
-	GetCharacterMovement()->StopMovementImmediately();
-
-	// disable controls
-	DisableInput(nullptr);
-
-	// Inform GameMode that this player has died.
-	if (HasAuthority())
-	{
-		AFPSGameMode* FPSGameMode = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
-
-		if (FPSGameMode)
-		{
-			FPSGameMode->OnPlayerDefeated(Cast<APlayerController>(GetController()));
-		}
-	}
-}
-
-void AFPSCharacter::OnRespawn()
-{
-	// destroy the character to force the PC to respawn
-	Destroy();
-}
-
-#pragma endregion
-
 #pragma region FPS Ability System Component
 
 UAbilitySystemComponent* AFPSCharacter::GetAbilitySystemComponent() const
@@ -788,6 +751,32 @@ void AFPSCharacter::UpdateBlurPostProcessWeight(float NewWeight)
 	FirstPersonCamera->PostProcessSettings.WeightedBlendables.Array.Add(WeightedBlendable);
 }
 #pragma endregion
+
+void AFPSCharacter::Die()
+{
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// Stop character movement
+	GetCharacterMovement()->StopMovementImmediately();
+	bIsDead = true;
+	bCanControl = false;
+
+	// Inform GameMode that this player has died.
+	if (HasAuthority())
+	{
+		AFPSGameMode* FPSGameMode = Cast<AFPSGameMode>(GetWorld()->GetAuthGameMode());
+
+		if (FPSGameMode)
+		{
+			FPSGameMode->OnPlayerDefeated(Cast<APlayerController>(GetController()));
+		}
+	}
+
+	// VFX / Animation stuff here
+}
 
 void AFPSCharacter::Landed(const FHitResult& Hit)
 {

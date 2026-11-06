@@ -52,11 +52,18 @@ private:
 	UPROPERTY()
 	TSet<TObjectPtr<AFPSPlayerController>> ReadyPlayers;
 
+	UPROPERTY()
+	FString PendingArenaMapPath;
+
 public:
 
 	virtual void BeginPlay() override;
 
 	virtual void PostLogin(APlayerController* NewPlayer) override;
+
+	virtual void Logout(AController* Exiting) override;
+
+	virtual void InitGameState() override;
 
 	virtual void HandleSeamlessTravelPlayer(AController*& C) override;
 
@@ -76,12 +83,20 @@ protected:
 	/** Gets the Spawn Side that the player should spawn at for the current arena. */
 	ESpawnSide GetSpawnSide(AController* Player);
 
+	/** Determins the next arena to load and initiates the loading transition sequence on all clients. */
+	void PrepareLoadNextArena();
+
+	/** Actually begin the travel sequence to the pending arena. */
+	void LoadNextArena();
+
 	/** Callback once ServerTravel() has completely finished. */
 	virtual void PostSeamlessTravel() override;
 
 	/** Used for checking if round start countdown should occur yet. True by default for editor testing (being able to load in straight away.) */
 	bool bHasFinishedTravel = true;
 	
+	// Keeps track of whether or not the transition outro has already been called to play.
+	bool bHasStartedLoadingOutro = false;
 public:
 
 	/** Only succeeds if EMatchPhase is IsStarting, all players have spawned, and seamless travel has completed. */
@@ -101,9 +116,6 @@ public:
 	/** Executes when a player has locked in their draft pick. */
 	void PlayerFinishedDraft(AFPSPlayerController* PC);
 
-	/** Loads the next arena and handles Server Travel to it. */
-	void LoadNextArena();
-
 	/** Executes after ability draft stage has completed. Counts down the start for the round. */
 	void BeginRoundStartCountdown();
 
@@ -119,6 +131,9 @@ public:
 
 	UFUNCTION()
 	void NotifyMatchStateDisplayComplete(AFPSPlayerController* PlayerController);
+
+	UFUNCTION()
+	void NotifyLoadingAnimationFinished(AFPSPlayerController* PlayerController, EMatchLoadingScreenPhase FinishedPhase);
 
 	/** The match has ended. */
 	void EndMatch();

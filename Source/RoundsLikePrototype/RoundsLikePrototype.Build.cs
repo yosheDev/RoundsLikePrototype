@@ -20,6 +20,7 @@ public class RoundsLikePrototype : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
+			"CommonLoadingScreen",
             "AdvancedWidgets",
             "GameplayAbilities",
 			"GameplayTags",

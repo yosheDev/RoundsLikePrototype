@@ -94,6 +94,10 @@ public:
 	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void Server_NotifyMatchStateDisplayComplete();
 
+	// Screen-loading animation finished.
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void Server_NotifyLoadingAnimationFinished(EMatchLoadingScreenPhase FinishedPhase);
+
 protected:
 	#pragma region Input Functions
 	virtual void MoveInput(const FInputActionValue& Value);

@@ -4,9 +4,28 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "LoadingProcessInterface.h"
 #include "MatchInstanceSubsystem.generated.h"
 
 class AFPSPlayerState;
+
+UENUM(BlueprintType)
+enum class EMatchLoadingScreenType : uint8
+{
+	None,
+	ArenaTravel,
+	Connecting,
+	ReturningToMenu
+};
+
+UENUM(BlueprintType)
+enum class EMatchLoadingScreenPhase : uint8
+{
+	None,
+	Intro,
+	Loading,
+	Outro
+};
 
 UENUM(BlueprintType)
 enum class EMatchPhase : uint8
@@ -59,8 +78,14 @@ struct FMatchData
 	uint8 PlayerTwoRoundWins = 0;
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnLoadingScreenStateChanged,
+	EMatchLoadingScreenType, LoadingType,
+	EMatchLoadingScreenPhase, LoadingPhase
+);
+
 UCLASS()
-class ROUNDSLIKEPROTOTYPE_API UMatchInstanceSubsystem : public UGameInstanceSubsystem
+class ROUNDSLIKEPROTOTYPE_API UMatchInstanceSubsystem : public UGameInstanceSubsystem, public ILoadingProcessInterface
 {
 	GENERATED_BODY()
 	
@@ -68,6 +93,40 @@ class ROUNDSLIKEPROTOTYPE_API UMatchInstanceSubsystem : public UGameInstanceSubs
 		virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 		virtual void Deinitialize() override;
 
+#pragma region Loading Screen
+
+		// Loading Screen Interface
+		virtual bool ShouldShowLoadingScreen(FString& OutReason) const override;
+
+		// Loading Screen Control
+		void SetLoadingScreen(EMatchLoadingScreenType NewType, EMatchLoadingScreenPhase NewPhase);
+
+		UFUNCTION(BlueprintPure, Category = "Loading Screen")
+		EMatchLoadingScreenType GetLoadingScreenType() const
+		{
+			return LoadingScreenType;
+		}
+
+		UFUNCTION(BlueprintPure, Category = "Loading Screen")
+		EMatchLoadingScreenPhase GetLoadingScreenPhase() const
+		{
+			return LoadingScreenPhase;
+		}
+
+		UPROPERTY(BlueprintAssignable, Category = "Loading Screen")
+		FOnLoadingScreenStateChanged OnLoadingScreenStateChanged;
+
+private:
+
+	UPROPERTY()
+	EMatchLoadingScreenType LoadingScreenType = EMatchLoadingScreenType::None;
+
+	UPROPERTY()
+	EMatchLoadingScreenPhase LoadingScreenPhase = EMatchLoadingScreenPhase::None;
+
+#pragma endregion
+
+	#pragma region Match Data
 	public:
 		
 		UPROPERTY()
@@ -88,4 +147,5 @@ class ROUNDSLIKEPROTOTYPE_API UMatchInstanceSubsystem : public UGameInstanceSubs
 			FMatchData NewMatchData;
 			MatchData = NewMatchData;
 		}
+	#pragma endregion
 };

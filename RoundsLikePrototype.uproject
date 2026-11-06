@@ -41,6 +41,10 @@
 		{
 			"Name": "BlockoutToolsPlugin",
 			"Enabled": true
+		},
+		{
+    			"Name": "CommonLoadingScreen",
+    			"Enabled": true
 		}
 
 	]

@@ -44,9 +44,31 @@ void AFPSGameMode::PostLogin(APlayerController* NewPlayer)
 	FPSGameState->UpdateMatchSubsystem();
 }
 
+void AFPSGameMode::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+
+	if (AFPSPlayerController* ExitingPlayer = Cast<AFPSPlayerController>(Exiting))
+	{
+		ReadyPlayers.Remove(ExitingPlayer);
+	}
+
+	// Abort the match here.
+}
+
+void AFPSGameMode::InitGameState()
+{
+	Super::InitGameState();
+
+	if (AFPSGameState* NewFPSGameState = GetGameState<AFPSGameState>())
+	{
+		NewFPSGameState->SetLoadingScreenState(EMatchLoadingScreenType::ArenaTravel, EMatchLoadingScreenPhase::Loading);
+	}
+}
+
 #pragma region Arena Loading / Player Spawning
 
-void AFPSGameMode::LoadNextArena()
+void AFPSGameMode::PrepareLoadNextArena()
 {
 	// Update PlayersSpawned count (Players will be destroyed across load.)
 	SpawnedPlayers.Empty();
@@ -61,11 +83,24 @@ void AFPSGameMode::LoadNextArena()
 		return;
 	}
 
+	ResetReadyPlayers();
+	bHasStartedLoadingOutro = false;
+
+	FPSGameState->SetLoadingScreenState(EMatchLoadingScreenType::ArenaTravel, EMatchLoadingScreenPhase::Intro);
+
+	// LoadNextArena() is called once both player controllers have called NotifyLoadingAnimationFinished().
+	
+}
+
+void AFPSGameMode::LoadNextArena()
+{
 	const int32 RandomIndex = FMath::RandRange(0, ArenaMaps.Num() - 1);
 
-	FString MapPath = ArenaMaps[RandomIndex].ToSoftObjectPath().GetLongPackageName();
+	PendingArenaMapPath = ArenaMaps[RandomIndex].ToSoftObjectPath().GetLongPackageName();
 
-	GetWorld()->ServerTravel(MapPath);
+	FPSGameState->SetLoadingScreenState(EMatchLoadingScreenType::ArenaTravel, EMatchLoadingScreenPhase::Loading);
+
+	GetWorld()->ServerTravel(PendingArenaMapPath);
 }
 
 void AFPSGameMode::HandleSeamlessTravelPlayer(AController*& C)
@@ -266,7 +301,7 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 				FPSGameState->StartKillSlowdown();
 			}
 			
-			LoadNextArena();
+			PrepareLoadNextArena();
 			break;
 
 		case EMatchPhase::InRound:
@@ -290,41 +325,7 @@ void AFPSGameMode::SetMatchPhase(EMatchPhase NewPhase)
 	}
 }
 
-void AFPSGameMode::StartDraft()
-{	
-	//DestroyPawns();
-	FPSGameState->EconomyComponent->InitializeBottlecapAllocations();
-	GenerateAbilityChoices();
-	SetMatchPhase(EMatchPhase::AbilityDraft);
-}
-
-void AFPSGameMode::PlayerFinishedDraft(AFPSPlayerController* PC)
-{
-	if (FPSGameState->MatchPhase == EMatchPhase::AbilityDraft)
-	{
-		if (PC->GetPlayerState<AFPSPlayerState>() == FPSGameState->CurrentLoserState)
-		{
-			FPSGameState->PlayerOneRoundWins = 0;
-			FPSGameState->PlayerTwoRoundWins = 0;
-
-			SetMatchPhase(EMatchPhase::RoundStarting);
-		}
-	}
-}
-
-void AFPSGameMode::BeginRoundStartCountdown()
-{
-	/** This timer acts as a countdown */
-
-	GetWorldTimerManager().SetTimer(
-		MatchTimerHandle,
-		this,
-		&AFPSGameMode::StartRound,
-		2.0f,
-		false
-	);
-}
-
+#pragma region Round Starting
 void AFPSGameMode::TryRoundStart()
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, FString::Printf(TEXT("Try Round Start")));
@@ -340,19 +341,43 @@ void AFPSGameMode::TryRoundStart()
 
 	if (FPSGameState->MatchPhase == EMatchPhase::RoundStarting && bHasFinishedTravel && (SpawnedPlayers.Num() >= 2))
 	{
-		// TO DO: I also need to make sure the pawns have spawned in that the controllers should possess.
-		bHasFinishedTravel = false;
-		BeginRoundStartCountdown();
+		// TO DO: Do not start round countdown until outro animation has completed.
+		
+		if (!bHasStartedLoadingOutro)
+		{
+			bHasStartedLoadingOutro = true;
+			ResetReadyPlayers();
+			FPSGameState->SetLoadingScreenState(EMatchLoadingScreenType::ArenaTravel, EMatchLoadingScreenPhase::Outro);
+			UE_LOG(LogTemp, Log, TEXT("TransitionLog: AFPSGameMode has started loading the outro."));
+			return;
+		}
 	}
 }
+
+void AFPSGameMode::BeginRoundStartCountdown()
+{
+	/** This timer acts as a countdown */
+
+	// Ready?
+	// (1s)
+	// Fight!
+
+	GetWorldTimerManager().SetTimer(
+		MatchTimerHandle,
+		this,
+		&AFPSGameMode::StartRound,
+		2.0f,
+		false
+	);
+}
+
 void AFPSGameMode::StartRound()
 {
 	// Players should already be spawned by this point. Countdown has ended. Fight!
-
 	SetMatchPhase(EMatchPhase::InRound);
-
 	FPSGameState->RoundNumber++;
 }
+#pragma endregion
 
 void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 {
@@ -445,6 +470,29 @@ void AFPSGameMode::OnPlayerDefeated(APlayerController* Loser)
 	#pragma endregion
 }
 
+#pragma region Draft Phase
+void AFPSGameMode::StartDraft()
+{
+	FPSGameState->EconomyComponent->InitializeBottlecapAllocations();
+	GenerateAbilityChoices();
+	SetMatchPhase(EMatchPhase::AbilityDraft);
+}
+
+void AFPSGameMode::PlayerFinishedDraft(AFPSPlayerController* PC)
+{
+	if (FPSGameState->MatchPhase == EMatchPhase::AbilityDraft)
+	{
+		if (PC->GetPlayerState<AFPSPlayerState>() == FPSGameState->CurrentLoserState)
+		{
+			FPSGameState->PlayerOneRoundWins = 0;
+			FPSGameState->PlayerTwoRoundWins = 0;
+
+			SetMatchPhase(EMatchPhase::RoundStarting);
+		}
+	}
+}
+#pragma endregion
+
 void AFPSGameMode::EndMatch()
 {
 	UE_LOG(LogTemp, Log, TEXT("Match has ended! Winner is [%s]"), *GetNameSafe(Cast<AFPSPlayerController>(FPSGameState->MatchWinnerState->GetOwner())->GetPawn()));
@@ -503,6 +551,48 @@ void AFPSGameMode::NotifyMatchStateDisplayComplete(AFPSPlayerController* PlayerC
 		else
 		{
 			SetMatchPhase(EMatchPhase::RoundStarting);
+		}
+	}
+}
+
+void AFPSGameMode::NotifyLoadingAnimationFinished(AFPSPlayerController* PlayerController, EMatchLoadingScreenPhase FinishedPhase)
+{
+	if (!IsValid(PlayerController) || !IsValid(FPSGameState))
+	{
+		return;
+	}
+
+	// Ignore acknowledgements for an outdated or unexpected phase.
+	if (FinishedPhase != FPSGameState->LoadingScreenPhase)
+	{
+		return;
+	}
+
+	if (ReadyPlayers.Contains(PlayerController))
+	{
+		return;
+	}
+
+	ReadyPlayers.Add(PlayerController);
+
+	// Advance once all players are ready.
+	if (ReadyPlayers.Num() == 2)
+	{
+		if (FinishedPhase == EMatchLoadingScreenPhase::Intro)
+		{
+			// When intro is finished playing, begin the synchronous load for next arena.
+			ResetReadyPlayers();
+			LoadNextArena();
+		}
+		else if (FinishedPhase == EMatchLoadingScreenPhase::Outro)
+		{
+			// When outro is finished playing, begin the round start countdown.
+			ResetReadyPlayers();
+
+			bHasFinishedTravel = false;
+
+			FPSGameState->SetLoadingScreenState(EMatchLoadingScreenType::None, EMatchLoadingScreenPhase::None);
+			BeginRoundStartCountdown();
 		}
 	}
 }

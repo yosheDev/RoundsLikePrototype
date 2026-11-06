@@ -9,6 +9,7 @@
 #include "Subsystems/MatchInstanceSubsystem.h"
 #include "Components/MatchEconomyComponent.h"
 #include "Curves/CurveFloat.h"
+#include "LoadingProcessInterface.h"
 #include "FPSGameState.generated.h"
 
 USTRUCT(BlueprintType)
@@ -30,13 +31,15 @@ struct FGamePlayerData
 };
 
 UCLASS()
-class ROUNDSLIKEPROTOTYPE_API AFPSGameState : public AGameStateBase
+class ROUNDSLIKEPROTOTYPE_API AFPSGameState : public AGameStateBase, public ILoadingProcessInterface
 {
 	GENERATED_BODY()
 	
 public:
 
     AFPSGameState();
+
+    virtual void BeginPlay() override;
 
     virtual void Tick(float DeltaTime) override;
 
@@ -101,6 +104,36 @@ public:
 
     UPROPERTY()
     TObjectPtr<UMatchEconomyComponent> EconomyComponent;
+
+#pragma region Loading Process
+
+    UPROPERTY(ReplicatedUsing = OnRep_LoadingScreenType)
+    EMatchLoadingScreenType LoadingScreenType;
+
+    UPROPERTY(ReplicatedUsing = OnRep_LoadingScreenPhase)
+    EMatchLoadingScreenPhase LoadingScreenPhase;
+
+    UFUNCTION()
+    void OnRep_LoadingScreenType();
+
+    UFUNCTION()
+    void OnRep_LoadingScreenPhase();
+
+    UFUNCTION()
+    void UpdateLocalLoadingScreen();
+
+    UFUNCTION()
+    void SetLoadingScreenState(EMatchLoadingScreenType NewType, EMatchLoadingScreenPhase NewPhase);
+
+    UFUNCTION()
+    EMatchLoadingScreenType GetLoadingScreenType() const
+    {
+        return LoadingScreenType;
+    }
+
+    virtual bool ShouldShowLoadingScreen(FString& OutReason) const override;
+
+#pragma endregion
 
 public:
 

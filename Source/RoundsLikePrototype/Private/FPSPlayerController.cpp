@@ -54,7 +54,10 @@ void AFPSPlayerController::OnPossess(APawn* InPawn)
 
 	SetupMappingContexts();
 
-	PlayerCharacter->Tags.Add(PlayerPawnTag);
+	if (IsValid(PlayerCharacter))
+	{
+		PlayerCharacter->Tags.Add(PlayerPawnTag);
+	}
 }
 
 void AFPSPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
@@ -234,6 +237,14 @@ void AFPSPlayerController::Server_NotifyMatchStateDisplayComplete_Implementation
 	if (AFPSGameMode* GM = GetWorld()->GetAuthGameMode<AFPSGameMode>())
 	{
 		GM->NotifyMatchStateDisplayComplete(this);
+	}
+}
+
+void AFPSPlayerController::Server_NotifyLoadingAnimationFinished_Implementation(EMatchLoadingScreenPhase FinishedPhase)
+{
+	if (AFPSGameMode* GameMode = GetWorld()->GetAuthGameMode<AFPSGameMode>())
+	{
+		GameMode->NotifyLoadingAnimationFinished(this, FinishedPhase);
 	}
 }
 

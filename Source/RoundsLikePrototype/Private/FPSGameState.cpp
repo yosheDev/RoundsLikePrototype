@@ -10,6 +10,7 @@
 #include "Curves/CurveFloat.h"
 #include "HAL/PlatformTime.h"
 #include "Components/MatchEconomyComponent.h"
+#include "LoadingProcessInterface.h"
 
 AFPSGameState::AFPSGameState()
 {
@@ -17,6 +18,13 @@ AFPSGameState::AFPSGameState()
     bReplicates = true;
 
     EconomyComponent = CreateDefaultSubobject<UMatchEconomyComponent>(TEXT("EconomyComponent"));
+}
+
+void AFPSGameState::BeginPlay()
+{
+    Super::BeginPlay();
+
+    UpdateLocalLoadingScreen();
 }
 
 void AFPSGameState::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -36,6 +44,8 @@ void AFPSGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+    DOREPLIFETIME(AFPSGameState, LoadingScreenType);
+    DOREPLIFETIME(AFPSGameState, LoadingScreenPhase);
 	DOREPLIFETIME(AFPSGameState, MatchPhase);
     DOREPLIFETIME(AFPSGameState, RoundNumber);
     DOREPLIFETIME(AFPSGameState, PlayerOneWins);
@@ -43,6 +53,65 @@ void AFPSGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
     DOREPLIFETIME(AFPSGameState, PlayerOneRoundWins);
     DOREPLIFETIME(AFPSGameState, PlayerTwoRoundWins);
 }
+
+#pragma region Loading Process
+void AFPSGameState::SetLoadingScreenState(EMatchLoadingScreenType NewType, EMatchLoadingScreenPhase NewPhase)
+{
+    if (!HasAuthority())
+    {
+        return;
+    }
+
+    LoadingScreenType = NewType;
+    LoadingScreenPhase = NewPhase;
+
+    UpdateLocalLoadingScreen();
+
+    ForceNetUpdate();
+}
+
+void AFPSGameState::OnRep_LoadingScreenType()
+{
+    UpdateLocalLoadingScreen();
+}
+
+void AFPSGameState::OnRep_LoadingScreenPhase()
+{
+    UpdateLocalLoadingScreen();
+}
+
+void AFPSGameState::UpdateLocalLoadingScreen()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UMatchInstanceSubsystem* MatchSubsystem = GameInstance->GetSubsystem<UMatchInstanceSubsystem>())
+        {
+            MatchSubsystem->SetLoadingScreen(LoadingScreenType, LoadingScreenPhase);
+        }
+    }
+}
+
+bool AFPSGameState::ShouldShowLoadingScreen(FString& OutReason) const
+{
+    switch (LoadingScreenType)
+    {
+    case EMatchLoadingScreenType::ArenaTravel:
+        OutReason = TEXT("Loading Arena");
+        return true;
+
+    case EMatchLoadingScreenType::Connecting:
+        OutReason = TEXT("Connecting");
+        return true;
+
+    case EMatchLoadingScreenType::ReturningToMenu:
+        OutReason = TEXT("Returning to Menu");
+        return true;
+
+    default:
+        return false;
+    }
+}
+#pragma endregion
 
 void AFPSGameState::OnRep_MatchPhase()
 {

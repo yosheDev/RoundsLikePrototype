@@ -321,9 +321,6 @@ protected:
 	//UFUNCTION(BlueprintImplementableEvent, Category = "Shooter", meta = (DisplayName = "On Death"))
 	//void BP_OnDeath();
 
-	/** Called from the respawn timer to destroy this character and force the PC to respawn */
-	void OnRespawn();
-
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 };
